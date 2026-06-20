@@ -1,0 +1,29 @@
+{
+  "name": "marketing-img",
+  "version": "0.1.0-alpha",
+  "private": true,
+  "type": "module",
+  "description": "Claude Code only orchestration system for Meta ad image prompt candidates (prompt-only, no real image provider calls).",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "slice:images": "node shared/collect/slice-long-image.mjs",
+    "validate:candidates": "tsx shared/validators/validate-candidate.ts .generate-ads-img/runs/mock-image-generation/creative/creative-candidates.json",
+    "cutout": "tsx shared/harness/product-cutout-cleanup.ts",
+    "test": "node --test shared"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "yaml": "^2.6.1",
+    "chrome-remote-interface": "^0.33.3"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.33.5"
+  }
+}

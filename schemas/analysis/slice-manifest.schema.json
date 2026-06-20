@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marketing-img/schemas/slice-manifest.schema.json",
+  "title": "SliceManifest",
+  "description": "collection slicer output — long image → section mapping (with source provenance).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sliced", "passthrough"],
+  "properties": {
+    "sliced": { "type": "array", "items": {
+      "type": "object", "additionalProperties": false, "required": ["source", "sections"],
+      "properties": {
+        "source": { "type": "string" },
+        "sections": { "type": "array", "items": {
+          "type": "object", "additionalProperties": false, "required": ["file", "y0", "y1"],
+          "properties": { "file": { "type": "string" }, "y0": { "type": "integer", "minimum": 0 }, "y1": { "type": "integer", "minimum": 0 } } } }
+      } } },
+    "passthrough": { "type": "array", "items": { "type": "string" } }
+  }
+}

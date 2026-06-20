@@ -1,0 +1,13 @@
+# MOCK METADATA — not real infrastructure; example data only.
+# No real provider API calls are made in MVP; adapters are prompt_only stubs.
+
+image_adapters:
+  - adapter_id: chatgpt_image
+    provider: chatgpt
+    status: prompt_only
+    notes: "No real provider calls in MVP. Adapter constructs and logs the prompt only."
+
+  - adapter_id: gemini_image
+    provider: gemini
+    status: prompt_only
+    notes: "No real provider calls in MVP. Adapter constructs and logs the prompt only."

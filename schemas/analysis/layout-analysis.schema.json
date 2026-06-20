@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marketing-img/schemas/layout-analysis.schema.json",
+  "title": "LayoutAnalysis",
+  "description": "L2a — layout structure + comfort, derived from L1 geometry only.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["image_ref", "persona_id", "composition_type", "text_density", "comfort"],
+  "properties": {
+    "image_ref": { "type": "string", "minLength": 1 },
+    "persona_id": { "type": "string", "minLength": 1 },
+    "composition_type": { "type": "string", "enum": ["product_only", "lifestyle", "comparison_table", "review_capture", "spec_list", "usage", "price_emphasis", "other"] },
+    "focal_point": { "type": "string" },
+    "visual_hierarchy": { "type": "array", "items": { "type": "string" } },
+    "text_density": { "type": "string", "enum": ["low", "medium", "high"] },
+    "whitespace_ratio": { "type": "number" },
+    "comfort": {
+      "type": "object", "additionalProperties": false,
+      "required": ["crowding", "awkward_placement", "breathing_room"],
+      "properties": {
+        "crowding": { "type": "number" },
+        "awkward_placement": { "type": "boolean" },
+        "breathing_room": { "type": "boolean" },
+        "balance": { "type": "string" }
+      }
+    },
+    "grid_pattern": { "type": "string" }
+  }
+}

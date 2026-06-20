@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marketing-img/schemas/brand-research.schema.json",
+  "title": "BrandResearchFindings",
+  "description": "initial-setup — one brand-researcher angle's findings: public-source evidence grounding the user's pointers, plus data-derived category/persona candidates the interview presents as CHOICES. NOT user-defined; NOT fabricated — every candidate traces to evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["brand_id", "angle", "sources_consulted", "evidence"],
+  "properties": {
+    "brand_id": { "type": "string", "minLength": 1 },
+    "angle": {
+      "type": "string",
+      "description": "which research lens this artifact covers",
+      "enum": ["page", "reviews", "positioning"]
+    },
+    "sources_consulted": {
+      "type": "array",
+      "description": "every public source actually fetched/searched (honest — drives coverage)",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ref", "method"],
+        "properties": {
+          "ref": { "type": "string", "minLength": 1, "description": "URL or search query actually used" },
+          "method": { "type": "string", "enum": ["curl", "webfetch", "websearch", "cdp"] },
+          "reached": { "type": "boolean", "description": "false if blocked/unreachable" }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "description": "concrete observations from the sources — facts, not interpretation. Each candidate below must trace here.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["observation", "source_ref"],
+        "properties": {
+          "observation": { "type": "string", "minLength": 1 },
+          "source_ref": { "type": "string", "minLength": 1, "description": "which sources_consulted[].ref this came from" }
+        }
+      }
+    },
+    "category_candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["category", "evidence_refs"],
+        "properties": {
+          "category": { "type": "string", "minLength": 1 },
+          "evidence_refs": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+        }
+      }
+    },
+    "persona_candidates": {
+      "type": "array",
+      "description": "data-derived persona options for the interview to present as CHOICES (not free-form)",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "who", "evidence_refs"],
+        "properties": {
+          "label": { "type": "string", "minLength": 1 },
+          "who": { "type": "string", "minLength": 1, "description": "who this buyer is, in plain terms" },
+          "pains": { "type": "array", "items": { "type": "string" } },
+          "desires": { "type": "array", "items": { "type": "string" } },
+          "evidence_refs": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "review/page observations grounding this persona — no fabrication" }
+        }
+      }
+    },
+    "positioning_signals": { "type": "array", "items": { "type": "string" } },
+    "forbidden_claim_risks": { "type": "array", "items": { "type": "string" }, "description": "claims observed on the page/reviews that may be over-claims to guard against downstream" },
+    "coverage_flags": { "type": "array", "items": { "type": "string" }, "description": "what could NOT be reached/found — honest gaps, never silent" }
+  }
+}

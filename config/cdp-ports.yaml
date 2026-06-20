@@ -1,0 +1,16 @@
+# CDP port assignment for this plugin's collectors — TEMPLATE (no live port claims committed here).
+#
+# A collector acquires a probed-FREE port at runtime, NOT by hardcoding in this file:
+#   node shared/collect/acquire-port.mjs <task>   → prints a confirmed-free port (probe-based, self-contained)
+#
+# Rules:
+#   - Ports come from the 9223–9299 range. Never hardcode 9222 (reserved for a generic one-off browser).
+#   - This file documents the CONVENTION + the shape of an entry. Real port assignments are acquired at runtime,
+#     never committed here. Do not commit a real port.
+#
+# Entry shape (illustrative — acquire the real port at runtime, do not ship one):
+cdp_ports:
+  - id: example_collector
+    port: 92xx                 # claim a free port via acquire-port.mjs at runtime; do not hardcode a real one
+    owner: <your-task>/ad-library-collector
+    status: template           # template | active | released

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marketing-img/schemas/competitor-collection.schema.json",
+  "title": "CompetitorCollection",
+  "description": "Per confirmed competitor (advertiser), the ad creatives collected from a public ad-transparency library (Meta Ad Library / Google Ads Transparency): creative images + meta. Feeds collection slicer → collection refiner. Distinct from competitor-candidate (discovery POOL) and competitor (confirmed set). Public, no login, no third-party-store scraping. Credential-free: never stores cookie/token/password.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["from", "confirmed_targets", "source", "collected", "products", "captured_at"],
+  "properties": {
+    "from": { "type": "string", "minLength": 1 },
+    "confirmed_targets": { "type": "array", "items": { "type": "string" } },
+    "source": { "type": "string", "minLength": 1 },
+    "collected": { "type": "integer", "minimum": 1 },
+    "products": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["idx", "query", "host", "title", "image_urls", "image_files", "reviews"],
+        "properties": {
+          "idx": { "type": "integer" },
+          "query": { "type": "string", "minLength": 1 },
+          "host": { "type": "string", "minLength": 1 },
+          "title": { "type": "string", "minLength": 1 },
+          "price": { "type": ["string", "null"] },
+          "rating": { "type": ["string", "null"] },
+          "reviewCount": { "type": ["string", "null"] },
+          "image_urls": { "type": "array", "items": { "type": "string" } },
+          "image_files": { "type": "array", "items": { "type": "string" } },
+          "review_count_collected": { "type": "integer" },
+          "reviews": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "captured_at": { "type": "string" }
+  }
+}

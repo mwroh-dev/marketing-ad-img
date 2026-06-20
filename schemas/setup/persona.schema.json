@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marketing-img/schemas/persona.schema.json",
+  "title": "Persona",
+  "description": "Domain knowledge: a persona of a product. Built from user answers + evidence signals via user-answer-tooling.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["persona_id", "product_id", "label"],
+  "properties": {
+    "persona_id": { "type": "string", "minLength": 1 },
+    "product_id": { "type": "string", "minLength": 1 },
+    "label": { "type": "string", "minLength": 1 },
+    "pains": { "type": "array", "items": { "type": "string" } },
+    "desires": { "type": "array", "items": { "type": "string" } },
+    "objections": { "type": "array", "items": { "type": "string" } },
+    "language_cues": { "type": "array", "items": { "type": "string" } },
+    "evidence_refs": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marketing-img/schemas/analyses-envelope.schema.json",
+  "title": "AnalysesEnvelope",
+  "description": "analysis copy / analysis layout output envelope — {persona_id, analyses[]}. Each analyses item is validated separately against the copy-analysis / layout-analysis schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["persona_id", "analyses"],
+  "properties": {
+    "persona_id": { "type": "string", "minLength": 1 },
+    "analyses": { "type": "array", "minItems": 1, "items": {
+      "type": "object", "required": ["image_ref", "persona_id"],
+      "properties": { "image_ref": { "type": "string" }, "persona_id": { "type": "string" } } } }
+  }
+}

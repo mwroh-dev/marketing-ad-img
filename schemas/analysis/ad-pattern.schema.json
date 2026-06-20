@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marketing-img/schemas/ad-pattern.schema.json",
+  "title": "AdPattern",
+  "description": "L3 — per-persona aggregated ad composition pattern.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["product_id", "persona_id", "image_count", "composition_top_k", "text_role_distribution", "comfort"],
+  "properties": {
+    "product_id": { "type": "string", "minLength": 1 },
+    "persona_id": { "type": "string", "minLength": 1 },
+    "image_count": { "type": "integer", "minimum": 0 },
+    "composition_top_k": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["value", "freq", "score"],
+        "properties": { "value": { "type": "string" }, "freq": { "type": "number" }, "score": { "type": "number" } }
+      }
+    },
+    "text_role_distribution": { "type": "object", "additionalProperties": { "type": "number" } },
+    "hook_top_k": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": false, "required": ["value", "freq", "score"],
+        "properties": { "value": { "type": "string" }, "freq": { "type": "number" }, "score": { "type": "number" } } }
+    },
+    "copy_keywords_top_k": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": false, "required": ["value", "freq", "score"],
+        "properties": { "value": { "type": "string" }, "freq": { "type": "number" }, "score": { "type": "number" } } }
+    },
+    "comfort": {
+      "type": "object", "additionalProperties": false,
+      "required": ["avg_crowding", "avg_whitespace", "awkward_rate"],
+      "properties": { "avg_crowding": { "type": "number" }, "avg_whitespace": { "type": "number" }, "awkward_rate": { "type": "number" } }
+    },
+    "synthesis": { "type": "string" },
+    "generated_at": { "type": "string" },
+    "confidence_note": { "type": "string" }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "_note": "Korean ad loanword seed map (canonical Hangul ← english + variants). DOMAIN-GENERAL — spans categories so it never biases ad-analyst toward one domain. ad-analyst EXTENDS this from the actual corpus per run; never drops a loanword. The entries below are illustrative, not a fixed domain.",
+  "pairs": [
+    { "canonical": "프리미엄", "english": "premium", "variants": ["premium"] },
+    { "canonical": "디지털", "english": "digital", "variants": ["digital"] },
+    { "canonical": "LED", "english": "led", "variants": ["led"] },
+    { "canonical": "세럼", "english": "serum", "variants": ["serum"] },
+    { "canonical": "모이스처", "english": "moisture", "variants": ["moisture", "모이스쳐"] },
+    { "canonical": "프로틴", "english": "protein", "variants": ["protein"] },
+    { "canonical": "오가닉", "english": "organic", "variants": ["organic", "올가닉"] },
+    { "canonical": "워터프루프", "english": "waterproof", "variants": ["waterproof"] },
+    { "canonical": "컬렉션", "english": "collection", "variants": ["collection", "콜렉션"] }
+  ]
+}

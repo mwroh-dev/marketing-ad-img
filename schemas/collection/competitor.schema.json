@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marketing-img/schemas/competitor.schema.json",
+  "title": "CompetitorSet",
+  "description": "Confirmed per-persona competitor set (domain knowledge). Lives under products/{product}/personas/{persona}/competitors/.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["product_id", "persona_id", "competitors"],
+  "properties": {
+    "product_id": { "type": "string", "minLength": 1 },
+    "persona_id": { "type": "string", "minLength": 1 },
+    "relevance_criteria": { "type": "string" },
+    "competitors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["competitor_id", "name", "status"],
+        "properties": {
+          "competitor_id": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "seller": { "type": "string" },
+          "url": { "type": "string" },
+          "source_surface": { "type": "string", "enum": ["meta_ad_library", "google_ads_transparency"] },
+          "rationale": { "type": "string" },
+          "evidence_refs": { "type": "array", "items": { "type": "string" } },
+          "source_target_ref": { "type": "string" },
+          "status": { "type": "string", "enum": ["proposed", "confirmed", "rejected"] }
+        }
+      }
+    },
+    "confirmed_at": { "type": "string" },
+    "rejected_note": { "type": "string" }
+  }
+}

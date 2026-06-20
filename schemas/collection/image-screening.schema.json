@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marketing-img/schemas/image-screening.schema.json",
+  "title": "ImageScreening",
+  "description": "collection → analysis gate: which collected ad images are kept for the expensive analysis pipeline and which were dropped (with reason). Recall-biased; every collected image accounted for.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id", "persona_id", "total", "kept", "dropped"],
+  "properties": {
+    "run_id": { "type": "string", "minLength": 1 },
+    "persona_id": { "type": "string", "minLength": 1 },
+    "total": { "type": "integer", "minimum": 0, "description": "must equal kept.length + dropped.length — no silent omission" },
+    "kept": {
+      "type": "array",
+      "description": "image_file paths that proceed to analysis",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "dropped": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["image_file", "reason"],
+        "properties": {
+          "image_file": { "type": "string", "minLength": 1 },
+          "reason": {
+            "type": "string",
+            "description": "concrete one-line reason from the allowed set",
+            "enum": ["logo_only", "ui_or_screenshot", "unrelated", "broken_or_empty", "duplicate", "no_ad_content", "unreadable"]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+# Whitelist of PUBLIC SEARCH-TOOL front-door URLs (the tool's landing page, like a homepage).
+# gotoTool() may navigate ONLY to these — they are NOT result deep-links. Inside a tool,
+# use real search + click; NEVER assemble query/result URLs.
+tool_entrypoints:
+  - id: meta_ad_library
+    url: https://www.facebook.com/ads/library/
+    note: "Public Meta Ad Library. Select category 'All ads' + country via UI, then search."
+  # google_ads_transparency / tiktok_creative_center added in follow-up specs.
+  - id: google_ads_transparency
+    url: https://adstransparency.google.com/
+    note: "Public Google Ads Transparency Center. region via query on the front door; then real search."

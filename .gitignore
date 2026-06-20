@@ -1,0 +1,21 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# runtime output (dev only) — never released
+artifacts/
+
+# consumer runtime state — never released (brand/competitors/collected ads live here)
+.generate-ads-img/
+
+# dev working files — never released
+tasks/
+
+# never commit raw credential-bearing material
+**/*.cookies.json
+**/credentials*.json
+
+# dev-only working files — never released
+IMPLEMENTATION_NOTES.md
+.claude/
