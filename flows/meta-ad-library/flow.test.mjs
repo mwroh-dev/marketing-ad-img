@@ -17,8 +17,13 @@ function makeCtx(cards) {
   const ctx = {
     flag: (s) => flags.push(s),
     sleep: async () => {},
-    clickAt: async () => { dialogOpen = false; },   // a click on the Close control closes the modal
+    // clickAt now takes an optional postWaitMs (meta accordion passes a short value; google keeps the
+    // default). The mock ignores it. A click on the Close control still closes the modal.
+    clickAt: async (_x, _y, _postWaitMs) => { dialogOpen = false; },
     esc: async () => { dialogOpen = false; },
+    // pollUntil mirrors the real harness primitive: evaluate the in-page boolean expr and return its truth.
+    // Synchronous mocks resolve immediately, so a single eval models "polled until true (or false on timeout)".
+    pollUntil: async (expr) => { try { return !!(await ctx.evalJs(expr)); } catch { return false; } },
     async evalJs(expr) {
       if (/\.length\s*$/.test(expr) && expr.includes('role="button"')) return cards.length;   // trigger count
       if (expr.includes("currentSrc||im.src")) {     // CARD_IMG_KEYS(i) — advance the cursor

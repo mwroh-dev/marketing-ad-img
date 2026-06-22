@@ -13,6 +13,9 @@
 //   resetBuffer()            clear the seen-image buffer (call before each entry)
 //   sleep(ms)                bounded settle wait (e.g. after a modal-open click, before reading)
 //   esc()                    real ESC key (rawKeyDown+keyUp) — close an open modal/overlay
+//   clickAt(x,y[,postWaitMs]) real mouse click; postWaitMs defaults to 7000 (google nav wait), pass a
+//                            short value for quick clicks that poll their own completion (meta accordion)
+//   pollUntil(expr,opts)     poll an in-page boolean expr until true or timeout (event-driven settle)
 //   drain(meta, metaByKey)   getResponseBody on buffered image/video (classifyResponse) responses → save + push.
 //                            `meta` merges into EVERY saved record; `metaByKey` (optional
 //                            { [dedupKey(url)]: extraMeta }) merges per-creative — the
@@ -59,7 +62,12 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
   // parent process. Instead flag + close the socket so in-flight CDP calls reject and adapter.collect
   // unwinds; the catch below turns that into a blocked/partial result, and the finally still runs.
   let timedOut = false;
-  const guard = setTimeout(() => { timedOut = true; console.error("ad-collect: hard timeout — aborting source"); c.close().catch(() => {}); }, 180000);
+  // Deep-collection budget. Full per-card detail coverage (every collected creative gets a modal pass) at the
+  // event-driven per-card cost (~3-6s/card vs the old ~13-20s) needs more than the old 180s ceiling: ~24 cards
+  // × worst-case ~6s + scroll(~12s) + per-query nav ≈ comfortably under 6 min. 360s is a deliberate deep bound,
+  // NOT removed — on overrun we still flag + return a graceful partial (the catch below), never a hard crash.
+  const HARD_TIMEOUT_MS = 360000; // 6 min — deep full-coverage collection budget
+  const guard = setTimeout(() => { timedOut = true; console.error(`ad-collect: hard timeout (${HARD_TIMEOUT_MS / 1000}s) — aborting source`); c.close().catch(() => {}); }, HARD_TIMEOUT_MS);
   try {
     await c.Page.enable(); await c.Runtime.enable(); await c.Network.enable();
     // Deterministic layout viewport. The default headless visual viewport is short (innerHeight ≈ 469) and
@@ -133,14 +141,31 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
         return [];
       },
       // Real mouse click at viewport coords. The hover (mouseMoved) is REQUIRED for Angular
-      // Material overlay items to register the click (live-confirmed). Waits for navigation.
-      clickAt: async (x, y) => {
+      // Material overlay items to register the click (live-confirmed).
+      // `postWaitMs` is the settle wait AFTER release. DEFAULT 7000 = the JS-navigation wait google's
+      // suggestion-click depends on (clickAt → /advertiser/AR<id> nav) — leaving the default unchanged
+      // keeps the google flow's behavior identical. The Meta accordion click passes a SHORT value (it then
+      // event-driven polls HAS_FOLLOWER itself), so it no longer eats a flat 7s per card. (full-coverage)
+      clickAt: async (x, y, postWaitMs = 7000) => {
         await c.Input.dispatchMouseEvent({ type: "mouseMoved", x, y });
         await sleep(300);
         await c.Input.dispatchMouseEvent({ type: "mousePressed", x, y, button: "left", clickCount: 1 });
         await sleep(80);
         await c.Input.dispatchMouseEvent({ type: "mouseReleased", x, y, button: "left", clickCount: 1 });
-        await sleep(7000);
+        await sleep(postWaitMs);
+      },
+      // Poll an in-page boolean expression until true (or bound hit). Returns true if it became true.
+      // Event-driven replacement for fixed settle sleeps (modal-open, accordion-expand): proceed as soon
+      // as the DOM is in the expected state instead of always paying the worst-case wait. (full-coverage)
+      pollUntil: async (expr, { timeoutMs = 5000, intervalMs = 300 } = {}) => {
+        const deadline = Date.now() + timeoutMs;
+        for (;;) {
+          let ok = false;
+          try { ok = await evalJs(expr); } catch { ok = false; }
+          if (ok) return true;
+          if (Date.now() >= deadline) return false;
+          await sleep(intervalMs);
+        }
       },
       esc: async () => {
         // Real ESC keypress (rawKeyDown + keyUp) — recon-confirmed modal close. NOT a synthetic

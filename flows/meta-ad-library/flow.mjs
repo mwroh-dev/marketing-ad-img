@@ -34,11 +34,13 @@ export default defineFlow({
     (/\.mp4(\?|$)/i.test(u) && /video-[a-z0-9.-]+\.fbcdn\.net/i.test(u)),
   // filter parameters as NAMED CONFIG (not literals in collect); `q` is always the runtime value.
   // No media_type ⇒ video ads are included (recon §0 front-door shows video without the param).
-  // maxDetails bounds the per-card modal loop so the whole source stays under the harness' 180s hard timeout.
-  // Per-card cost ≈ open(~3.2s) + accordion CDP-click(~7s) + close(~2.4s) ≈ ~13-20s; minus ~15s scroll leaves
-  // ~165s ⇒ ~8 cards is the safe ceiling at the current fixed sleeps. (To cover more of totalCap=24, make the
-  // per-card waits event-driven — poll for the dialog instead of fixed sleeps — then raise this. Follow-up.)
-  config: { active_status: "active", ad_type: "all", country: "KR", search_type: "keyword_unordered", maxScroll: 5, maxDetails: 8 },
+  // FULL COVERAGE (done): the per-card modal loop is now UNCAPPED (covers every detail trigger present) so
+  // every collected creative that has a modal gets its detail. This was made affordable by converting the
+  // fixed per-card sleeps to EVENT-DRIVEN polls: modal-open polls !!DLG (≤5s, was a flat 3.2s) and the
+  // accordion-expand polls HAS_FOLLOWER after a QUICK clickAt (was a baked-in flat 7s) — per-card cost drops
+  // from ~13-20s to ~3-6s. The harness hard timeout was raised 180s→360s to fit the deep full pass. (no
+  // maxDetails: the loop bound is nTrig; drain still keeps only the first totalCap creatives.)
+  config: { active_status: "active", ad_type: "all", country: "KR", search_type: "keyword_unordered", maxScroll: 5 },
   filterUrl(query) { return `https://www.facebook.com/ads/library/?${new URLSearchParams({ ...this.config, q: query })}`; },
 
   async collect(ctx) {                       // steps a–e per the FLOW header above
@@ -82,7 +84,11 @@ export default defineFlow({
     const conflicted = new Set();   // keys seen with ≥2 distinct ads' details → never attach
     const identOf = (d) => (d && (d.library_id || d.advertiser_name)) || null;  // identity for conflict test
     const nTrig = await ctx.evalJs(`${TRIG}.length`);
-    const limit = Math.min(nTrig, this.config.maxDetails);
+    // FULL COVERAGE: process EVERY detail trigger present (no artificial cap). drain still only keeps the
+    // first totalCap creatives, so giving detail a pass over all loaded cards lets every collected creative
+    // that has a modal get its detail. The event-driven per-card waits (poll modal-open + poll accordion,
+    // instead of the old fixed ~3.2s+7s sleeps) make this fit the raised harness budget. (full-coverage)
+    const limit = nTrig;
     for (let i = 0; i < limit; i++) {
       try {
         // card image dedup-keys (query-stripped) BEFORE opening the modal (stable grid DOM)
@@ -94,8 +100,9 @@ export default defineFlow({
         // is a real user-gesture-equivalent element activation — NOT DOM value injection / synthetic submit.
         const opened = await ctx.evalJs(`(() => { const b=${TRIG}[${i}]; if(!b) return false; b.scrollIntoView({block:'center'}); b.click(); return true; })()`);
         if (!opened) continue;
-        await ctx.sleep(3200);
-        if (!(await ctx.evalJs(`!!${DLG}`))) continue;  // modal didn't open → skip this card (no fabrication)
+        // EVENT-DRIVEN modal open (full-coverage): poll for the dialog (≤5s) and proceed the instant it's
+        // present, instead of always paying a fixed 3.2s. modal-fail (never appears) → skip, no fabrication.
+        if (!(await ctx.pollUntil(`!!${DLG}`, { timeoutMs: 5000, intervalMs: 300 }))) continue;
         // Reset page scroll to top so the modal renders consistently. Live §9: the 2nd+ modal opens with the
         // page scrolled down, which places the modal's lower accordion ~2100px below the fold where neither
         // scrollIntoView nor a clamped CDP click can reach it; opening from scrollTop=0 (as the 1st modal does)
@@ -111,7 +118,12 @@ export default defineFlow({
           if (await ctx.evalJs(HAS_FOLLOWER)) break;     // already expanded
           const accRect = await ctx.evalJs(ACC_RECT);
           if (!accRect || typeof accRect.x !== "number") break;  // no accordion header → nothing to expand
-          await ctx.clickAt(accRect.x, accRect.y);
+          // QUICK CDP click (postWaitMs=200) + EVENT-DRIVEN expand poll (full-coverage): the old clickAt baked
+          // in a flat 7s here — the dominant per-card cost. Now the click settles fast and we poll HAS_FOLLOWER
+          // (≤4s) so we move on the instant the follower/ID block appears. The retry+verify loop still guards a
+          // missed toggle. google's clickAt is untouched (it keeps the default 7s nav wait — no postWaitMs arg).
+          await ctx.clickAt(accRect.x, accRect.y, 200);
+          if (await ctx.pollUntil(HAS_FOLLOWER, { timeoutMs: 4000, intervalMs: 300 })) break;
         }
 
         const raw = await ctx.evalJs(EXTRACT);   // flat-line regex extraction (recon §2/§8)
