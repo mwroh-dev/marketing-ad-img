@@ -74,12 +74,22 @@ per-creative에 추가/활성화:
 
 ## 검증 (완료 정의 — 비-가짜완료)
 
-real-data 실행 기준:
-1. 스키마 validator(`shared/validators/validate-*`) PASS (shape).
-2. recon으로 확정한 실제 광고 1세트 수집 시: 모달 필드(개시일/플랫폼/광고주/팔로워)가 **실제로 비어있지 않게** 채워짐 — `detail_captured:true` 비율 보고. 비어있으면 셀렉터 문제로 판정(가짜완료 금지).
-3. 비디오 광고 1건 이상이 `videos/`에 실제 저장되고 `subtype:"video"`로 기록.
-4. 백그라운드 탭에서 사용자 포커스/커서 탈취 없음(비침습) 확인.
-5. 차단/모달 미오픈 케이스는 STOP + `detail_captured:false`로 노출(에러 은닉 금지).
+**테스트 코드 작성이 검증의 핵심.** 스키마는 만들었는데 코드가 그에 안 맞을 수 있으므로, 자동 테스트로 스키마↔코드 정합을 강제한다.
+
+테스트 코드 (구현의 필수 산출물):
+1. **스키마↔파서 정합 단위 테스트** — flow/harness가 생성하는 creative 레코드 샘플(상세정보 필드 + 비디오 필드 포함)이 확장된 스키마 validator를 PASS하는지. 신규 필드(`follower_count`/`video_url`/`video_file`/`detail_captured`)와 채워지는 기존 필드(`started_at`/`platforms`/`advertiser`)가 모두 검증되어야 함. `additionalProperties:false` 위반 회귀 방지.
+2. **harness subtype 판정 테스트** — image/video 입력에 따라 `subtype`이 올바르게 동적 판정되는지(하드코딩 회귀 방지).
+3. **추출 파서 테스트** — recon으로 확보한 실제 모달 DOM 스냅샷(fixture)을 입력으로 개시일/플랫폼/광고주/팔로워 추출 함수가 기대값을 반환하는지. 모달 미오픈 fixture → `detail_captured:false`.
+
+real-data 실행 기준 (테스트와 별개, 1회 라이브 확인):
+4. recon으로 확정한 실제 광고 1세트 수집 시 모달 필드가 **실제로 비어있지 않게** 채워짐 — `detail_captured:true` 비율 보고.
+5. 비디오 광고 1건 이상이 `videos/`에 실제 저장되고 `subtype:"video"`로 기록.
+6. 백그라운드 탭에서 사용자 포커스/커서 탈취 없음(비침습) 확인.
+7. 차단/모달 미오픈 케이스는 STOP + `detail_captured:false`로 노출(에러 은닉 금지).
+
+## 후속 (이번 스펙에서 defer — 별도 작업)
+
+- **다운스트림 소비 에이전트의 아티팩트 보고**: 수집 결과(상세정보+비디오)가 쌓이면, 그걸 받아 처리하는 에이전트(analysis 단계 등)가 "이러이러한 정보가 N건 쌓였습니다"라고 사용자에게 보여주는 흐름. 에이전트 자체는 변경 안 했지만 신규 아티팩트를 인지/언급하도록 contract에 한 줄 추가가 필요할 수 있음. **기능 개발 후 별도로 다룬다.**
 
 ## 리스크
 
