@@ -11,7 +11,13 @@
 //   type(text)               real keyboard entry into the focused/first <input> (Korean-safe)
 //   clickSuggestion(sel)->bool   hover+real-click first matching element (Angular-overlay safe)
 //   resetBuffer()            clear the seen-image buffer (call before each entry)
-//   drain(meta)              getResponseBody on buffered imgMatch responses → save + push
+//   sleep(ms)                bounded settle wait (e.g. after a modal-open click, before reading)
+//   esc()                    real ESC key (rawKeyDown+keyUp) — close an open modal/overlay
+//   drain(meta, metaByKey)   getResponseBody on buffered imgMatch responses → save + push.
+//                            `meta` merges into EVERY saved record; `metaByKey` (optional
+//                            { [dedupKey(url)]: extraMeta }) merges per-creative — the
+//                            deterministic image-URL join used to attach detail-modal fields
+//                            to the right creative (network order ≠ card order, so key-join).
 //   flag(msg)                push a coverage flag
 //   limitReached() -> bool   totalCap hit or blocked
 //
@@ -56,6 +62,15 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
   const guard = setTimeout(() => { timedOut = true; console.error("ad-collect: hard timeout — aborting source"); c.close().catch(() => {}); }, 180000);
   try {
     await c.Page.enable(); await c.Runtime.enable(); await c.Network.enable();
+    // Deterministic layout viewport. The default headless visual viewport is short (innerHeight ≈ 469) and
+    // mismatches the OS window, which leaves modal content (e.g. a detail-modal's lower accordion) far below
+    // the fold — scrollIntoView can't recover it and a CDP click at its clientY no-ops. setDeviceMetricsOverride
+    // forces a clean tall layout+visual viewport so modal controls stay on-screen and clickable. (live: Task 6)
+    await c.Emulation.setDeviceMetricsOverride({ width: 1280, height: 1696, deviceScaleFactor: 1, mobile: false }).catch(() => {});
+    // ko-KR language preference (NOT stealth — a language header, per cdp-non-intrusive UA-normalization carve-out):
+    // the user's real ad library renders Korean, so the collected detail labels match the KR target.
+    await c.Network.setExtraHTTPHeaders({ headers: { "Accept-Language": "ko-KR,ko;q=0.9" } }).catch(() => {});
+    try { const ua = await c.Runtime.evaluate({ expression: "navigator.userAgent", returnByValue: true }); await c.Network.setUserAgentOverride({ userAgent: ua.result.value, acceptLanguage: "ko-KR,ko;q=0.9" }); } catch { /* best-effort locale */ }
     c.Network.responseReceived((p) => {
       const u = (p.response && p.response.url) || "";
       const kind = classifyResponse(u, adapter, (p.response && p.response.mimeType) || "");
@@ -72,6 +87,7 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
       evalJs,
       limitReached: () => result.creatives.length >= totalCap || result.blocked,
       resetBuffer: () => buf.clear(),
+      sleep: (ms) => sleep(ms),   // bounded settle wait (e.g. after a modal-open click before reading the dialog)
       flag: (s) => result.coverage_flags.push(s),
       scroll: async (steps = 4) => { for (let i = 0; i < steps; i++) { await realScroll(c, 1500); await sleep(900); } },
       goto: async (url) => {
@@ -126,11 +142,23 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
         await c.Input.dispatchMouseEvent({ type: "mouseReleased", x, y, button: "left", clickCount: 1 });
         await sleep(7000);
       },
-      drain: async (meta = {}) => {
+      esc: async () => {
+        // Real ESC keypress (rawKeyDown + keyUp) — recon-confirmed modal close. NOT a synthetic
+        // JS KeyboardEvent; this is a browser-level Input event (same trust class as a real key).
+        await c.Input.dispatchKeyEvent({ type: "rawKeyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27, nativeVirtualKeyCode: 27 });
+        await c.Input.dispatchKeyEvent({ type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27, nativeVirtualKeyCode: 27 });
+        await sleep(1200);
+      },
+      drain: async (meta = {}, metaByKey = null) => {
         await sleep(1200);
         for (const [u, { rid, kind }] of buf) {
           const key = dedupKey(u);
           if (seen.has(key) || result.creatives.length >= totalCap) continue;
+          // per-creative detail merged via the deterministic image-URL key join (card <img> src ==
+          // network response url, query-stripped). Falls back to {} so a creative with no matched
+          // detail is still saved (detail_captured stays falsy/absent — never a fabricated join).
+          const perKey = (metaByKey && metaByKey[key]) || {};
+          const fullMeta = { ...meta, ...perKey };
           try {
             const b = await c.Network.getResponseBody({ requestId: rid });
             const bytes = b.base64Encoded ? Buffer.from(b.body, "base64") : Buffer.from(b.body);
@@ -139,10 +167,10 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
             const n = result.creatives.length;
             if (kind === "video") {
               writeFileSync(`${vidDir}/ad-${n}.mp4`, bytes);
-              result.creatives.push(buildCreativeRecord({ kind: "video", key, n, meta, saved: true }));
+              result.creatives.push(buildCreativeRecord({ kind: "video", key, n, meta: fullMeta, saved: true }));
             } else {
               writeFileSync(`${imgDir}/ad-${n}.jpg`, bytes);
-              result.creatives.push(buildCreativeRecord({ kind: "image", key, n, meta, saved: true }));
+              result.creatives.push(buildCreativeRecord({ kind: "image", key, n, meta: fullMeta, saved: true }));
             }
           } catch (e) {
             // Video bytes often unavailable via getResponseBody (MSE/range). Keep the URL, skip the file.
@@ -150,7 +178,7 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
               if (!seen.has(key) && result.creatives.length < totalCap) {
                 seen.add(key);
                 const n = result.creatives.length;
-                result.creatives.push(buildCreativeRecord({ kind: "video", key, n, meta, saved: false }));
+                result.creatives.push(buildCreativeRecord({ kind: "video", key, n, meta: fullMeta, saved: false }));
                 result.coverage_flags.push("video bytes unavailable — url only");
               }
             } else if (!/evict|No resource|No data found/i.test(e?.message ?? "")) {

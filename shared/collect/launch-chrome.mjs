@@ -41,7 +41,10 @@ export function chromeFlags({ port, userDataDir, headless = true }) {
     headless ? "--headless=new" : null,
     `--remote-debugging-port=${port}`,
     "--remote-debugging-address=127.0.0.1", // explicit localhost bind — never expose CDP to the network
-
+    // Tall viewport: the default headless window is ~800x600 (innerHeight ≈ 469), too short to show a full
+    // ad-detail modal — its lower accordion renders BELOW the fold, so a CDP click at the element's
+    // clientY (off-screen) silently misses. A tall window keeps modal controls on-screen + clickable.
+    "--window-size=1280,1696",
     `--user-data-dir=${userDataDir}`,
     "--no-first-run",
     "--no-default-browser-check",

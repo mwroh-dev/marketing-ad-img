@@ -302,3 +302,70 @@ full-text dump, structured-field extraction, then KR-locale accordion expansion 
 mapping. Each CDP step is timeout-bounded (`Promise.race` + `sleep`) per the headless-hang gotcha;
 scrolling is in-page `window.scrollBy` (never `Input.mouseWheel`, which never acks in headless). The
 accordion required a **real CDP click** (not `el.click()`) to toggle.
+
+---
+
+## 9. TASK 6 LIVE BUILD findings (corrects §1/§2/§4; settles image↔detail association)
+
+Built + verified live (`q=비타민`, KR, dedicated headless via acquire-port→launch-chrome). Not blocked.
+24 creatives, 6 detail_captured, **6/6** with started_at(ISO)·advertiser_name·follower_count(number)·
+platforms·page_category, 5/6 page_id. Schema validator: PASS.
+
+### 9a. IMAGE↔DETAIL ASSOCIATION — decision: deterministic image-URL key join (NOT Approach A, NOT order)
+- **Approach A (per-card resetBuffer→drain) is DEAD.** Opening a detail modal triggers **NO fresh creative
+  network response** (buffer grew **0** on every card — measured). Creatives load **once** during grid scroll
+  then are **cached**; scrolling a card back into view does **not** re-fetch (also measured: `buf=0`). So a
+  per-card resetBuffer would discard everything.
+- **Chosen: deterministic key-join.** Each grid card's `<img>.currentSrc` (query-stripped) **EXACTLY equals**
+  a buffered network creative URL (query-stripped) — verified for cards 0–5 (matched 100%). The flow builds
+  `metaByKey = { [dedupKey(cardImgSrc)]: normalizedDetail }` and the harness `drain(meta, metaByKey)` merges
+  each card's detail into the creative whose `image_url` matches the key. **No network-order assumption, no
+  mis-join.** (Harness `drain` gained an optional second `metaByKey` arg — backward compatible.)
+
+### 9b. Modal OPEN — `el.click()` works; CDP-click does NOT (reverses §1's preference)
+- A CDP `Input.dispatchMouseEvent` at the trigger's fresh re-read center **did not open** the modal in headless
+  (`dlgLen=0`), even with coords re-read immediately before the click. **`el.click()` opens it reliably**
+  (`libid` extracted). `el.click()` is a genuine element activation (allowed per §1(b)), not DOM-value
+  injection / synthetic submit. The flow opens modals with `el.click()`.
+
+### 9c. DLG selector tightened — `라이브러리 ID`, not bare `라이브러리`
+- §2's `/Library ID|라이브러리/` **false-matched the nav panel** (it contains the bare words "광고 라이브러리"),
+  so the flow read the nav menu instead of the ad modal (`libid=null`). Anchor on the **labelled id**
+  `/Library ID|라이브러리 ID/` to exclude the nav panel.
+
+### 9d. Accordion expand — `block:'start'` is load-bearing; CDP-click still required
+- §8b confirmed: `el.click()` does NOT toggle the 광고주 정보 accordion; a real CDP click does. **New live
+  finding:** `scrollIntoView({block:'center'})` puts the header near viewport-center (large y) where the CDP
+  click **silently no-ops** (hit-tests to the right element but doesn't toggle — a headless lower-viewport
+  click quirk); `block:'start'` lands it near the top (y≈150) where it **reliably toggles**. The flow
+  retries once and gates on a HAS_FOLLOWER verify.
+
+### 9e. Modal CLOSE — must click the top Close control + VERIFY (ESC alone stacks modals)
+- **The dominant bug.** ESC closes the **first 1–2** modals but then **stops closing** them; unclosed modals
+  **accumulate** (`role=dialog` count grew 2→3→4→5→6 across cards) and the DLG "longest match" then picks a
+  **stale, tall** dialog whose accordion is ~2100px off-screen → all later follower/page_id extraction failed.
+  Fix: close via the modal's **top-right "Close"/"닫기" control** (CDP click) and **verify the dialog is gone**
+  before the next card (ESC retained as fallback). This single fix took follower coverage 1/6 → **6/6**.
+
+### 9f. Follower label — EN is singular "1 follower" (not only "N followers")
+- The scraping regex must use `followers?` (optional s); EN small pages render `1 follower`. (The normalizer
+  already handled it; the in-page scrape regex did not.)
+
+### 9g. videoMatch URL fallback — the brief's host regex was wrong
+- recon §4's own video URLs are `video-icn2-1.xx.fbcdn.net` (region label + `.xx` **infix**). The brief's
+  `video-[a-z0-9-]+\.fbcdn\.net` does **not** match them (no `.`). Corrected to `video-[a-z0-9.-]+\.fbcdn\.net`.
+  The **mime path (`video/mp4`) is the primary signal** and unaffected.
+
+### 9h. Video creatives — appear as ads but `.mp4` does not load in background headless
+- Several captured ads ARE video ads (`video_duration:"0:00 / 0:43"`), but **no `.mp4` network response fired**
+  (no autoplay in a background/non-painting headless tab), so videoMatch had nothing to buffer → **0
+  `subtype:"video"` records this run**; the video ads are captured as their **image thumbnails** (subtype
+  single_image) with the `video_duration` field preserved. The video path (matcher + url-only drain fallback)
+  is wired and unit-verified; it will populate when a `.mp4` response is present. Honest headless limitation,
+  not a flow defect.
+
+### 9i. Harness changes made to support the above (generic, backward-compatible)
+- `ctx.sleep(ms)` (bounded settle wait), `ctx.esc()` (real ESC), and `drain(meta, metaByKey)` per-key merge.
+- `Emulation.setDeviceMetricsOverride(1280×1696)` + `--window-size=1280,1696` (a 469px default headless
+  viewport hides modal controls below the fold) + ko-KR `Accept-Language`/UA acceptLanguage (a language pref
+  per the UA-normalization carve-out, NOT stealth) so the collected labels match the user's KR modal.
