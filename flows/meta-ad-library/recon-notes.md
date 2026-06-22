@@ -369,3 +369,58 @@ platforms·page_category, 5/6 page_id. Schema validator: PASS.
 - `Emulation.setDeviceMetricsOverride(1280×1696)` + `--window-size=1280,1696` (a 469px default headless
   viewport hides modal controls below the fold) + ko-KR `Accept-Language`/UA acceptLanguage (a language pref
   per the UA-normalization carve-out, NOT stealth) so the collected labels match the user's KR modal.
+
+---
+
+## 10. VIDEO URL — live-settled extraction method (Task: close requirement #2)
+
+Re-run live (`q=다이어트`, KR, dedicated headless via acquire-port→launch-chrome, viewport 1280×1696).
+**Not blocked.** Method probed in the brief's priority order; the cleanest one — (1) — WINS decisively.
+
+### 10a. WINNER — method (1): the mp4 URL is already in the modal `<video>` DOM (pure read, NO playback)
+When a video ad's detail modal is open, it contains a `<video>` element whose **`video.src` (== `video.currentSrc`)
+is the full `.mp4` URL**, already present without any `play()` call:
+- `readyState: 4` (HAVE_ENOUGH_DATA — already loaded by the time the modal renders), `paused: true`.
+- `video.src` / `video.currentSrc` = `https://video-icn2-1.xx.fbcdn.net/o1/v/t2/…/AQ….mp4?…` (matches the
+  existing `videoMatch` URL fallback `video-[a-z0-9.-]+\.fbcdn\.net` + `.mp4`).
+- `video.poster` = the `scontent-…/t39.35426-6/….jpg` thumbnail — **this is the grid card's dedup-key**
+  (poster jpg == the image url buffered during grid scroll == `CARD_IMG_KEYS` already collects `v.poster`).
+- `<source>` children: **none** this run (`sourceSrc: []`) — the URL lives on the element itself, not a
+  `<source>`. So extraction must read `video.src || video.currentSrc` (querySelector('source').src is a
+  fallback only).
+- Also present in the modal `innerHTML` as a raw `video-….fbcdn.net…mp4` string (HTML-entity-escaped `&amp;`),
+  but the element property is the clean, decoded form — use the property.
+
+**Decision:** extract `video.src||video.currentSrc` from the modal `<video>` in `captureDetails` (a pure DOM
+read, NOT DOM-value injection / synthetic submit / URL assembly), carry it into `metaByKey` keyed by the
+poster's dedupKey, and `drain` turns that card's creative into a `subtype:"video"` + `video_url` record.
+No `play()`, no network-buffer dependency, no flakiness — the URL is in the DOM the moment the modal opens.
+
+### 10b. method (2) also works (not needed) — `video.play()` does fire an mp4 response
+For completeness: calling the element's own `video.play()` (`v.muted=true; v.play()`) **did** fire a fresh
+`video/mp4` network response (buffer 17→18) for the SAME url already on `video.src`. So the network path is
+viable too — but (1) makes it unnecessary, and (1) avoids any media activation. Kept as the documented fallback.
+
+### 10c. video BYTES still url-only (confirms recon §5, with a nuance)
+`getResponseBody` on a play()-triggered `video/mp4` response **returned 480,859 bytes this run** (a small
+9-second ad fully buffered) — so bytes are *sometimes* retrievable. But this is unreliable (range/206 evicts
+for longer videos per §5) and requires triggering playback, which method (1) avoids. **Schema decision unchanged:
+save `video_url` only (url-only, no `video_file`).** The harness' existing video-evict fallback already pushes
+a `saved:false` url-only record; method (1) feeds that path by carrying the url in `metaByKey`, so no bytes are
+fetched at all for video — the creative is built directly as `subtype:"video"` + `video_url` from the modal.
+
+### 10d. `-753px` platform offset — IDENTIFIED: `audience_network` (visual-confirmed, not guessed)
+A 5-platform ad (`q=다이어트`, card 0) rendered offsets in order:
+`-766px, -805px, -753px, -818px, -831px`. A zoomed screenshot crop of the 5 icons (`/tmp/meta-753-icons.png`)
+shows, left→right: **Facebook (f)**, **Instagram (camera)**, **a rounded-square magnifying-lens glyph**,
+**Messenger (lightning bolt)**, **Threads (@)**. The 3rd glyph (the `-753px` icon) is the **Meta Audience
+Network** logo (rounded square + lens) — visually distinct from Messenger/Threads (positions 4/5), and it
+sits in Meta's canonical placement order `Facebook · Instagram · Audience Network · Messenger · Threads`.
+**Confident visual ID** → mapped `-753px → audience_network` in `PLATFORM_BY_YOFFSET`. (Unknown offsets still
+fall back to `unknown(<offset>)`.)
+
+### How §10 recon was run
+Throwaway scripts `flows/meta-ad-library/_recon_video.mjs` (DOM `<video>` probe + play()-fires-mp4 +
+getResponseBody test), `_recon_platform.mjs` + `_recon_crop.mjs` (deviceScaleFactor=3 zoomed clip of the
+5-icon platform row). Same non-intrusive pattern as §8/§9 (headless, ko-KR, in-page scrollBy, timeout-bound,
+no bringToFront/activateTarget). Deleted after these notes were written; method preserved here.

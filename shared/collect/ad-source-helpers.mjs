@@ -62,13 +62,30 @@ export function classifyResponse(url, adapter, mime = "") {
 }
 
 // Build one creative record. `meta` carries detail-modal fields merged from normalizeDetail.
+//
+// Three cases:
+//  - kind "video": the join key IS the mp4 url (a buffered .mp4 network response). video_url = key.
+//  - kind "image" whose merged meta carries a `video_url` (Meta video ad: the .mp4 never loads in
+//    background headless, so the URL is read from the modal <video>.src DOM and carried in metaByKey;
+//    `key` here is the POSTER jpg = the grid card's dedup-key). → a VIDEO record: subtype "video" +
+//    the modal's real video_url, with the poster kept as the thumbnail (image_url + saved jpg).
+//  - kind "image" without video_url: a plain single_image creative.
 export function buildCreativeRecord({ kind, key, n, meta = {}, saved = true }) {
   if (kind === "video") {
     const rec = { video_url: key, subtype: "video", ...meta };
     if (saved) rec.video_file = `videos/ad-${n}.mp4`;
     return rec;
   }
-  const rec = { image_url: key, subtype: "single_image", ...meta };
+  const { video_url, ...restMeta } = meta;
+  if (video_url) {
+    // image (poster) response, but the detail modal revealed the ad is a video → video record.
+    // The saved bytes ARE the poster thumbnail (the .mp4 itself is not fetched — url-only per recon §10c),
+    // so they go on image_url/image_file (the schema's thumbnail fields); video_url carries the real mp4.
+    const rec = { video_url, subtype: "video", image_url: key, ...restMeta };
+    if (saved) rec.image_file = `images/ad-${n}.jpg`;  // the thumbnail bytes (poster), not the video
+    return rec;
+  }
+  const rec = { image_url: key, subtype: "single_image", ...restMeta };
   if (saved) rec.image_file = `images/ad-${n}.jpg`;
   return rec;
 }

@@ -82,3 +82,32 @@ test("buildCreativeRecord shapes image and video records", () => {
   assert.equal(unsaved.video_file, undefined);
   assert.equal(unsaved.video_url, "https://x/v");
 });
+
+test("buildCreativeRecord: image (poster) response carrying a video_url → VIDEO record (recon §10)", () => {
+  // Meta video ad: the .mp4 never loads in headless, so video_url is read from the modal <video>.src DOM
+  // and carried in metaByKey keyed by the POSTER jpg. The drained network response is the poster (kind=image),
+  // but its merged meta has video_url → the record must become subtype:"video" with the real mp4 url,
+  // keeping the poster as image_url + the saved thumbnail jpg (NO video bytes — url-only per §10c).
+  const poster = "https://scontent-icn2-1.xx.fbcdn.net/v/t39.35426-6/poster.jpg";
+  const mp4 = "https://video-icn2-1.xx.fbcdn.net/o1/v/t2/f2/m86/clip.mp4";
+  const rec = buildCreativeRecord({ kind: "image", key: poster, n: 5, meta: { video_url: mp4, video_duration: "0:00 / 0:43", detail_captured: true, advertiser_name: "올록담" } });
+  assert.equal(rec.subtype, "video");
+  assert.equal(rec.video_url, mp4);            // the real mp4, not the poster key
+  assert.equal(rec.image_url, poster);          // poster kept as the thumbnail
+  assert.equal(rec.image_file, "images/ad-5.jpg"); // saved bytes are the poster (thumbnail), not a video file
+  assert.equal(rec.video_file, undefined);      // url-only — no mp4 bytes fetched
+  assert.equal(rec.video_duration, "0:00 / 0:43");
+  assert.equal(rec.advertiser_name, "올록담");
+  assert.equal(rec.detail_captured, true);
+
+  // unsaved (poster bytes evicted) still yields a video record with the url, no file
+  const unsaved = buildCreativeRecord({ kind: "image", key: poster, n: 6, meta: { video_url: mp4 }, saved: false });
+  assert.equal(unsaved.subtype, "video");
+  assert.equal(unsaved.video_url, mp4);
+  assert.equal(unsaved.image_file, undefined);
+
+  // a plain image (no video_url) stays single_image
+  const plain = buildCreativeRecord({ kind: "image", key: poster, n: 7, meta: { detail_captured: true } });
+  assert.equal(plain.subtype, "single_image");
+  assert.equal(plain.video_url, undefined);
+});

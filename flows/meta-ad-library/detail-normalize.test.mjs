@@ -32,6 +32,10 @@ test("mapPlatforms resolves known offsets, keeps unknown", () => {
     ["facebook", "instagram", "messenger", "threads"]);
   assert.deepEqual(mapPlatforms(["-387px -999px"]), ["unknown(-999px)"]);
   assert.deepEqual(mapPlatforms([]), []);
+  // recon §10d: -753px visually confirmed as Audience Network (5-platform ad, render order F·I·AN·M·T)
+  assert.deepEqual(
+    mapPlatforms(["-387px -766px", "-387px -805px", "-387px -753px", "-387px -818px", "-387px -831px"]),
+    ["facebook", "instagram", "audience_network", "messenger", "threads"]);
 });
 
 test("normalizeStatus maps KR/EN", () => {

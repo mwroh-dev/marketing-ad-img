@@ -45,8 +45,9 @@ export function parseStartedAt(raw) {
   return null;
 }
 
-// mask-position Y-offset → platform. recon §8c (🟡 best-inference; keep raw offset for unknowns).
-const PLATFORM_BY_YOFFSET = { "-766px": "facebook", "-805px": "instagram", "-818px": "messenger", "-831px": "threads" };
+// mask-position Y-offset → platform. recon §8c (🟡 best-inference) + §10d (-753px visually confirmed as
+// Audience Network from a zoomed icon crop). Keep raw offset for unknowns.
+const PLATFORM_BY_YOFFSET = { "-766px": "facebook", "-805px": "instagram", "-753px": "audience_network", "-818px": "messenger", "-831px": "threads" };
 
 export function mapPlatforms(offsets) {
   if (!Array.isArray(offsets)) return [];
