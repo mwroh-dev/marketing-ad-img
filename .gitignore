@@ -19,3 +19,6 @@ tasks/
 # dev-only working files — never released
 IMPLEMENTATION_NOTES.md
 .claude/
+
+# local test sandboxes (copied consumer state for live subsession tests) — never released
+samples/

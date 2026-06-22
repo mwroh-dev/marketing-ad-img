@@ -13,10 +13,10 @@ Agents are contracts, not code. Each agent definition must contain: Role, Inputs
 | `request-evaluator` | evaluation | mode/slot/blocker decision (+ source-planner mode-detection) |
 | `interview-controller` | evaluation | blocker-resolution interview loop |
 | `brand-researcher` | setup | initial-setup brand self-research from PUBLIC sources (page/reviews/positioning, one angle per dispatch, parallel) → evidence-grounded category/persona candidates |
+| `keyword-planner` | collection | Track-1 ad-search keyword plan: expands (product, persona) across 3 axes (핵심 니즈 / 사용 맥락 / 연관 카테고리) into keyword queries — generation only, no CDP. Feeds run-flow.mjs --from-keyword-plan |
 | `discovery-scout` | collection | advertiser discovery via public ad-library search (Meta/Google) + user-provided competitor seeds (search/list only, recall) |
 | `competitor-curator` | collection | competitor-selection HARD GATE |
 | `ad-creative-refiner` | collection | detail-cut (상세컷) TYPE classification on the seller's own / user-provided images (persuasive detail-cut = ad separation) |
-| `ad-image-screener` | collection | cheap keep/drop gate on collected ad images BEFORE analysis (drop logo-only/unrelated/broken/dup) — saves analysis tokens |
 | `ocr-extractor` | analysis | mechanical image→OCR geometry+text |
 | `copy-analyst` | analysis | text-role/hook/keyword (text meaning only) |
 | `layout-analyst` | analysis | composition + comfort (geometry only) |
@@ -41,7 +41,7 @@ The orchestrator is NOT a subagent. It is the main-session entry agent (`${CLAUD
 | request-evaluator | user request, mode contracts, registry summaries, interview-state | raw browser artifacts, credentials |
 | interview-controller | highest-priority blocker, slot schema, interview-state, brand-researcher candidates (for choice questions) | full domain dump |
 | brand-researcher | pointers (brand · product · product URL · user target memo) + ONE research angle | other brands/personas, full domain set, credentials |
-| ad-image-screener | collected images + manifest, product/category/target_market | full domain, analysis internals (it only gates) |
+| keyword-planner | product (name/category/USP), the single persona (language_cues/pains/desires), target_market, user keyword seeds | other personas, full domain set, credentials, collected creatives |
 | creative-brief-analyst | brand profile, product USP/claims, persona, review evidence summary, selected global principles | raw browser artifacts, login state |
 | copy-layout-planner | persona, product USP, claim constraints, selected formats, copy + layout principles | full review dump, browser-flow logs |
 | image-prompt-adapter | provider-neutral CreativeCandidateSpec (incl. `style.brand_tone` + `style.avoid`), product asset metadata, exact Korean copy | all domain knowledge |

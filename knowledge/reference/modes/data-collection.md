@@ -7,7 +7,7 @@ competitor frame is an **optional enrichment**, not a prerequisite. Detail cuts 
 seller's **own / user-provided images** via the image refiner — never collected from third-party stores.
 Everything below is governed procedure, scoped to the brand's `target_market` (KR-domestic → Korean ads/sources).
 
-**Steps (for progress reporting, ~4):** 1) seeds + source options → 2) Track 1 keyword corpus collect → 3) screening (keep/drop) → 4) (optional) Track 2 competitor enrichment. Report `[수집 · 단계 k/4]` at each.
+**Steps (for progress reporting, ~5):** 1) `keyword-planner` 3-axis keyword plan + announce → 2) Track 1 keyword corpus collect (dated run, stage=collected) → 3) **human keep/delete review** (HARD GATE, stage=human_reviewed) → 4) deterministic screen (size/dup, stage=screened) → 5) (optional) Track 2 competitor enrichment. Report `[수집 · 단계 k/5]` at each.
 
 ## Collection tracks
 
@@ -64,12 +64,10 @@ Submodes the orchestrator may route into: `discovery` (explore a new public-libr
 ## Track 1 — category/keyword ad corpus (PRIMARY, no gate)
 
 This is the default and runs immediately — it does NOT wait on a competitor set:
-1. Derive category keyword queries (deterministic): product category × {feature/audience/benefit} cues, in the
-   `target_market` language(s), via `deriveQueries` in `${CLAUDE_PLUGIN_ROOT}/shared/collect/scout-rank.mjs`.
-2. Collect with `${CLAUDE_PLUGIN_ROOT}/shared/collect/run-flow.mjs meta <persona> keyword "<query>" <run>` — Meta
-   Ad Library keyword search returns real ads broadly (not advertiser-bound). Union/dedup across queries.
+1. **Dispatch `keyword-planner`** to expand (product, persona) into a broad **3-axis** keyword plan — 핵심 니즈(Needs) / 사용 맥락(Use-case) / 연관 카테고리(Adjacency) — in the `target_market` language(s). It writes `runs/{run_id}/keyword-plan/keyword-plan-{persona_id}.json` (`keyword-plan.schema.json`) and **announces the keywords per axis** to the user ("핵심 니즈: … / 사용 맥락: … / 연관 카테고리: … — 이 키워드들로 수집하겠습니다"). Goal is coverage(모수), not precision — same-product relevance does not matter (hooks transfer). _(No keyword-plan yet, or a quick run: the deterministic `deriveQueries` cold-start in `scout-rank.mjs` remains as a fallback via the positional query / `--from-model`.)_
+2. **Collect** with `${CLAUDE_PLUGIN_ROOT}/shared/collect/run-flow.mjs meta <persona> keyword "" <run> --from-keyword-plan <plan.json>` — Meta Ad Library keyword search returns real ads broadly (not advertiser-bound). Union/dedup across queries. Writes the dated run + `run.json` (stage=collected).
 3. Honestly record per-query result counts + coverage in provenance (which keyword, how many ads, what was thin).
-   A thin pool → widen keywords / add a source, and SAY SO; never pad or claim a frame you don't have.
+   A thin pool → widen keywords / add a source, and SAY SO; never pad or claim a frame you don't have. **Use the platform result-count as a volume signal**: a keyword returning a rich count → expand adjacent terms around it; a 0-result or absurdly-broad keyword → drop it (this is the collection-stage volume control, not a quality filter).
 
 ## Track 2 — competitor/advertiser enrichment (OPTIONAL, curator HARD GATE for the competitor set only)
 
@@ -185,20 +183,25 @@ A proven collection run can be promoted to a repeatable browser-flow so it can b
 
 The seller's own product detail-page images are provided by the user (not crawled). The image refiner separates the persuasion detail cut (상세컷 = ad) from plain catalog/spec/review/lifestyle cuts, then ad analysis runs on the separated cuts. This is an analysis input, not a collected source.
 
-## Screening BEFORE analysis (don't burn tokens on junk)
+## Human keep/delete review, THEN a deterministic screen (no LLM in the keep/drop loop)
 
-Collection over-collects (logos, UI chrome, unrelated/broken/duplicate images). **Before** the expensive analysis
-pipeline (~5 LLM calls per image), run `ad-image-screener` (cheap keep/drop verdict per image) so only real,
-relevant ad creatives reach analysis. Report to the user "N장 수집 → M장 유효 → 분석, K장 제외(사유별)" — the dropped
-list with reasons is part of the provenance trail, never silent. Only `kept` images go downstream.
+Collection's job is **모수 (volume), not quality** — it over-collects on purpose (a "dirty" but real image ad is a valid hook template; same-product relevance does NOT matter, because hooks transfer across products). Quality/fit is decided **after** collection, by a HUMAN — fast, cheap visual cognition beats an LLM relevance pass here, and it keeps the choices the user actually wants instead of letting a model pre-drop them.
 
-## Outputs (knowledge pipeline: raw → collected → SCREENED → signal → knowledge)
+Order (both tracks, after collection):
+1. **Human 1st-pass review (HARD GATE).** The orchestrator renders the collected images inline — read `ad-creatives/{persona_id}/ad-creative.json` and present each `images/ad-N.jpg` (in batches) via the Read tool. Tell the user **"○일자 ○건 수집했습니다. 삭제할 것과 남길 것을 골라주세요."** Record the result to `runs/{run_id}/screening/screen-{persona_id}.json` (`image-screening.schema.json`; kept image_files in `kept[]`, user drops in `dropped[]` with `reason: "user_removed"`), then `node ${CLAUDE_PLUGIN_ROOT}/shared/collect/advance-stage.mjs {run_id} human_reviewed --kept M`. Analysis MUST NOT start before the run reaches `human_reviewed`.
+2. **Deterministic screen on the survivors.** `node ${CLAUDE_PLUGIN_ROOT}/shared/collect/screen-images.mjs {run_id} {persona_id} {imagesDir}` — drops only the mechanically-useless (size/dimension/exact duplicate), advances the run to `screened`. **No LLM screener.**
+3. Report "N장 수집 → 사람 검수 M장 남김 → 규격 정리 K장 → 분석" — every drop with its reason is provenance, never silent.
+
+The run ledger `run.json.stage` is the real gate (resumable): `collected → human_reviewed → screened → analyzed` (see `check-state.mjs`, which surfaces any run stuck mid-pipeline).
+
+## Outputs (knowledge pipeline: raw → collected → HUMAN-REVIEWED → SCREENED → signal → knowledge)
 
 ```
-.generate-ads-img/runs/{run_id}/ad-creatives/{persona_id}/ad-creative.json + images/
+.generate-ads-img/runs/{run_id}/ad-creatives/{persona_id}/ad-creative.json + images/   + runs/{run_id}/run.json (stage=collected)
   (${CLAUDE_PLUGIN_ROOT}/schemas/collection/ad-creative.schema.json; source ∈ {meta_ad_library, google_ads_transparency})
-→ ad-image-screener → screening/screen-{persona_id}.json (kept | dropped+reason)   ← cheap gate
-→ ad analysis on KEPT only (ocr → copy ⊥ layout → ad-pattern + keyword)
+→ HUMAN keep/delete review → screening/screen-{persona_id}.json (kept | dropped reason:user_removed)   ← HARD GATE (stage=human_reviewed)
+→ screen-images.mjs (deterministic: size/dim/duplicate) → merges drops into screen-{persona_id}.json       ← no LLM (stage=screened)
+→ ad analysis on KEPT only (ocr → copy ⊥ layout → ad-pattern + keyword)                                    ← (stage=analyzed)
 → ad-pattern.json / keyword-model.json on the persona node
 ```
 
