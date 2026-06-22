@@ -23,7 +23,7 @@
 //
 // Non-intrusive: dedicated headless Chrome (default 9291), never bringToFront/activateTarget.
 import { realScroll, sleep, isBlocked, matchToolEntry } from "./lib.mjs";
-import { dedupKey, safeName, classifyResponse, buildCreativeRecord } from "./ad-source-helpers.mjs";
+import { dedupKey, safeName, classifyResponse, buildCreativeRecord, downloadVideoFile } from "./ad-source-helpers.mjs";
 import CDP from "chrome-remote-interface";
 import { writeFileSync, mkdirSync } from "fs";
 
@@ -170,7 +170,18 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
               result.creatives.push(buildCreativeRecord({ kind: "video", key, n, meta: fullMeta, saved: true }));
             } else {
               writeFileSync(`${imgDir}/ad-${n}.jpg`, bytes);
-              result.creatives.push(buildCreativeRecord({ kind: "image", key, n, meta: fullMeta, saved: true }));
+              // Meta video-via-poster (recon §11): the saved bytes are the POSTER thumbnail; if this card's
+              // detail carried the modal <video>'s signed url, fetch the actual .mp4 NOW (signature still
+              // valid) and write videos/ad-N.mp4. On any failure keep url-only (no fabricated file).
+              let videoSaved = false;
+              if (fullMeta.video_url_full) {
+                const dl = await downloadVideoFile(fullMeta.video_url_full, `${vidDir}/ad-${n}.mp4`, { writeFile: (p, b) => writeFileSync(p, b) });
+                videoSaved = dl.saved;
+                result.coverage_flags.push(dl.saved
+                  ? `video file downloaded (${(dl.bytes / 1024).toFixed(0)}KB) → videos/ad-${n}.mp4`
+                  : `video file not downloaded (${dl.reason}) — url only`);
+              }
+              result.creatives.push(buildCreativeRecord({ kind: "image", key, n, meta: fullMeta, saved: true, videoSaved }));
             }
           } catch (e) {
             // Video bytes often unavailable via getResponseBody (MSE/range). Keep the URL, skip the file.

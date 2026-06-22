@@ -424,3 +424,44 @@ Throwaway scripts `flows/meta-ad-library/_recon_video.mjs` (DOM `<video>` probe 
 getResponseBody test), `_recon_platform.mjs` + `_recon_crop.mjs` (deviceScaleFactor=3 zoomed clip of the
 5-icon platform row). Same non-intrusive pattern as §8/§9 (headless, ko-KR, in-page scrollBy, timeout-bound,
 no bringToFront/activateTarget). Deleted after these notes were written; method preserved here.
+
+## 11. VIDEO FILE DOWNLOAD — direct fetch of the FULL signed mp4 URL (close #2 fully)
+
+Re-run live (`q=다이어트`, KR, dedicated headless via acquire-port→launch-chrome, viewport 1280×1696).
+**Not blocked.** §10 captured the mp4 URL but saved url-only because `getResponseBody` on the playing
+video is unreliable (206/MSE eviction). This run probed an UNTRIED path: a **direct GET of the FULL signed
+URL** (with the `?_nc_*…oh=…oe=` query that §10's `VIDEO_SRC` was stripping). Result: it just works.
+
+### 11a. WINNER — method (1): Node 20 global `fetch(fullSignedUrl)` returns the COMPLETE mp4
+Card 0 (`q=다이어트`) modal `<video>.src` = full signed url (len 1041), query params present:
+`_nc_cat,_nc_sid,_nc_ht,_nc_ohc,efg,ccb,vs,_nc_vs,_nc_gid,_nc_ss,_nc_zt,oh,oe` (`oh`/`oe` = the HMAC
+signature + expiry — the auth). A plain `fetch(fullUrl)` then:
+
+| variant | status | content-type | content-length | bytes recv | magic (hex@0) | valid mp4 |
+|---|---|---|---|---|---|---|
+| node-fetch **bare** (no headers) | 200 | video/mp4 | 644699 | 644699 | `00000020 66747970 69736f6d` | YES (`ftyp isom`) |
+| node-fetch + UA | 200 | video/mp4 | 644699 | 644699 | same | YES |
+| node-fetch + UA+Referer | 200 | video/mp4 | 644699 | 644699 | same | YES |
+
+**Key findings:**
+- fbcdn video is **token-authed, not cookie-authed** — the bare GET (no UA, no cookie, no Referer) returns
+  the WHOLE file (full 200, not a 206 range), `content-length == bytes received`. No UA/Referer needed.
+- magic bytes at offset 4 are `ftyp` (`66747970`) → a real ISO-BMFF mp4 (`isom`). Non-trivial (629 KB).
+- ~300–530ms per fetch. Fast → the time-limited signature does not expire within the run.
+
+### 11b. WHY url-stripping had to change
+`VIDEO_SRC` did `src.split('?')[0]` → the stripped url 403s (signature is in the query). To download you
+MUST fetch the FULL signed url. Fix: `VIDEO_SRC` now returns `{ full, key }` — `full` (signed, for the
+fetch) + `key` (stripped, the stable dedup/join identifier). The full url is fetched promptly in `drain`
+(soon after capture, signature still valid) and is NOT persisted (it expires); only the stripped `video_url`
+key is stored in the record + the saved `video_file` path.
+
+### 11c. methods (2)/(3) — not needed
+Node-side (1) yields a valid complete mp4 on the first try, so in-page fetch (CORS-opaque risk) and
+CDP-network fetch were not required. (1) is also the cleanest: no playback, no browser network context, no
+base64 round-trip.
+
+### How §11 recon was run
+Throwaway `flows/meta-ad-library/_recon_video_download.mjs` (open modal → read full `<video>.src` WITH query
+→ Node `fetch` ×3 header variants → status/ct/bytes/magic). Non-intrusive (headless, ko-KR, in-page scrollBy,
+timeout-bound, no bringToFront/activateTarget, STOP-on-block via isBlocked). Deleted after these notes.

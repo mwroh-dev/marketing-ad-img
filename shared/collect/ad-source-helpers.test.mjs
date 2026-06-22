@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseAdvertiserId, filterQueriesByModes, dedupKey, chooseAdvertiser, safeName, buildCreativeRecord, classifyResponse } from "./ad-source-helpers.mjs";
+import { parseAdvertiserId, filterQueriesByModes, dedupKey, chooseAdvertiser, safeName, buildCreativeRecord, classifyResponse, downloadVideoFile } from "./ad-source-helpers.mjs";
 
 test("safeName accepts a plain segment, rejects traversal/separators", () => {
   assert.equal(safeName("buyer", "personaId"), "buyer");
@@ -110,4 +110,67 @@ test("buildCreativeRecord: image (poster) response carrying a video_url → VIDE
   const plain = buildCreativeRecord({ kind: "image", key: poster, n: 7, meta: { detail_captured: true } });
   assert.equal(plain.subtype, "single_image");
   assert.equal(plain.video_url, undefined);
+});
+
+test("buildCreativeRecord: videoSaved attaches video_file; transient video_url_full is never persisted (recon §11)", () => {
+  const poster = "https://scontent-icn2-1.xx.fbcdn.net/v/t39.35426-6/poster.jpg";
+  const mp4 = "https://video-icn2-1.xx.fbcdn.net/o1/v/t2/f2/m86/clip.mp4";
+  const full = mp4 + "?_nc_cat=1&oh=sig&oe=exp";
+  // video file was downloaded → video_file points at videos/ad-N.mp4, and the signed url is stripped out.
+  const saved = buildCreativeRecord({ kind: "image", key: poster, n: 5, meta: { video_url: mp4, video_url_full: full, detail_captured: true }, videoSaved: true });
+  assert.equal(saved.subtype, "video");
+  assert.equal(saved.video_url, mp4);
+  assert.equal(saved.video_file, "videos/ad-5.mp4");      // the actual mp4 bytes
+  assert.equal(saved.image_file, "images/ad-5.jpg");      // poster thumbnail still saved
+  assert.equal(saved.video_url_full, undefined, "the signed (expiring) url must NOT be persisted");
+
+  // download failed (videoSaved false) → url-only, no video_file, still no signed url leak.
+  const urlOnly = buildCreativeRecord({ kind: "image", key: poster, n: 6, meta: { video_url: mp4, video_url_full: full }, videoSaved: false });
+  assert.equal(urlOnly.subtype, "video");
+  assert.equal(urlOnly.video_url, mp4);
+  assert.equal(urlOnly.video_file, undefined);
+  assert.equal(urlOnly.video_url_full, undefined);
+
+  // kind:"video" (buffered .mp4 response) also strips the transient signed url.
+  const buffered = buildCreativeRecord({ kind: "video", key: mp4, n: 2, meta: { video_url_full: full, detail_captured: true } });
+  assert.equal(buffered.video_url, mp4);
+  assert.equal(buffered.video_file, "videos/ad-2.mp4");
+  assert.equal(buffered.video_url_full, undefined);
+});
+
+test("downloadVideoFile: writes a valid non-trivial mp4, rejects 403 / short / non-mp4 (no fabrication)", async () => {
+  const FTYP = Buffer.concat([Buffer.from([0, 0, 0, 0x20]), Buffer.from("ftypisom", "ascii")]);
+  const bigMp4 = Buffer.concat([FTYP, Buffer.alloc(60 * 1024)]); // > 50KB, valid ftyp magic
+  const mkRes = (ok, status, body) => ({ ok, status, arrayBuffer: async () => body });
+
+  // success: valid mp4 → saved, bytes reported, writer called with the buffer.
+  let written = null;
+  const ok = await downloadVideoFile("https://x/clip.mp4?oh=sig", "/tmp/v.mp4", {
+    fetchFn: async () => mkRes(true, 200, bigMp4),
+    writeFile: (p, b) => { written = { p, len: b.length }; },
+  });
+  assert.equal(ok.saved, true);
+  assert.equal(ok.bytes, bigMp4.length);
+  assert.deepEqual(written, { p: "/tmp/v.mp4", len: bigMp4.length });
+
+  // 403 (stripped/expired url) → not saved, no write, honest reason.
+  let w403 = false;
+  const r403 = await downloadVideoFile("https://x/clip.mp4", "/tmp/v.mp4", { fetchFn: async () => mkRes(false, 403, Buffer.alloc(0)), writeFile: () => { w403 = true; } });
+  assert.equal(r403.saved, false);
+  assert.match(r403.reason, /403/);
+  assert.equal(w403, false, "must not write on failure (no fabricated file)");
+
+  // 200 but tiny / not an mp4 → rejected (error page, not a video).
+  const tiny = await downloadVideoFile("https://x/clip.mp4", "/tmp/v.mp4", { fetchFn: async () => mkRes(true, 200, Buffer.from("<html>nope</html>")), writeFile: () => { throw new Error("should not write"); } });
+  assert.equal(tiny.saved, false);
+  assert.match(tiny.reason, /invalid mp4/);
+
+  // network throw → not saved, reason carried.
+  const err = await downloadVideoFile("https://x/clip.mp4", "/tmp/v.mp4", { fetchFn: async () => { throw new Error("ECONNRESET"); }, writeFile: () => {} });
+  assert.equal(err.saved, false);
+  assert.match(err.reason, /ECONNRESET/);
+
+  // no url → not saved.
+  const none = await downloadVideoFile(null, "/tmp/v.mp4", {});
+  assert.equal(none.saved, false);
 });

@@ -118,11 +118,17 @@ export default defineFlow({
         // VIDEO URL (recon §10): a video ad's modal <video>.src is the .mp4 URL, already in the DOM
         // (readyState 4) — a pure read, no playback. The .mp4 never loads in background headless, so this
         // is the ONLY way to get video_url. Carried into the detail → drain builds a subtype:"video" record.
-        const videoUrl = await ctx.evalJs(VIDEO_SRC);
+        const video = await ctx.evalJs(VIDEO_SRC);  // { full, key } | null — full=signed (fetch), key=stripped (id)
         await this.closeModal(ctx);               // close (verify) BEFORE moving on — stale modals stack & break the next
         if (!raw) continue;
         const detail = normalizeDetail(raw);
-        if (videoUrl) detail.video_url = videoUrl; // mp4 from the modal <video> (recon §10a); url-only (no bytes)
+        if (video) {
+          // recon §10a/§11: the mp4 url is on the modal <video>.src. Carry BOTH — the stripped `video_url`
+          // is the stable dedup/join identifier kept in the record; `video_url_full` is the signed,
+          // time-limited url drain fetches the BYTES from soon after capture (recon §11b — not persisted).
+          detail.video_url = video.key;
+          detail.video_url_full = video.full;
+        }
         if (!detail.detail_captured) continue;    // nothing usable → don't attach an empty join
         for (const k of imgKeys) {
           if (conflicted.has(k)) continue;                 // already poisoned by an earlier collision
@@ -226,13 +232,15 @@ const ACC_RECT = `(() => {
 // The modal <video>.src — the .mp4 URL, already in the DOM the moment the modal opens (recon §10a:
 // readyState 4, paused). A PURE READ (not DOM-value injection / synthetic submit / URL assembly). The
 // element holds the url on `.src`/`.currentSrc` directly (no <source> child this run, but kept as fallback).
-// query-stripped to a stable url; guarded against the poster jpg (videoMatch host, not t39.35426).
+// Returns BOTH forms (recon §11b): `full` = the COMPLETE signed url (the `?_nc_*…oh=…oe=` query is the
+// fbcdn auth — required to GET the bytes; stripping it 403s) for drain to fetch; `key` = query-stripped,
+// the stable dedup/join identifier stored in the record. Guarded against the poster jpg (videoMatch host).
 const VIDEO_SRC = `(() => {
   const d=${DLG}; if(!d) return null;
   const v=d.querySelector('video'); if(!v) return null;
   const src=v.src || v.currentSrc || (v.querySelector('source') && (v.querySelector('source').src || v.querySelector('source').getAttribute('src'))) || '';
   if(!/video-[a-z0-9.-]+\\.fbcdn\\.net/.test(src) || !/\\.mp4(\\?|$)/.test(src)) return null;  // must be a real fbcdn mp4
-  return src.split('?')[0];
+  return { full: src, key: src.split('?')[0] };
 })()`;
 
 // flat-line regex extraction of the detail-modal fields (recon §2/§8). Returns the raw shape that

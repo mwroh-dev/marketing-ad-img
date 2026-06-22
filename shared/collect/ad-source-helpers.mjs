@@ -70,22 +70,49 @@ export function classifyResponse(url, adapter, mime = "") {
 //    `key` here is the POSTER jpg = the grid card's dedup-key). → a VIDEO record: subtype "video" +
 //    the modal's real video_url, with the poster kept as the thumbnail (image_url + saved jpg).
 //  - kind "image" without video_url: a plain single_image creative.
-export function buildCreativeRecord({ kind, key, n, meta = {}, saved = true }) {
+//
+// `videoSaved` (Meta video-via-poster path): when the harness has downloaded the actual .mp4 bytes (recon
+// §11 — direct fetch of the signed url) and written `videos/ad-N.mp4`, pass videoSaved:true to attach
+// `video_file`. The transient signed url (`video_url_full`) is NEVER persisted — it expires (recon §11b).
+export function buildCreativeRecord({ kind, key, n, meta = {}, saved = true, videoSaved = false }) {
   if (kind === "video") {
-    const rec = { video_url: key, subtype: "video", ...meta };
+    const { video_url_full, ...m } = meta;  // signed url is transient — never persisted
+    const rec = { video_url: key, subtype: "video", ...m };
     if (saved) rec.video_file = `videos/ad-${n}.mp4`;
     return rec;
   }
-  const { video_url, ...restMeta } = meta;
+  const { video_url, video_url_full, ...restMeta } = meta;  // drop the transient signed url
   if (video_url) {
     // image (poster) response, but the detail modal revealed the ad is a video → video record.
-    // The saved bytes ARE the poster thumbnail (the .mp4 itself is not fetched — url-only per recon §10c),
-    // so they go on image_url/image_file (the schema's thumbnail fields); video_url carries the real mp4.
+    // The poster bytes are the thumbnail → image_url/image_file; video_url carries the real mp4. When the
+    // .mp4 itself was fetched (videoSaved), video_file points at the saved videos/ad-N.mp4 (recon §11).
     const rec = { video_url, subtype: "video", image_url: key, ...restMeta };
-    if (saved) rec.image_file = `images/ad-${n}.jpg`;  // the thumbnail bytes (poster), not the video
+    if (saved) rec.image_file = `images/ad-${n}.jpg`;  // the thumbnail bytes (poster)
+    if (videoSaved) rec.video_file = `videos/ad-${n}.mp4`;  // the actual mp4 bytes (recon §11)
     return rec;
   }
   const rec = { image_url: key, subtype: "single_image", ...restMeta };
   if (saved) rec.image_file = `images/ad-${n}.jpg`;
   return rec;
+}
+
+// Direct fetch of a signed fbcdn mp4 url → write to disk if it's a valid, non-trivial mp4 (recon §11a:
+// fbcdn video is token-authed not cookie-authed, so a bare GET returns the COMPLETE file — full 200, not a
+// 206 range). PURE-ish (network + one write); returns { saved, bytes, reason }. NEVER fabricates a file:
+// any non-200 / short body / non-mp4 magic → saved:false (the caller keeps the url-only fallback).
+// `writer` is injected ({ writeFile, fetchFn }) so the wiring is unit-testable without real IO/network.
+export async function downloadVideoFile(fullUrl, destPath, { fetchFn = fetch, writeFile } = {}) {
+  if (!fullUrl || typeof fullUrl !== "string") return { saved: false, reason: "no url" };
+  try {
+    const res = await fetchFn(fullUrl);
+    if (!res.ok) return { saved: false, reason: `status ${res.status}` };
+    const buf = Buffer.from(await res.arrayBuffer());
+    // valid mp4 = ISO-BMFF `ftyp` box at offset 4 (recon §11a magic `…66747970…`); non-trivial > 50KB.
+    const isMp4 = buf.length > 8 && buf.slice(4, 8).toString("ascii") === "ftyp";
+    if (buf.length <= 50 * 1024 || !isMp4) return { saved: false, reason: `invalid mp4 (${buf.length}B, magic ${buf.slice(4, 8).toString("hex")})` };
+    if (writeFile) writeFile(destPath, buf);
+    return { saved: true, bytes: buf.length };
+  } catch (e) {
+    return { saved: false, reason: e?.message || "fetch error" };
+  }
 }
