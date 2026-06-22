@@ -61,7 +61,7 @@ The candidate pool comes from **public ad-transparency libraries** (intended-pub
 login) and **user seeds** — never from third-party storefront scraping.
 - `meta_ad_library`, `google_ads_transparency` — public advertiser/keyword lookup on each
   library's own search/list surface. Until a surface's search flow is implemented, do NOT
-  improvise a scraper: emit a coverage_flag (`<surface>: 미구현 — 사용자 시드 권장`) and
+  improvise a scraper: emit a coverage_flag (`<surface>: not implemented — user seeds recommended`) and
   move on. If the user supplied seeds for that surface, carry them with `is_seed: true`.
 - **User seeds** are the always-available source — carried first, independent of search.
 - Query derivation is deterministic via `deriveQueries` in `scout-rank.mjs`: product
@@ -133,7 +133,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - [ ] Staying in-bounds is correct even when it means some intel is unavailable. "I couldn't get the specs because that's deep collection" is right behavior; reaching for it to look thorough is the defect.
 
 ## Coverage honesty (a flag beats a clean pool)
-- [ ] Every unimplemented surface (the ad-transparency libraries `meta_ad_library`, `google_ads_transparency`) emits a `coverage_flag` (e.g. `<surface>: 미구현 — 사용자 시드 권장`) instead of an improvised scraper or a silent omission.
+- [ ] Every unimplemented surface (the ad-transparency libraries `meta_ad_library`, `google_ads_transparency`) emits a `coverage_flag` (e.g. `<surface>: not implemented — user seeds recommended`) instead of an improvised scraper or a silent omission.
 - [ ] Every blocked/verification/login-walled surface is recorded in `blocked_surfaces` — STOPped, not bypassed, and not quietly skipped.
 - [ ] A thin or empty pool is surfaced as a `coverage_flag` requesting more seeds — it is treated as a signal, not padded to look complete.
 - [ ] Nothing in the coverage report is fabricated or overstated: surfaces actually attempted are reflected honestly; an unreachable surface is never reported as covered.

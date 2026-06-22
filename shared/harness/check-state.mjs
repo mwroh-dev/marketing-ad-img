@@ -3,7 +3,7 @@
 // downstream mode) WITHOUT pre-reading the repo. Deterministic, no LLM. Cheap — one directory walk.
 //
 // Usage: node shared/harness/check-state.mjs   →   prints state status + ROUTE recommendation
-import { readdirSync, existsSync } from "node:fs";
+import { readdirSync, existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 export const STATE_DIR = resolve(process.env.GEN_ADS_IMG_STATE ?? resolve(process.cwd(), ".generate-ads-img"));
@@ -36,6 +36,17 @@ export function checkState(stateDir = STATE_DIR) {
 
   const personas = brands.flatMap((b) => b.products.flatMap((p) => p.personas));
   const setup_complete = personas.length > 0;
+
+  // Per-run progress (resumability): each run.json's stage, so a returning user sees how far each run got.
+  const runsDir = resolve(stateDir, "runs");
+  const runs = ls(runsDir).filter((e) => e.isDirectory()).map((d) => {
+    const rp = resolve(runsDir, d.name, "run.json");
+    if (!existsSync(rp)) return { run_id: d.name, stage: "no_manifest" };
+    try {
+      const m = JSON.parse(readFileSync(rp, "utf8"));
+      return { run_id: m.run_id ?? d.name, source: m.source, track: m.track, persona_id: m.persona_id, stage: m.stage, counts: m.counts };
+    } catch { return { run_id: d.name, stage: "unreadable" }; }
+  });
   // The "next" step the orchestrator should take, by state — NOT "read everything".
   const next = !setup_complete
     ? "initial-setup"
@@ -43,11 +54,16 @@ export function checkState(stateDir = STATE_DIR) {
       ? "ready — request-evaluation (note: some personas have no confirmed competitors)"
       : "ready — request-evaluation";
 
-  return { state_dir: stateDir, has_state: existsSync(stateDir), brands, setup_complete, next };
+  return { state_dir: stateDir, has_state: existsSync(stateDir), brands, setup_complete, next, runs };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const s = checkState();
   console.log(JSON.stringify(s, null, 2));
   console.log(`\nROUTE → ${s.next}`);
+  const pending = (s.runs || []).filter((r) => r.stage && !["analyzed", "no_manifest", "unreadable"].includes(r.stage));
+  if (pending.length) {
+    console.log(`\nRUNS IN PROGRESS:`);
+    for (const r of pending) console.log(`  ${r.run_id} — stage=${r.stage} (collected=${r.counts?.collected ?? "?"})`);
+  }
 }

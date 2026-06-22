@@ -26,8 +26,8 @@ forces the user to guess and produces a "cheap signboard." Two distinct kinds of
   are the minimal facts only the user has. Also ask the one optional `user_target_memo` prompt.
 - **Research-derived slots** (`product_category`, `target_personas`, `positioning`, `forbidden_claims`) → you
   MUST present the `category_candidates` / `persona_candidates` that `brand-researcher` derived from data as
-  selectable `options[]` (e.g. "리뷰 데이터상 이런 페르소나가 보입니다 — 1) … 2) … 3) … 어느 게 맞나요? 수정/추가?").
-  NEVER ask "페르소나를 정의해 보세요" free-form. If no candidates are projected yet (research hasn't run / came
+  selectable `options[]` (e.g. "Based on review data, these personas appear — 1) … 2) … 3) … Which fits? Edit/add?", in the consumer's target_market language).
+  NEVER ask "define the persona for me" free-form. If no candidates are projected yet (research hasn't run / came
   back thin), do NOT improvise an open question — report that research is needed/insufficient so the orchestrator
   runs the parallel `brand-researcher` step (or asks the user for a better source) first.
 

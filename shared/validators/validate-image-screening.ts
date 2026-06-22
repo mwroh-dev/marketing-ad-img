@@ -1,5 +1,6 @@
-// SHAPE sanity only — schema conformance + the total-accounting invariant. Does NOT verify the agent's
-// relevance judgement; that is the logical gate in agents/ad-image-screener.md checklist.
+// SHAPE sanity only — schema conformance + the total-accounting invariant. Does NOT verify the human's
+// keep/delete judgement (reason:user_removed) nor the deterministic screen — those are the gate itself,
+// not a schema concern. Both producers (human review, screen-images.mjs) write this same shape.
 
 // Validates an image-screening artifact (+ checks total = kept + dropped).
 // Usage: tsx shared/validators/validate-image-screening.ts <path>

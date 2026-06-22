@@ -6,22 +6,23 @@ Agents are contracts, not code. Each agent definition must contain: Role, Inputs
 
 ## Real subagents vs. blueprint agents
 
-**16 role-scoped subagents** are instantiated as real Claude Code subagents under `agents/` (flat `agents/<name>.md`, each with `name`/`description`/`tools` frontmatter), plus the `orchestrator` entry agent (17 total). **stage** = the pipeline stage that agent implements (gate→setup→collection→analysis→generation); matches the CLAUDE.md Modes map.
+**17 role-scoped subagents** are instantiated as real Claude Code subagents under `agents/` (flat `agents/<name>.md`, each with `name`/`description`/`tools` frontmatter), plus the `orchestrator` entry agent (18 total). **stage** = the pipeline stage that agent implements (gate→setup→collection→analysis→generation); matches the CLAUDE.md Modes map.
 
 | Real subagent (`agents/`) | stage | Role / Absorbs |
 |---|---|---|
 | `request-evaluator` | evaluation | mode/slot/blocker decision (+ source-planner mode-detection) |
 | `interview-controller` | evaluation | blocker-resolution interview loop |
 | `brand-researcher` | setup | initial-setup brand self-research from PUBLIC sources (page/reviews/positioning, one angle per dispatch, parallel) → evidence-grounded category/persona candidates |
+| `keyword-planner` | collection | Track-1 ad-search keyword plan: expands (product, persona) across 3 axes (Needs / Use-case / Adjacency) into keyword queries — generation only, no CDP. Feeds run-flow.mjs --from-keyword-plan |
 | `discovery-scout` | collection | advertiser discovery via public ad-library search (Meta/Google) + user-provided competitor seeds (search/list only, recall) |
 | `competitor-curator` | collection | competitor-selection HARD GATE |
-| `ad-creative-refiner` | collection | detail-cut (상세컷) TYPE classification on the seller's own / user-provided images (persuasive detail-cut = ad separation) |
-| `ad-image-screener` | collection | cheap keep/drop gate on collected ad images BEFORE analysis (drop logo-only/unrelated/broken/dup) — saves analysis tokens |
+| `ad-creative-refiner` | collection | detail-cut TYPE classification on the seller's own / user-provided images (persuasive detail-cut = ad separation) |
 | `ocr-extractor` | analysis | mechanical image→OCR geometry+text |
 | `copy-analyst` | analysis | text-role/hook/keyword (text meaning only) |
 | `layout-analyst` | analysis | composition + comfort (geometry only) |
 | `ad-analyst` | analysis | keyword extraction/normalization/slot-labeling |
 | `pattern-synthesizer` | analysis | per-persona ad-pattern description |
+| `competitive-analyst` | analysis | per-persona competitive-trend narrative (longevity/variation/change + appeals) ON TOP of the deterministic trend aggregate |
 | `creative-brief-analyst` | generation | creative brief synthesis (brand/product/persona/review/pattern projection) |
 | `copy-layout-planner` | generation | per-candidate copy + layout |
 | `image-prompt-adapter` | generation | provider-neutral spec → ChatGPT/Gemini prompt (+ image-adapter-* skills) |
@@ -31,7 +32,7 @@ Data collection (D), the preprocessing slicer, pattern aggregation (deterministi
 
 ## Orchestrator
 
-The orchestrator is NOT a subagent. It is the main-session entry agent (`${CLAUDE_PLUGIN_ROOT}/agents/orchestrator.md`, auto-activated via `settings.json` `"agent": "orchestrator"`) — the shipped entry that works when the plugin is installed elsewhere (a plugin's root `CLAUDE.md` is NOT loaded for consumers). It holds the full artifact/knowledge set and dispatches the 16 subagents, projecting only role-scoped views to each.
+The orchestrator is NOT a subagent. It is the main-session entry agent (`${CLAUDE_PLUGIN_ROOT}/agents/orchestrator.md`, auto-activated via `settings.json` `"agent": "orchestrator"`) — the shipped entry that works when the plugin is installed elsewhere (a plugin's root `CLAUDE.md` is NOT loaded for consumers). It holds the full artifact/knowledge set and dispatches the 17 subagents, projecting only role-scoped views to each.
 
 ## Context Distribution Rule
 
@@ -40,7 +41,7 @@ The orchestrator is NOT a subagent. It is the main-session entry agent (`${CLAUD
 | request-evaluator | user request, mode contracts, registry summaries, interview-state | raw browser artifacts, credentials |
 | interview-controller | highest-priority blocker, slot schema, interview-state, brand-researcher candidates (for choice questions) | full domain dump |
 | brand-researcher | pointers (brand · product · product URL · user target memo) + ONE research angle | other brands/personas, full domain set, credentials |
-| ad-image-screener | collected images + manifest, product/category/target_market | full domain, analysis internals (it only gates) |
+| keyword-planner | product (name/category/USP), the single persona (language_cues/pains/desires), target_market, user keyword seeds | other personas, full domain set, credentials, collected creatives |
 | creative-brief-analyst | brand profile, product USP/claims, persona, review evidence summary, selected global principles | raw browser artifacts, login state |
 | copy-layout-planner | persona, product USP, claim constraints, selected formats, copy + layout principles | full review dump, browser-flow logs |
 | image-prompt-adapter | provider-neutral CreativeCandidateSpec (incl. `style.brand_tone` + `style.avoid`), product asset metadata, exact Korean copy | all domain knowledge |
@@ -52,6 +53,7 @@ The orchestrator is NOT a subagent. It is the main-session entry agent (`${CLAUD
 | layout-analyst | one ocr-extraction (geometry), persona_id | text content meaning |
 | copy-analyst | one ocr-extraction (text content), persona_id | coordinates/fonts |
 | pattern-synthesizer | the deterministic ad-pattern aggregate | raw images, recompute rights |
+| competitive-analyst | the deterministic competitive-trend aggregate (+ optional ad-pattern copy aggregates) | raw images, recompute rights, other personas |
 | ad-creative-refiner | one image (path), competitor_id, persona_id | text meaning interpretation, layout/composition analysis, other images |
 
 

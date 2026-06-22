@@ -57,7 +57,7 @@ async collect(ctx){
     if (!await ctx.goto(GOOGLE.homeUrl)){ ctx.flag(`blocked: ${name}`); break; }
     await ctx.type(name);                       // real typing into the search box
     const sugg = await ctx.suggestions("material-select-item[role=option]");
-    const picked = chooseAdvertiser(sugg, name); // exact>prefix>loose; prevent substring mis-resolution (토스≠파낙토스)
+    const picked = chooseAdvertiser(sugg, name); // exact>prefix>loose; prevent substring mis-resolution (e.g. "Toss" ≠ "PanacToss")
     if (!picked){ ctx.flag(`no_advertiser_match: ${name}`); continue; }  // Google has no topic-search creative page
     await ctx.clickAt(sugg[picked.index].x, sugg[picked.index].y);
     const advId = parseAdvertiserId(await ctx.evalJs("location.href"));
@@ -75,8 +75,8 @@ async collect(ctx){
 `.generate-ads-img/runs/<runId>/ad-creatives/<personaId>/`:
 - `ad-creative.json`: `{ persona_id, source, search{mode,query,category,country}, queries?, creatives[], coverage_flags[], blocked, captured_at }`
 - `images/ad-N.jpg`
-- creative: `{ image_url, image_file, subtype:"single_image", ...meta }`. Google adds `advertiser_id`, `resolved_via:"advertiser"|"advertiser_loose"`, `matched_name`, `match_quality`. The image refiner (seller's own / user-provided detail cuts (상세컷), not a collected source) adds `type`, `confidence`. ad analysis ocr-extractor consumes only `image_file`.
-- **Schema enums** (validation gate): collected ad-library `source ∈ {meta_ad_library, google_ads_transparency, tiktok_creative_center}` with `search.mode ∈ {advertiser, keyword}`. (The schema also carries a refiner provenance label for the seller's own / user-provided detail cuts (상세컷) — an analysis input, not a collected source.) When adding a new source/mode or creative provenance field, **also extend `${CLAUDE_PLUGIN_ROOT}/schemas/collection/ad-creative.schema.json` (`additionalProperties:false`)** and confirm `validate-ad-creative.ts` PASS (if the schema is not extended, the output FAILs at the validation gate → the drop-in breaks).
+- creative: `{ image_url, image_file, subtype:"single_image", ...meta }`. Google adds `advertiser_id`, `resolved_via:"advertiser"|"advertiser_loose"`, `matched_name`, `match_quality`. The image refiner (seller's own / user-provided detail cuts, not a collected source) adds `type`, `confidence`. ad analysis ocr-extractor consumes only `image_file`.
+- **Schema enums** (validation gate): collected ad-library `source ∈ {meta_ad_library, google_ads_transparency, tiktok_creative_center}` with `search.mode ∈ {advertiser, keyword}`. (The schema also carries a refiner provenance label for the seller's own / user-provided detail cuts — an analysis input, not a collected source.) When adding a new source/mode or creative provenance field, **also extend `${CLAUDE_PLUGIN_ROOT}/schemas/collection/ad-creative.schema.json` (`additionalProperties:false`)** and confirm `validate-ad-creative.ts` PASS (if the schema is not extended, the output FAILs at the validation gate → the drop-in breaks).
 
 ## Procedure for adding a new source (TikTok, etc.)
 1. **Live probe** (dedicated headless): directly observe the entry model (URL parameters vs. search interaction), image host, extraction path (DOM vs RPC vs getResponseBody), and block wording, and finalize them in `${CLAUDE_PLUGIN_ROOT}/shared/collect/<source>-probe-notes.md`. **No hardcoding from memory/third-party docs.**

@@ -12,10 +12,12 @@ let ok = true;
 const data = loadJson<any>(path);
 ok = report("ad-creative", validateAgainst("ad-creative.schema.json", data)) && ok;
 
-// Cross-check: every creative has an image_url; subtype is in enum (schema covers it, this is an explicit count).
+// Cross-check: every creative carries image_url OR video_url; report detail-capture coverage.
 const list = Array.isArray((data as any).creatives) ? (data as any).creatives : [];
-const withImg = list.filter((c: any) => c.image_url).length;
-if (list.length === withImg) console.log(`PASS  ${list.length} creatives all have image_url`);
-else { console.error(`FAIL  ${list.length - withImg} creatives missing image_url`); ok = false; }
+const withMedia = list.filter((c: any) => c.image_url || c.video_url).length;
+if (list.length === withMedia) console.log(`PASS  ${list.length} creatives all have image_url or video_url`);
+else { console.error(`FAIL  ${list.length - withMedia} creatives missing both image_url and video_url`); ok = false; }
+const withDetail = list.filter((c: any) => c.detail_captured).length;
+console.log(`INFO  detail_captured: ${withDetail}/${list.length}`);
 
 process.exit(ok ? 0 : 1);

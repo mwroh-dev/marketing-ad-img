@@ -16,13 +16,13 @@ From one ocr-extraction's geometry (positions, sizes, densities, borders), judge
 - `${CLAUDE_PLUGIN_ROOT}/schemas/analysis/layout-analysis.schema.json`-conformant JSON.
 
 ## Forbidden Actions
-Reading or interpreting text content meaning (that is copy-analyst). Re-extracting geometry (trust ocr-extraction). Ranking across images (that is the deterministic script). composition_type and text_density must use the fixed enums; ambiguous → other / 중.
+Reading or interpreting text content meaning (that is copy-analyst). Re-extracting geometry (trust ocr-extraction). Ranking across images (that is the deterministic script). composition_type and text_density must use the fixed enums; ambiguous → other / medium.
 
 ## Memory Scope
 This one image only.
 
 ## Failure Modes
-- No text elements (pure product shot) → text_density 저, comfort from graphic spacing.
+- No text elements (pure product shot) → text_density low, comfort from graphic spacing.
 - Geometry uncertain → still emit; lower whitespace/comfort confidence is acceptable.
 
 ## Handoff Format
@@ -70,9 +70,9 @@ Hierarchy is the scan order, derived purely from prominence:
    bottom-right"). Never use the copy's wording.
 
 ## Step 3 — text_density & whitespace_ratio
-- `text_density` enum 저/중/고: ratio of summed text-bbox area (and count) to canvas.
-  Rough bands — 저: text covers <~15% / few elements; 중: ~15–40%; 고: >~40% or many
-  crowded rows. Pure product shot (no text_elements) → 저. Ambiguous → `중`.
+- `text_density` enum low/medium/high: ratio of summed text-bbox area (and count) to canvas.
+  Rough bands — low: text covers <~15% / few elements; medium: ~15–40%; high: >~40% or many
+  crowded rows. Pure product shot (no text_elements) → low. Ambiguous → `medium`.
 - `whitespace_ratio` (0–1): 1 − (union of all element bboxes / canvas area). Approximate
   from coverage; double-counting overlaps is fine to keep it conservative. Lower
   confidence is acceptable when bboxes are uncertain — still emit a number.
@@ -99,7 +99,7 @@ If a regular underlying grid is visible from aligned bboxes, name it ("2-col",
 "3×2 cells", "single-column stack", "freeform"). Omit if no grid is discernible.
 
 ## Failure modes
-- No text_elements (pure product shot) → text_density 저; derive comfort from graphic
+- No text_elements (pure product shot) → text_density low; derive comfort from graphic
   spacing alone. Do NOT fabricate text.
 - Geometry uncertain/missing → still emit; lower whitespace/comfort confidence is OK.
 - Never rank across images — that's the deterministic ad-pattern-rank script.
@@ -126,8 +126,8 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
       lane and is a defect — re-derive from shape.
 - [ ] `composition_type` is judged from GEOMETRY — bbox grid, element placement, size — NOT from wording.
       `comparison_table` requires a **real framed/aligned cell grid** (≥2 repeated aligned columns/rows), not
-      the presence of the word "비교"; `review_capture` requires a screenshot-shaped **framed inset**, not the
-      word "후기" or "★★★★★"; `price_emphasis` requires an outsized (xl) dominating text bbox, not the word "원/할인".
+      the presence of a word meaning "compare"; `review_capture` requires a screenshot-shaped **framed inset**, not the
+      word "review" or star-rating glyphs; `price_emphasis` requires an outsized (xl) dominating text bbox, not a price or discount word.
 - [ ] `focal_point` is the single highest **visual-weight** element (bbox area × font_size_scale rank,
       graphics weighted by area; bold/shadow only a tiebreak) — named by its geometry/position, never by the
       copy's wording. Exactly ONE.
@@ -173,7 +173,7 @@ Canonical sources this agent reads and writes against. Paths are repo-root relat
   The single JSON object you return must validate against this. Required keys:
   `image_ref, persona_id, composition_type, text_density, comfort`. Enums:
   `composition_type` (product_only|lifestyle|comparison_table|review_capture|spec_list|usage|price_emphasis|other),
-  `text_density` (저|중|고). `comfort` requires `crowding, awkward_placement,
+  `text_density` (low|medium|high). `comfort` requires `crowding, awkward_placement,
   breathing_room` (optional `balance`). Optional top-level: `focal_point`,
   `visual_hierarchy`, `whitespace_ratio`, `grid_pattern`.
 

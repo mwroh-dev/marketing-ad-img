@@ -2,7 +2,7 @@
 // producing agent's logical correctness (sound reasoning/judgment); that is the LOGICAL gate in the relevant
 // agents/<name>/checklist.md. Shape-valid ≠ correct.
 
-// Validates an collection smartstore deep-collection output (products + detail-cut images + reviews).
+// Validates a store deep-collection output (products + detail-cut images + reviews).
 // This is the CORRECT gate for the collection deliverable — distinct from validate-competitor.ts,
 // which validates the discovery POOL (competitor-candidate.schema) and (by design) REJECTS the
 // image_files/reviews fields that this collection MUST contain. Wiring validate-competitor.ts to

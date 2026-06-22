@@ -25,7 +25,7 @@ The data half of the initial-setup synergy.
 
 ## Method (by angle)
 - `page` — fetch the user-provided `product_url` (public): `curl -sL` or WebFetch. Extract product facts, USP wording, on-page claims, price/spec tokens. (JS-heavy page that returns nothing useful → use the non-intrusive CDP path in `${CLAUDE_PLUGIN_ROOT}/shared/collect/` via `${CLAUDE_PLUGIN_ROOT}/shared/collect/acquire-port.mjs`; never the user's foreground.)
-- `reviews` — WebSearch `"{brand} {product} 후기|리뷰|review"` → WebFetch the PUBLIC review/comment pages found. Read who is buying, recurring pains, recurring desires, the words real buyers use. These become `persona_candidates` (label · who · pains · desires · evidence_refs).
+- `reviews` — WebSearch `"{brand} {product} review"` (in the target_market language(s)) → WebFetch the PUBLIC review/comment pages found. Read who is buying, recurring pains, recurring desires, the words real buyers use. These become `persona_candidates` (label · who · pains · desires · evidence_refs).
 - `positioning` — WebSearch the brand/product → how it is positioned (premium vs value, category framing), category signals, competitor names as context. → `category_candidates` + `positioning_signals`.
 
 ## Forbidden Actions

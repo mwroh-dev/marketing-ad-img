@@ -13,7 +13,7 @@ Read ONE ad image and emit a standardized, mechanical extraction: every text ele
 - one ad image (path), persona_id, competitor_id
 
 ## Outputs
-- `${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ocr-extraction.schema.json`-conformant JSON. Tall 상세컷 (detail-page cut) → may split into multiple extractions per section.
+- `${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ocr-extraction.schema.json`-conformant JSON. Tall detail-cut → may split into multiple extractions per section.
 
 ## Forbidden Actions
 Interpretation of any kind: no text_role, no composition_type, no hook, no comfort/quality judgement, no ranking. These belong to layout-analyst, copy-analyst, and aggregation. Do not drop low-confidence elements — flag them in `notes`.
@@ -43,7 +43,7 @@ Turn ONE ad image into a standardized geometry+text dataset that conforms to
 - One image only. Do not draw on other images, the persona, or the brand.
 
 ## Per text element — capture exactly these
-- `content` — the literal characters, verbatim, including 원 (won)/%/punctuation/emoji. Preserve
+- `content` — the literal characters, verbatim, including currency symbols/%/punctuation/emoji. Preserve
   the language as shown (Korean stays Korean). Do NOT translate, normalize, or "fix" typos.
   (Record only what THIS image actually shows — never assume a domain.)
 - `bbox` — `{x, y, w, h}` as **percent of canvas, 0–100** (relative, not pixels). x,y = top-left.
@@ -66,7 +66,7 @@ Turn ONE ad image into a standardized geometry+text dataset that conforms to
 - `id` — `g1`, `g2`, …
 
 ## Canvas
-- `aspect_ratio` — e.g. `"1:1"`, `"4:5"`, `"9:16"`, or for a tall 상세컷 section the ratio of
+- `aspect_ratio` — e.g. `"1:1"`, `"4:5"`, `"9:16"`, or for a tall detail-cut section the ratio of
   that section.
 - `dominant_colors` — a few hex values that cover most of the area.
 - `background_desc` — literal visual description ("solid cream", "kitchen photo, soft blur").
@@ -80,8 +80,8 @@ Forbidden — these are NOT yours (they are copy-analyst / layout-analyst / aggr
 - grouping text into "the offer" / "the message" — emit individual elements; composition is downstream.
 Any field that would require *understanding the ad* does not belong in this output.
 
-## Tall 상세컷 (detail-page cut)
-A vertical 상세컷 may be split into multiple extractions, one per visual section. Keep each
+## Tall detail-cut
+A vertical detail-cut may be split into multiple extractions, one per visual section. Keep each
 section's bbox relative to that section's own canvas, and note the split in `notes`.
 
 ## Failure modes (never silently drop)
@@ -109,13 +109,13 @@ ocr-extractor is **mechanical** — there is no reasoning to grade. So its logic
 not over-doing. Both directions are failures.
 
 ## Completeness (no visible element missed)
-- [ ] Every visible text run is captured — including the easy-to-miss ones: tiny disclaimers, fine print, price/percent badges, watermarks, button labels. A missing badge or `*수량 한정` line is a defect, not a rounding error.
+- [ ] Every visible text run is captured — including the easy-to-miss ones: tiny disclaimers, fine print, price/percent badges, watermarks, button labels. A missing badge or "limited quantity" fine-print line is a defect, not a rounding error.
 - [ ] Every graphic element is captured (product shot, lifestyle photo, icons, badges, charts) with its `kind`/bbox/border/placement.
 - [ ] Low-confidence / blurry / illegible elements are EMITTED best-effort with a `notes` flag — never silently dropped. (Dropping an unreadable element is the failure; flagging it is the requirement.)
-- [ ] A tall 상세컷 split into sections covers the whole image — no section's text silently skipped — and the split is noted in `notes`.
+- [ ] A tall detail-cut split into sections covers the whole image — no section's text silently skipped — and the split is noted in `notes`.
 
 ## Fidelity (verbatim text + plausibly-measured geometry)
-- [ ] `content` is byte-accurate verbatim: Korean stays Korean, 원/%/punctuation/emoji preserved, typos NOT fixed, nothing translated or normalized. (the source string is reproduced exactly — never translated, re-spaced, or normalized.)
+- [ ] `content` is byte-accurate verbatim: source language preserved as-is, currency symbols/%/punctuation/emoji preserved, typos NOT fixed, nothing translated or normalized. (the source string is reproduced exactly — never translated, re-spaced, or normalized.)
 - [ ] `line_breaks` reflects the **as-laid-out** wrapping (a 3-line block = 2), a layout fact — not a sentence count and not a guess.
 - [ ] Geometry fields look **measured, not invented**: bbox is percent 0–100 with top-left origin and the boxes are internally consistent with the described layout (a top-center element has low `y`, a bottom strip has high `y`, boxes don't overlap implausibly or exceed 100). Coordinates that contradict the stated placement are guessed, not measured.
 - [ ] `font_size_scale` is a **relative** ranking within THIS image (biggest type → `xl`), not an absolute pt claim — and the ranking is consistent (the visually-largest line is not bucketed below a smaller one).

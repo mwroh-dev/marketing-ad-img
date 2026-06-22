@@ -43,7 +43,7 @@ How to turn a per-persona competitor corpus (titles + detail text) into **normal
 - Scan the corpus for THIS persona: every competitor's `title` + collected `detail` text.
 - A keyword is a meaningful surface token/phrase a shopper would actually search or scan: a product type, a feature, a target audience, a benefit, or a copy technique.
 - Never invent a keyword absent from the corpus. Every keyword must trace to a source string.
-- Drop pure stopwords/connectives (그리고, 또한, 매우) and bare punctuation — but **never** drop a Korean-written English loanword (see §3).
+- Drop pure stopwords/connectives (e.g. "and", "also", "very" in the market language) and bare punctuation — but **never** drop a locally-spelled English loanword (see §3).
 - Keep a multi-word phrase when the phrase is the unit shoppers use as one concept, but also emit the component when it stands alone in the corpus.
 
 ## 2. Slot labelling taxonomy (functional ad-slot)
