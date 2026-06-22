@@ -9,7 +9,7 @@ The user makes requests from within Claude Code. The system evaluates the reques
 ## Target & Ad Sources
 
 - **Target is domain-neutral** — the consumer's specific brand/product/persona is configured at runtime (initial-setup), NOT fixed in the system. A smartstore (스마트스토어) seller is one possible instance, not the product definition. The output is a media-neutral "ad image creative"; Meta (FB+IG) is one output mode.
-- **Ad sources = public ad-transparency libraries: {Meta Ad Library, Google Ads Transparency}** — intended-public, no login. They supply competitor/market ad creatives for pattern analysis.
+- **Ad sources = public ad-transparency libraries: {Meta Ad Library, Google Ads Transparency}** — intended-public, no login. They supply competitor/market ad creatives for pattern analysis. The source set is **market/persona-driven, not a fixed global list**; for a Korea-targeting consumer the lever is the `country=KR` filter on these two, not adding platforms. Future global/vertical-market source candidates (Pinterest/LinkedIn/Snapchat/X/Microsoft) are documented as backlog in `ad-source-expansion-backlog.md` — activated per consumer, never pre-wired.
 - **Detail cuts (상세컷)** are analyzed from the **seller's own / user-provided images** (their own product detail page), passed through the **image refiner** so that only "persuasion detail cut (상세컷) = ad" is separated for analysis (excluding plain catalog/spec/review/lifestyle cuts). The system does not collect competitor detail cuts from third-party stores.
 
 ## In Scope
