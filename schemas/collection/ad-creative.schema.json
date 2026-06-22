@@ -27,7 +27,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["image_url", "subtype"],
+        "required": ["subtype"],
         "properties": {
           "library_id": { "type": "string" },
           "image_url": { "type": "string" },
@@ -35,14 +35,23 @@
           "ad_copy": { "type": "string" },
           "platforms": { "type": "array", "items": { "type": "string" } },
           "started_at": { "type": "string" },
-          "subtype": { "type": "string", "enum": ["single_image", "carousel", "video_thumb"] },
+          "subtype": { "type": "string", "enum": ["single_image", "carousel", "video_thumb", "video"] },
           "advertiser_id": { "type": "string" },
           "resolved_via": { "type": "string", "enum": ["advertiser", "advertiser_loose", "text_fallback"] },
           "matched_name": { "type": "string" },
           "match_quality": { "type": "string", "enum": ["exact", "prefix", "loose"] },
           "type": { "type": "string", "enum": ["ad_creative", "catalog", "spec", "review", "lifestyle", "unknown"] },
           "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
-          "competitor_id": { "type": "string" }
+          "competitor_id": { "type": "string" },
+          "video_url": { "type": "string" },
+          "video_file": { "type": "string" },
+          "video_duration": { "type": "string" },
+          "follower_count": { "type": ["integer", "null"], "minimum": 0 },
+          "status": { "type": "string", "enum": ["active", "inactive", "unknown"] },
+          "page_category": { "type": "string" },
+          "page_id": { "type": "string" },
+          "detail_captured": { "type": "boolean" },
+          "advertiser_name": { "type": "string" }
         }
       }
     },
