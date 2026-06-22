@@ -50,7 +50,11 @@ export function makeResult({ personaId, source, queries, mode }) {
     creatives: [],
     coverage_flags: [],
     blocked: false,
-    captured_at: "live-cdp-run",
+    // Real capture instant (ISO-8601) — the temporal key the competitive-trend aggregator orders
+    // snapshots by. Was a "live-cdp-run" label; a timestamp is the field's literal meaning and is what
+    // makes cross-run time-series (first_seen/last_seen, new/disappeared) possible. The dry-run path keeps
+    // its "dry-run" sentinel (genuinely not a capture) so the aggregator can skip non-dated snapshots.
+    captured_at: new Date().toISOString(),
   };
 }
 

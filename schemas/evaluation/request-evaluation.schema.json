@@ -11,7 +11,7 @@
     "raw_request": { "type": "string" },
     "detected_mode": {
       "type": "string",
-      "enum": ["initial-setup", "data-collection", "image-generation", "performance-learning", "unknown"]
+      "enum": ["initial-setup", "data-collection", "competitive-report", "image-generation", "performance-learning", "unknown"]
     },
     "mode_confidence": { "type": "number", "minimum": 0, "maximum": 1 },
     "required_slots": { "type": "array", "items": { "type": "string" } },

@@ -53,6 +53,7 @@ Each mode's full procedure is its **runbook** in `${CLAUDE_PLUGIN_ROOT}/knowledg
 |---|---|
 | `initial-setup` | (runbook `modes/initial-setup.md`) Create/maintain `.generate-ads-img/brands/{brand_id}/…` (Brand 1→Product N→Persona N) + registry entries. Domain knowledge only. |
 | `data-collection` | (runbook `modes/data-collection.md`) **Collection from public ad-transparency libraries (Meta Ad Library, Google Ads Transparency) — public, no login.** • **How:** drive real CDP interaction (real search → click → scroll, `getResponseBody` for creatives) via `${CLAUDE_PLUGIN_ROOT}/flows/<source>/` + shared `ad-collect-harness`; STOP on any block/verification (`lib.isBlocked`), never bypass; navigate only whitelisted public front doors (`matchToolEntry`). • **Track 1 (PRIMARY, ungated):** a broad category/keyword ad corpus (Meta keyword search, scoped to target_market) — the main signal. • **Track 2 (OPTIONAL):** competitor enrichment — `discovery-scout` (search-only candidate pool + user seeds) → `competitor-curator` (rank + user-confirm, HARD GATE for the competitor set only) → collect the confirmed advertisers' public creatives. Track 1 does NOT wait on a competitor set. • **Then:** `ad-image-screener` (cheap keep/drop) before analysis. • **Detail-cut (상세컷):** analysis runs on the **seller's own / user-provided** images via the refiner. |
+| `competitive-report` | (runbook `modes/competitive-report.md`) Turn already-collected creatives into a per-persona competitive report: `run-competitive-trend.ts` (deterministic longevity/variation/change aggregate) → `competitive-analyst` (synthesis + 소구점) → `render-report.mjs` (consumer HTML). Needs ≥1 collection snapshot (0 → route to data-collection); single snapshot degrades to longevity+variation only. Longevity is a PUBLIC-DATA PROXY, never measured performance. |
 | `image-generation` | (runbook `modes/image-generation.md`) Run the creative pipeline below. |
 | `performance-learning` | Backlog only — do not implement. |
 
@@ -87,7 +88,7 @@ The orchestrator holds **full tool access incl. `Skill`** — intentional and th
 - invokes the reusable **skills** (`user-answer-tooling`, `agent-browser-exploration`)
 - dispatches subagents
 
-Modes are runbooks (knowledge guidance), NOT skills — `skills/` holds only genuinely reusable, cross-caller skills. All 16 specialist subagents are **tool-locked (no `Skill` in their `tools:`)** so they cannot invoke skills — enforced by tool permissions, not prose.
+Modes are runbooks (knowledge guidance), NOT skills — `skills/` holds only genuinely reusable, cross-caller skills. All 17 specialist subagents are **tool-locked (no `Skill` in their `tools:`)** so they cannot invoke skills — enforced by tool permissions, not prose.
 **Delegation rule:** specialist *judgment* (analysis, classification, generation, verdict) MUST be dispatched to the owning subagent — never self-executed by the orchestrator — so each stage's output is attributable and isolated. Self-invoking a specialist's work collapses the stage and breaks failure attribution.
 
 ## Guidelines — method
@@ -121,6 +122,7 @@ You hold the full artifact + knowledge set. Each subagent receives **only its ro
 
 - `initial-setup` → domain knowledge only (Brand 1→Product N→Persona N + registry). No collection, no generation.
 - `data-collection` → enforce ORDER **own → competitor (≥10) → category**. Real CDP against a human-logged-in profile only. On any `lib.isBlocked` / verification wall: **STOP and report** — never bypass, stealth, captcha-solve, assemble result URLs, inject DOM values, or synth-submit. Don't reimplement `browser-flow`.
+- `competitive-report` → require ≥1 collection snapshot for the persona (0 → route to data-collection, never emit an empty report). Order: `run-competitive-trend.ts` (deterministic; OMIT-not-fill, gaps→coverage_flags) → schema gate → `competitive-analyst` (adds `synthesis` only; numbers win, no fabricated change-claims on a single snapshot, longevity=proxy) → `render-report.mjs` (fills the authored-once template; no per-run LLM HTML). Report the provenance trail + HTML path.
 - `image-generation` → run the generation pipeline in order: `creative-brief-analyst` → `copy-layout-planner` (Korean copy authored once, verbatim downstream — preserve byte-for-byte) → `image-prompt-adapter` (chatgpt + gemini) → `critic-verifier`. Default 4 candidates by angle (product/persona/copy/layout), 1–12 configurable. Prompt-only — never call a real image provider.
 - `performance-learning` → backlog. Do not implement.
 

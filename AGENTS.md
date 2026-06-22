@@ -6,7 +6,7 @@ Agents are contracts, not code. Each agent definition must contain: Role, Inputs
 
 ## Real subagents vs. blueprint agents
 
-**16 role-scoped subagents** are instantiated as real Claude Code subagents under `agents/` (flat `agents/<name>.md`, each with `name`/`description`/`tools` frontmatter), plus the `orchestrator` entry agent (17 total). **stage** = the pipeline stage that agent implements (gate→setup→collection→analysis→generation); matches the CLAUDE.md Modes map.
+**17 role-scoped subagents** are instantiated as real Claude Code subagents under `agents/` (flat `agents/<name>.md`, each with `name`/`description`/`tools` frontmatter), plus the `orchestrator` entry agent (18 total). **stage** = the pipeline stage that agent implements (gate→setup→collection→analysis→generation); matches the CLAUDE.md Modes map.
 
 | Real subagent (`agents/`) | stage | Role / Absorbs |
 |---|---|---|
@@ -22,6 +22,7 @@ Agents are contracts, not code. Each agent definition must contain: Role, Inputs
 | `layout-analyst` | analysis | composition + comfort (geometry only) |
 | `ad-analyst` | analysis | keyword extraction/normalization/slot-labeling |
 | `pattern-synthesizer` | analysis | per-persona ad-pattern description |
+| `competitive-analyst` | analysis | per-persona competitive-trend narrative (longevity/variation/change + 소구점) ON TOP of the deterministic trend aggregate |
 | `creative-brief-analyst` | generation | creative brief synthesis (brand/product/persona/review/pattern projection) |
 | `copy-layout-planner` | generation | per-candidate copy + layout |
 | `image-prompt-adapter` | generation | provider-neutral spec → ChatGPT/Gemini prompt (+ image-adapter-* skills) |
@@ -31,7 +32,7 @@ Data collection (D), the preprocessing slicer, pattern aggregation (deterministi
 
 ## Orchestrator
 
-The orchestrator is NOT a subagent. It is the main-session entry agent (`${CLAUDE_PLUGIN_ROOT}/agents/orchestrator.md`, auto-activated via `settings.json` `"agent": "orchestrator"`) — the shipped entry that works when the plugin is installed elsewhere (a plugin's root `CLAUDE.md` is NOT loaded for consumers). It holds the full artifact/knowledge set and dispatches the 16 subagents, projecting only role-scoped views to each.
+The orchestrator is NOT a subagent. It is the main-session entry agent (`${CLAUDE_PLUGIN_ROOT}/agents/orchestrator.md`, auto-activated via `settings.json` `"agent": "orchestrator"`) — the shipped entry that works when the plugin is installed elsewhere (a plugin's root `CLAUDE.md` is NOT loaded for consumers). It holds the full artifact/knowledge set and dispatches the 17 subagents, projecting only role-scoped views to each.
 
 ## Context Distribution Rule
 
@@ -52,6 +53,7 @@ The orchestrator is NOT a subagent. It is the main-session entry agent (`${CLAUD
 | layout-analyst | one ocr-extraction (geometry), persona_id | text content meaning |
 | copy-analyst | one ocr-extraction (text content), persona_id | coordinates/fonts |
 | pattern-synthesizer | the deterministic ad-pattern aggregate | raw images, recompute rights |
+| competitive-analyst | the deterministic competitive-trend aggregate (+ optional ad-pattern copy aggregates) | raw images, recompute rights, other personas |
 | ad-creative-refiner | one image (path), competitor_id, persona_id | text meaning interpretation, layout/composition analysis, other images |
 
 

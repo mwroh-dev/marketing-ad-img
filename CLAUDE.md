@@ -37,6 +37,7 @@ A **mode** is an orchestration stage. Its procedure is a **runbook** in `knowled
 | D collection | real collection of ad creatives from public ad-transparency libraries (Meta Ad Library, Google Ads Transparency) | runbook `modes/data-collection.md` · per-source flows in `flows/<source>/` + shared `ad-collect-harness` |
 | preprocessing | detail-cut (상세컷) separation on the seller's own / user-provided images: long-image slicing + ad separation | `slice-long-image`, agent `ad-creative-refiner` + `refine-images` |
 | analysis (text⊥layout) | ocr→copy⊥layout→pattern + keyword | agents `ocr-extractor`,`copy-analyst`,`layout-analyst`,`ad-analyst`,`pattern-synthesizer` + `keyword-rank`,`ad-pattern-rank` |
+| competitive-report | per-persona competitive intelligence from collected creatives across dated snapshots: longevity (게재기간=검증 프록시) + variation/cadence + new/disappeared + 소구점 → consumer HTML report | runbook `modes/competitive-report.md` · script `competitive-trend` (deterministic) + agent `competitive-analyst` + `render-report` (template-fill, no per-run LLM) |
 | generation | brief→copy→adapter→critic→finalizer | runbook `modes/image-generation.md` · agents `creative-brief-analyst`,`copy-layout-planner`,`image-prompt-adapter`,`critic-verifier` + `finalize-candidates` |
 
 ## What goes where (directory ownership — sub-agent/skill placement)

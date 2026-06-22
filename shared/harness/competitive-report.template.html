@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<!--
+  competitive-report template — authored ONCE, filled by shared/harness/render-report.mjs (deterministic, no
+  LLM). The renderer replaces the <!--TOKEN--> markers with HTML-escaped fragments built from
+  competitive-trend.json. An LLM never regenerates this HTML per run (token-cheap, by design). Edit the design
+  here; edit the data wiring in render-report.mjs.
+  Honesty: sections whose data is absent (e.g. change-over-time on a single snapshot) render an explicit
+  "not yet observable" note, never fabricated rows.
+-->
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>경쟁 광고 인텔리전스 리포트</title>
+  <style>
+    :root { --ink:#1a1a1a; --muted:#6b7280; --line:#e5e7eb; --accent:#2563eb; --warn:#b45309; --bg:#f9fafb; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif; color:var(--ink); background:var(--bg); line-height:1.55; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 32px 20px 64px; }
+    header h1 { font-size: 22px; margin: 0 0 4px; }
+    .meta { color: var(--muted); font-size: 13px; }
+    section { background:#fff; border:1px solid var(--line); border-radius:12px; padding:20px 22px; margin-top:20px; }
+    section h2 { font-size: 15px; margin:0 0 12px; letter-spacing:.01em; }
+    .synthesis { font-size: 15px; white-space: pre-wrap; }
+    .note { color: var(--muted); font-size: 13px; }
+    table { width:100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); }
+    th { color: var(--muted); font-weight:600; }
+    td.num { text-align:right; font-variant-numeric: tabular-nums; }
+    .pill { display:inline-block; padding:1px 8px; border-radius:999px; font-size:11px; background:#eff6ff; color:var(--accent); }
+    .pill.off { background:#fef2f2; color:#b91c1c; }
+    .flags { list-style:none; padding:0; margin:0; }
+    .flags li { font-size:12px; color:var(--warn); padding:3px 0; }
+    .empty { color: var(--muted); font-style: italic; font-size: 13px; }
+    footer { margin-top: 28px; color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>경쟁 광고 인텔리전스 리포트</h1>
+      <div class="meta"><!--META--></div>
+    </header>
+
+    <section>
+      <h2>요약</h2>
+      <div class="synthesis"><!--SYNTHESIS--></div>
+    </section>
+
+    <section>
+      <h2>장수 광고 (게재기간 = 검증 프록시)</h2>
+      <p class="note">오래 게재될수록 성과가 검증됐을 가능성이 높습니다. 메타는 상업광고의 실제 성과(CTR/지출/ROAS)를 제공하지 않으므로 게재기간을 대리 신호로 사용합니다.</p>
+      <!--LONGEVITY-->
+    </section>
+
+    <section>
+      <h2>광고주별 변형 (얼마나 많이 찍어내나)</h2>
+      <!--ADVERTISERS-->
+    </section>
+
+    <section>
+      <h2>변화 추이 (신규 / 중단 / 속도)</h2>
+      <!--CHANGE-->
+    </section>
+
+    <section>
+      <h2>수집 커버리지 · 갭 (provenance)</h2>
+      <!--FLAGS-->
+    </section>
+
+    <footer><!--FOOTER--></footer>
+  </div>
+</body>
+</html>

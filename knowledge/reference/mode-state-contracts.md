@@ -5,6 +5,7 @@
 ```txt
 initial-setup
 data-collection
+competitive-report
 image-generation
 performance-learning
 ```
@@ -152,6 +153,41 @@ supported_formats:
   - meta_feed_4_5
   - meta_story_9_16
   - meta_landscape_1_91_1
+```
+
+## competitive-report
+
+Purpose:
+
+```txt
+Interpret ALREADY-COLLECTED ad creatives (across dated snapshots) into a per-persona competitive report:
+longevity ranking (게재기간 = 검증 프록시), per-advertiser variation/cadence, new/disappeared, 소구점. Consumer HTML.
+Uses PUBLIC-DATA PROXIES only — never measured CTR/ROAS/spend (that is performance-learning, backlog).
+```
+
+Required slots:
+
+```yaml
+required_slots:
+  - brand_id
+  - product_id
+  - persona_id
+  - collection_snapshot   # ≥1 runs/*/ad-creatives/{persona_id}/ad-creative.json for the persona
+```
+
+Execution blocked when:
+
+```txt
+- the persona has NO collection snapshot (runs/*/ad-creatives/{persona_id}/ad-creative.json absent)
+  → hard_block; route to data-collection first. Never emit an empty report.
+```
+
+Honest degrade (not a blocker):
+
+```txt
+- only 1 dated snapshot (or all snapshots undated/pre-timestamp): longevity + variation render;
+  new/disappeared/cadence are OMITTED + flagged. ≥2 dated snapshots over time fill the change axis.
+- ads without started_at are excluded from longevity ranking (flagged), not zero-ranked.
 ```
 
 ## performance-learning
