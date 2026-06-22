@@ -102,68 +102,78 @@ Every collection run owns its browser through code — no manual Chrome launch:
    parameter, validated by matchToolEntry against the whitelist). Google: type into the search box
    (Input.insertText), pick a suggestion, click it — no synthetic Enter, no DOM value injection.
 3. On any block/verification page, STOP immediately (lib.isBlocked) — no workaround
-4. Scroll to induce lazy loading → buffer ad-creative image + video responses (Network.responseReceived)
-5. [Meta only] Per-card detail-modal expansion — see below.
-6. Drain buffered images via Network.getResponseBody → save images/ad-N.jpg + structured creatives
-   (each creative merged with its card's detail by image-URL key join). Honestly record
-   no_advertiser_match / no creatives in coverage_flags (no false completion).
+4. Scroll to induce lazy loading. Google: this buffers ad-creative image responses
+   (Network.responseReceived) for the drain step. Meta: scroll only loads the cards — collection is
+   modal-driven (step 5), NOT buffer-driven.
+5. [Meta only] MODAL-DRIVEN per-ad collection — see below.
+6. [Google only] Drain buffered images via Network.getResponseBody → save images/ad-N.jpg + structured
+   creatives (with advertiser provenance). Honestly record no_advertiser_match / no creatives in
+   coverage_flags (no false completion). (Meta retired this buffer→drain path — see below.)
 ```
 
-### Meta: per-card detail-modal expansion
+### Meta: MODAL-DRIVEN per-ad collection (every collected ad gets its detail)
 
-After the grid scroll, Meta's adapter opens each ad card's "광고 상세 정보 보기 / See ad details"
-modal (a `div[role="button"]`) to extract additional fields. Both KR and EN label variants are
-handled (the headless throwaway profile renders EN; real user sessions may render KR).
+Meta collection is **driven from the modal pass** so that EVERY collected creative is 1:1 with its
+detail by construction (target ≈100% detail coverage; live `다이어트`: **24/24**). The OLD two-pass
+design (grid scroll buffered creative *network* responses; a separate modal pass built a `metaByKey`
+and `drain()` joined them by image-URL key) left ~3/24 creatives detail-less because the
+buffered-creative set and the opened-modal set did not perfectly overlap (CDN size-variant url
+mismatches + occasional modal-open misses). The fix UNIFIES the passes.
 
-**Steps (per card, up to `maxDetails` cards):**
+**Enabler (recon §11/§12, live-proven):** fbcdn assets are **token-authed, not cookie-authed** — a
+bare Node `fetch` of the FULL signed url (with its `?…oh=…oe=` query) returns the COMPLETE file
+(full 200, content-length == bytes): images (`scontent` + `t39.35426` jpg) AND videos (`video-…` mp4).
+So each ad's creative can be fetched DIRECTLY by url right after reading it from the open modal — no
+dependency on the network buffer.
 
-1. Read the card's `<img>.currentSrc` (query-stripped) — this is the join key that ties the card's
-   detail to the buffered network creative (the image is already in the buffer from the scroll phase;
-   opening the modal triggers no fresh network response).
-2. Open the modal: `el.click()` on the trigger element (real element activation — not DOM-value
-   injection). CDP `Input.dispatchMouseEvent` does NOT open the modal in headless (reflow mis-hit);
-   `el.click()` does reliably.
-3. Locate the open dialog: `[role="dialog"]` whose text contains `Library ID` / `라이브러리 ID`
-   (anchored on the *labelled* ID to exclude the nav panel, which contains the bare words
-   "광고 라이브러리").
-4. Extract from `dialog.innerText` by flat-line regex: `library_id`, `started_at` (two date formats:
-   EN `"26 Feb 2026"`, KR `"2026. 2. 26.에 게재 시작함"`), `status`, `advertiser_name` (line before
-   "광고"/"Sponsored" marker), `video_duration` (timestamp pattern → video-ad signal).
-5. Expand the **광고주 정보 / About the advertiser accordion** (collapsed by default). This requires a
-   real CDP `Input.dispatchMouseEvent` at the header's fresh `getBoundingClientRect` center — `el.click()`
-   does NOT toggle it. Load-bearing: use `scrollIntoView({block:'start'})` (NOT `'center'`); at the
-   headless viewport height the `'center'` position silently no-ops. Retry once; gate on a
-   HAS_FOLLOWER verify (`팔로워 / followers?` in dialog text).
-6. Extract from the expanded accordion: `follower_count` (raw `팔로워 N명` / `N followers`; handle KR
-   magnitude suffixes 천/만/억 and EN K/M/B), `page_category`, `page_id` (an `ID:` that differs from
-   `library_id`).
-7. Extract `platforms` from platform-icon CSS `mask-position` Y-offsets (the icons have no
-   aria-label/alt; distinct Y-offset = distinct platform). An offset→name lookup table resolves
-   names; unknown offsets are recorded as `platform:"unknown(<offset>)"` (not dropped). The count
-   is reliable; the name table needs maintenance if Meta re-bakes the sprite.
-8. Call `normalizeDetail(raw)` → `{ started_at, advertiser_name, follower_count, platforms,
-   page_category, page_id, library_id, status, detail_captured }`. `detail_captured:false` means
-   the modal yielded nothing usable — the creative is still saved, just without detail fields (no
-   fabrication, no error hiding).
-9. Close the modal: CDP-click the top-most "Close"/"닫기" control, then **verify the dialog is gone**
-   before the next card. ESC-only close stacks unclosed modals across cards (verified live: dialog
-   count grew 2→6, corrupting all later accordion reads). ESC is the fallback only.
+**Steps (per ad card — all cards, no artificial cap; bounded by the 360s harness timeout + totalCap):**
 
-**Image↔detail join (collision-safe):** each card's image dedup-key (query-stripped URL) exactly
-matches a buffered network creative URL (verified live: 100% match). `drain(meta, metaByKey)` merges
-detail into the matching creative by key. Collision: two distinct ads can share an agency creative
-(same path, different query params → same dedup-key). A key claimed by two different ads (by
-`library_id` or `advertiser_name`) is **dropped from the map** (neither detail attaches) and flagged.
-A creative gets its own correct detail or none — never another advertiser's.
+1. Read the card's creative image asset(s) `{ full (signed, to fetch), key (query-stripped, the
+   record id) }` BEFORE opening the modal — the FALLBACK if the modal fails. The advertiser
+   AVATAR/logo (a tiny `stp=…s60x60` ~1KB thumbnail) is filtered out by intrinsic size
+   (`naturalWidth/Height ≥ 200`, size-token backstop); only real creatives (`s600x600`, 30–50KB) are kept.
+2. Open the modal: `el.click()` on the "광고 상세 정보 보기 / See ad details" `div[role="button"]` (real
+   element activation — not DOM-value injection). CDP `Input.dispatchMouseEvent` does NOT open it in
+   headless (reflow mis-hit); `el.click()` does. Poll `!!DLG` (≤5s); on no-modal, fall to step 6 fallback.
+3. Locate the dialog: `[role="dialog"]` whose text contains the *labelled* `Library ID` / `라이브러리 ID`
+   (excludes the nav panel's bare "광고 라이브러리"). Scroll page to top, expand the **광고주 정보 /
+   About the advertiser accordion** (real CDP click, `scrollIntoView({block:'start'})` — load-bearing;
+   `el.click()` does NOT toggle it; retry once, gate on a HAS_FOLLOWER verify).
+4. Extract by flat-line regex from `dialog.innerText`: `library_id`, `started_at` (EN `"26 Feb 2026"`
+   / KR `"2026. 2. 26.에 게재 시작함"`), `status`, `advertiser_name` (line before "광고"/"Sponsored"),
+   `follower_count` (KR `팔로워 N명` / EN `N followers`; 천/만/억, K/M/B), `page_category`, `page_id`,
+   `platforms` (icon CSS `mask-position` Y-offsets → offset→name table; unknown → `unknown(<offset>)`),
+   `video_duration`. → `normalizeDetail(raw)` → `detail_captured`. Read the modal `<video>.src`
+   (a pure DOM read) for video ads — both the stripped `video_url` key and the full signed url.
+5. Read THIS ad's creative image asset(s) from the OPEN modal (preferred over the grid card img; a real
+   carousel modal shows several → one record per image, all sharing this ad's detail). Close the modal
+   (CDP-click the top "Close"/"닫기" control + **verify** it's gone — ESC-only stacks modals and
+   corrupts later cards; ESC is fallback).
+6. `ctx.collectCreative({ imageKey, imageFull, videoKey, videoFull, meta })` per asset: FETCH the bytes
+   by the full signed url, write `images/ad-N.jpg` (+ `videos/ad-N.mp4` for a video ad — the image is
+   then the poster), and build ONE record with this ad's detail (`detail_captured:true`). On a fetch
+   failure → url-only (no fabricated file). On modal/extract FAILURE → fall back to collecting the
+   card's grid `<img>` with `detail_captured:false` — so creative coverage is never worse than before.
 
-**Video ads:** the Meta front-door URL omits `media_type`, so video ads are included. Video network
-responses are HTTP 206 (partial content); `Network.getResponseBody` fails on them — no video bytes
-are retrievable in a background headless tab. Video ads are therefore recorded as `video_url` only
-(no `video_file`). Many video ads also fire **no `.mp4` network response** (no autoplay in a
-non-painting headless tab) and are captured as their image thumbnail with `video_duration` preserved.
-The `videoMatch` predicate (mime-led: `video/mp4`; URL fallback: `video-<region>.xx.fbcdn.net +
-.mp4`) is wired and will populate `subtype:"video"` records when a `.mp4` response does fire; the
-absence is an honest headless limitation, not a flow defect.
+**1:1 detail, no mis-join (by construction):** each record is built from its OWN modal pass, so detail
+is attached to the right creative by construction — there is no join. A RESOLD creative (two different
+ads sharing one agency asset) yields TWO records, each with its OWN correct detail (the old
+dedupKey-collision drop is no longer needed and is retired). Live verification: 0 cases of one
+`library_id` mapping to >1 advertiser.
+
+**Video ads:** the front-door URL omits `media_type`, so video ads are included. The modal `<video>.src`
+is the signed `.mp4` url (a pure DOM read; recon §10). The actual `.mp4` is fetched DIRECTLY by that
+full signed url (recon §11a — bare GET returns the complete file) and written to `videos/ad-N.mp4`; the
+record is `subtype:"video"` with `video_url` (stripped) + `video_file`, and the poster jpg as
+`image_file`. The transient signed url is never persisted (it expires). Live `다이어트`: 4/4 video
+records had a saved `video_file` (valid `ftyp` mp4). `getResponseBody` on the 206 video stream is NOT
+used (it evicts) — the direct-fetch path replaces it.
+
+**Bounded + safe:** every asset fetch is `downloadImageFile`/`downloadVideoFile` — AbortController
+timeout + size ceiling + magic-byte (JPEG/PNG/WEBP/GIF, mp4 `ftyp`) + size-floor validation; never
+fabricates a file. Non-intrusive (no bringToFront/activateTarget), STOP-on-block, no URL assembly
+(filter front-door whitelisted), signed urls never persisted. The Network buffer/`drain` path stays in
+the harness for Google (which still uses scroll→buffer→drain).
 
 Implementation: `${CLAUDE_PLUGIN_ROOT}/shared/collect/ad-collect-harness.mjs` (shared CDP lifecycle, image capture, dedup, block STOP, tab cleanup) + per-source adapter `${CLAUDE_PLUGIN_ROOT}/flows/<source>/flow.mjs` (`defineFlow`), dispatched by name via `${CLAUDE_PLUGIN_ROOT}/shared/collect/flow-registry.mjs` and run by the single `${CLAUDE_PLUGIN_ROOT}/shared/collect/run-flow.mjs`. The adapter supplies only that platform's flow + image matching; the harness owns everything else. See `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/ad-source-adapter-contract.md`.
 

@@ -16,6 +16,11 @@
 //   clickAt(x,y[,postWaitMs]) real mouse click; postWaitMs defaults to 7000 (google nav wait), pass a
 //                            short value for quick clicks that poll their own completion (meta accordion)
 //   pollUntil(expr,opts)     poll an in-page boolean expr until true or timeout (event-driven settle)
+//   collectCreative({imageKey,imageFull,videoKey,videoFull,meta})
+//                            MODAL-DRIVEN per-ad collection (Meta): fetch THIS ad's creative asset(s) by the
+//                            full signed url + write images/ad-N.jpg (+ videos/ad-N.mp4 for video ads), build
+//                            ONE record with this ad's detail attached (1:1 by construction — no join). url-only
+//                            fallback on fetch failure; dedups on imageKey; honors totalCap. (google uses drain.)
 //   drain(meta, metaByKey, metaByAsset)
 //                            getResponseBody on buffered image/video (classifyResponse) responses → save + push.
 //                            `meta` merges into EVERY saved record; `metaByKey` (optional
@@ -32,7 +37,7 @@
 //
 // Non-intrusive: dedicated headless Chrome (default 9291), never bringToFront/activateTarget.
 import { realScroll, sleep, isBlocked, matchToolEntry } from "./lib.mjs";
-import { dedupKey, fbcdnAssetId, safeName, classifyResponse, buildCreativeRecord, downloadVideoFile } from "./ad-source-helpers.mjs";
+import { dedupKey, fbcdnAssetId, safeName, classifyResponse, buildCreativeRecord, downloadVideoFile, downloadImageFile } from "./ad-source-helpers.mjs";
 import CDP from "chrome-remote-interface";
 import { writeFileSync, mkdirSync } from "fs";
 
@@ -179,6 +184,55 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
         await c.Input.dispatchKeyEvent({ type: "rawKeyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27, nativeVirtualKeyCode: 27 });
         await c.Input.dispatchKeyEvent({ type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27, nativeVirtualKeyCode: 27 });
         await sleep(1200);
+      },
+      // MODAL-DRIVEN per-ad creative collection (Meta rearch). The flow drives 1:1 from the modal pass: for
+      // EACH ad it reads that ad's creative asset url(s) from the open card/modal and calls collectCreative,
+      // which FETCHES the bytes by the FULL signed url (recon §11/§12: fbcdn is token-authed, a bare GET of the
+      // signed url returns the complete file) and writes images/ad-N.jpg + (for video ads) videos/ad-N.mp4,
+      // then builds ONE record via buildCreativeRecord with THIS ad's detail attached. Because the record is
+      // built from its own modal pass, detail is 1:1 by construction — no grid-buffer→drain join, no mis-join
+      // even when two ads resell the same asset (each gets its own record + own detail).
+      //
+      //   imageKey   query-stripped image url (the stable dedup/join id stored in image_url) — REQUIRED
+      //   imageFull  the FULL signed image url to fetch (NEVER persisted) — optional; fall back to url-only if absent/fails
+      //   videoKey   query-stripped mp4 url (video ads) → record becomes subtype "video"; image bytes are the poster
+      //   videoFull  the FULL signed mp4 url to fetch (NEVER persisted) — optional
+      //   meta       this ad's normalized detail (detail_captured etc.) merged into the record
+      // Dedups on imageKey (a creative already collected this run is skipped — but a re-collect by ANOTHER ad
+      // with its OWN detail is still its own correct record because each modal pass is independent; the dedup
+      // here only prevents the SAME url being written twice within the modal loop). Honors totalCap.
+      // Returns { collected, index, imageSaved, videoSaved, reason }.
+      collectCreative: async ({ imageKey, imageFull = null, videoKey = null, videoFull = null, meta = {} } = {}) => {
+        if (!imageKey || typeof imageKey !== "string") return { collected: false, reason: "no imageKey" };
+        const key = dedupKey(imageKey);
+        if (seen.has(key)) return { collected: false, reason: "dup" };
+        if (result.creatives.length >= totalCap) return { collected: false, reason: "cap" };
+        const n = result.creatives.length;
+        // fetch + save the image bytes (best-effort; url-only fallback on any failure — never fabricate a file)
+        let imageSaved = false;
+        if (imageFull) {
+          const dl = await downloadImageFile(imageFull, `${imgDir}/ad-${n}.jpg`, { writeFile: (p, b) => writeFileSync(p, b) });
+          imageSaved = dl.saved;
+          if (!dl.saved) result.coverage_flags.push(`image not downloaded (${dl.reason}) — url only`);
+        }
+        // for a VIDEO ad: image bytes are the poster (image_file), and we also fetch the actual mp4 (recon §11)
+        let videoSaved = false;
+        const fullMeta = { ...meta };
+        if (videoKey) {
+          fullMeta.video_url = videoKey;
+          if (videoFull) {
+            const dl = await downloadVideoFile(videoFull, `${vidDir}/ad-${n}.mp4`, { writeFile: (p, b) => writeFileSync(p, b) });
+            videoSaved = dl.saved;
+            result.coverage_flags.push(dl.saved
+              ? `video file downloaded (${(dl.bytes / 1024).toFixed(0)}KB) → videos/ad-${n}.mp4`
+              : `video file not downloaded (${dl.reason}) — url only`);
+          }
+        }
+        seen.add(key);
+        // kind:"image" → buildCreativeRecord routes to subtype "video" when fullMeta.video_url is present
+        // (poster jpg as image_file + the mp4 video_url/video_file), else subtype "single_image".
+        result.creatives.push(buildCreativeRecord({ kind: "image", key, n, meta: fullMeta, saved: imageSaved, videoSaved }));
+        return { collected: true, index: n, imageSaved, videoSaved };
       },
       drain: async (meta = {}, metaByKey = null, metaByAsset = null) => {
         await sleep(1200);

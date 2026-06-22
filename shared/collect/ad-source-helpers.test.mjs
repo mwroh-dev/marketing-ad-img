@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseAdvertiserId, filterQueriesByModes, dedupKey, fbcdnAssetId, chooseAdvertiser, safeName, buildCreativeRecord, classifyResponse, downloadVideoFile } from "./ad-source-helpers.mjs";
+import { parseAdvertiserId, filterQueriesByModes, dedupKey, fbcdnAssetId, chooseAdvertiser, safeName, buildCreativeRecord, classifyResponse, downloadVideoFile, downloadImageFile, isImageMagic } from "./ad-source-helpers.mjs";
 
 test("safeName accepts a plain segment, rejects traversal/separators", () => {
   assert.equal(safeName("buyer", "personaId"), "buyer");
@@ -219,6 +219,83 @@ test("downloadVideoFile: bounded — aborts a hung fetch (timeout) and rejects o
   const big = await downloadVideoFile("https://x/clip.mp4", "/tmp/v.mp4", {
     maxBytes: 50 * 1024 * 1024,
     fetchFn: async () => mkResH(200 * 1024 * 1024),  // 200MB
+    writeFile: () => { throw new Error("should not write an oversized body"); },
+  });
+  assert.equal(big.saved, false);
+  assert.match(big.reason, /too large/);
+});
+
+test("isImageMagic recognizes JPEG/PNG/WEBP/GIF, rejects html/short", () => {
+  const jpg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(12)]);
+  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47]), Buffer.alloc(12)]);
+  const webp = Buffer.concat([Buffer.from("RIFF", "ascii"), Buffer.alloc(4), Buffer.from("WEBP", "ascii")]);
+  const gif = Buffer.concat([Buffer.from("GIF8", "ascii"), Buffer.alloc(12)]);
+  assert.equal(isImageMagic(jpg), true);
+  assert.equal(isImageMagic(png), true);
+  assert.equal(isImageMagic(webp), true);
+  assert.equal(isImageMagic(gif), true);
+  assert.equal(isImageMagic(Buffer.from("<html>nope</html>")), false);
+  assert.equal(isImageMagic(Buffer.alloc(4)), false);  // too short
+});
+
+test("downloadImageFile: writes a valid non-trivial jpg, rejects 403 / tiny / non-image (no fabrication, recon §12)", async () => {
+  const JPG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(30 * 1024)]); // > 2KB floor, JPEG magic
+  const mkRes = (ok, status, body) => ({ ok, status, headers: { get: () => null }, arrayBuffer: async () => body });
+
+  // success: valid jpg → saved, bytes reported, writer called.
+  let written = null;
+  const ok = await downloadImageFile("https://scontent/x_n.jpg?oh=sig", "/tmp/i.jpg", {
+    fetchFn: async () => mkRes(true, 200, JPG),
+    writeFile: (p, b) => { written = { p, len: b.length }; },
+  });
+  assert.equal(ok.saved, true);
+  assert.equal(ok.bytes, JPG.length);
+  assert.deepEqual(written, { p: "/tmp/i.jpg", len: JPG.length });
+
+  // 403 (expired/stripped signature) → not saved, no write.
+  let w403 = false;
+  const r403 = await downloadImageFile("https://scontent/x_n.jpg", "/tmp/i.jpg", { fetchFn: async () => mkRes(false, 403, Buffer.alloc(0)), writeFile: () => { w403 = true; } });
+  assert.equal(r403.saved, false);
+  assert.match(r403.reason, /403/);
+  assert.equal(w403, false);
+
+  // tiny (page-chrome icon) → rejected by the size floor.
+  const tiny = await downloadImageFile("https://scontent/icon_n.jpg", "/tmp/i.jpg", {
+    fetchFn: async () => mkRes(true, 200, Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(500)])),
+    writeFile: () => { throw new Error("should not write a tiny icon"); },
+  });
+  assert.equal(tiny.saved, false);
+  assert.match(tiny.reason, /too small/);
+
+  // 200 but not an image (error page big enough to pass the floor) → rejected by magic check.
+  const notImg = await downloadImageFile("https://scontent/x_n.jpg", "/tmp/i.jpg", {
+    fetchFn: async () => mkRes(true, 200, Buffer.from("<html>" + "x".repeat(5000) + "</html>")),
+    writeFile: () => { throw new Error("should not write a non-image"); },
+  });
+  assert.equal(notImg.saved, false);
+  assert.match(notImg.reason, /not an image/);
+
+  // no url → not saved.
+  const none = await downloadImageFile(null, "/tmp/i.jpg", {});
+  assert.equal(none.saved, false);
+});
+
+test("downloadImageFile: bounded — aborts a hung fetch (timeout), rejects oversized (no budget/memory blowup)", async () => {
+  let hungWrote = false;
+  const hung = await downloadImageFile("https://scontent/x_n.jpg?oh=sig", "/tmp/i.jpg", {
+    timeoutMs: 5,
+    fetchFn: (url, { signal }) => new Promise((_, rej) => {
+      signal.addEventListener("abort", () => { const e = new Error("aborted"); e.name = "AbortError"; rej(e); });
+    }),
+    writeFile: () => { hungWrote = true; },
+  });
+  assert.equal(hung.saved, false);
+  assert.match(hung.reason, /timeout/);
+  assert.equal(hungWrote, false);
+
+  const big = await downloadImageFile("https://scontent/x_n.jpg", "/tmp/i.jpg", {
+    maxBytes: 25 * 1024 * 1024,
+    fetchFn: async () => ({ ok: true, status: 200, headers: { get: () => String(100 * 1024 * 1024) }, arrayBuffer: async () => Buffer.alloc(0) }),
     writeFile: () => { throw new Error("should not write an oversized body"); },
   });
   assert.equal(big.saved, false);

@@ -2,149 +2,179 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import flow from "./flow.mjs";
 
-// Smoke for the collision-safe detail↔creative join in captureDetails (live §9). The join key is
-// dedupKey(image_url) (query-stripped), so two DIFFERENT advertisers reselling the same agency creative can
-// collide on one key. captureDetails must DROP a key claimed by two distinct ads (→ creative gets no detail,
-// not a wrong one) while keeping clean keys. We drive captureDetails with a scripted fake ctx (no browser).
+// MODAL-DRIVEN model (rearch): captureAndCollect drives collection 1:1 from the modal pass — for each ad it
+// opens the modal, extracts detail, reads that ad's creative asset(s), and calls ctx.collectCreative per asset
+// with this ad's detail attached. There is no buffer→drain join (Meta retired it). These tests drive
+// captureAndCollect with a scripted fake ctx (no browser) and assert on the recorded collectCreative calls:
+// per-ad record building (detail 1:1), carousel (one call per image), modal-fail fallback (detail_captured
+// false via the grid card img), and the video record (modal <video>.src carried + attached to asset[0]).
 
-// Build a fake ctx that scripts a sequence of cards. Each card = { keys:[...], libid, advertiser, follower }.
-// The fake answers each in-page expression by matching on a recognizable substring of the expression, and
-// models dialog open/close so flow.closeModal (which polls !!DLG) terminates.
-function makeCtx(cards) {
-  let i = -1;                 // current card index (advanced when CARD_IMG_KEYS([n]) is read)
-  let dialogOpen = false;     // toggled open on the trigger click, closed on esc/clickAt(close)
+// Build a fake ctx scripting a sequence of cards. Each card:
+//   { cardAssets:[{full,key}], modalAssets:[{full,key}]|null, modalFails?, libid, advertiser, follower,
+//     page_id, videoUrl? }
+// The fake answers each in-page expression by matching a recognizable substring, models dialog open/close,
+// and RECORDS every collectCreative call so tests can assert the produced records.
+function makeCtx(cards, { cap = 24 } = {}) {
+  let i = -1;                 // current card index (advanced when CARD_IMG_ASSETS([n]) is read)
+  let dialogOpen = false;
   const flags = [];
+  const collected = [];       // every collectCreative arg (the produced records, pre-buildCreativeRecord)
   const ctx = {
     flag: (s) => flags.push(s),
     sleep: async () => {},
-    // clickAt now takes an optional postWaitMs (meta accordion passes a short value; google keeps the
-    // default). The mock ignores it. A click on the Close control still closes the modal.
-    clickAt: async (_x, _y, _postWaitMs) => { dialogOpen = false; },
+    clickAt: async () => {},  // accordion click — no-op in the mock (HAS_FOLLOWER is scripted true)
     esc: async () => { dialogOpen = false; },
-    // pollUntil mirrors the real harness primitive: evaluate the in-page boolean expr and return its truth.
-    // Synchronous mocks resolve immediately, so a single eval models "polled until true (or false on timeout)".
+    limitReached: () => collected.length >= cap,
     pollUntil: async (expr) => { try { return !!(await ctx.evalJs(expr)); } catch { return false; } },
+    collectCreative: async (arg) => {
+      if (collected.length >= cap) return { collected: false, reason: "cap" };
+      collected.push(arg);
+      return { collected: true, index: collected.length - 1 };
+    },
     async evalJs(expr) {
-      if (/\.length\s*$/.test(expr) && expr.includes('role="button"')) return cards.length;   // trigger count
-      if (expr.includes("currentSrc||im.src")) {     // CARD_IMG_KEYS(i) — advance the cursor
+      if (/\.length\s*$/.test(expr) && expr.includes('role="button"')) return cards.length;     // trigger count
+      if (expr.includes("for(let k=0;k<12")) {                 // CARD_IMG_ASSETS(i) — advance the cursor
         const m = expr.match(/\]\[(\d+)\]/);
         i = m ? Number(m[1]) : i + 1;
-        return cards[i] ? cards[i].keys : [];
+        return cards[i] ? cards[i].cardAssets : [];
       }
-      if (expr.includes("b.click()")) { dialogOpen = true; return true; }   // open the modal
+      if (expr.includes("d.querySelectorAll('img')")) {        // MODAL_IMG_ASSETS
+        const c = cards[i];
+        return c && c.modalAssets ? c.modalAssets : [];
+      }
+      if (expr.includes("b.click()")) {                        // open the modal (unless this card fails)
+        if (cards[i] && cards[i].modalFails) return true;      // click "happens" but dialog never appears
+        dialogOpen = true; return true;
+      }
       if (expr.includes("scrollTo(0,0)")) return null;
-      if (expr.trim().startsWith("!!(")) return dialogOpen;                  // !!DLG presence check
-      if (expr.includes("Close|닫기")) return null;                          // CLOSE_RECT → none → closeModal uses esc()
-      if (expr.includes("platform_offsets")) {                              // EXTRACT → this card's raw detail (check BEFORE HAS_FOLLOWER: both contain "팔로워")
-        const card = cards[i];
+      if (expr.trim().startsWith("!!(")) return dialogOpen && !(cards[i] && cards[i].modalFails);  // !!DLG
+      if (expr.includes("Close|닫기")) { dialogOpen = false; return null; }   // CLOSE_RECT → none → esc()
+      if (expr.includes("platform_offsets")) {                 // EXTRACT (check BEFORE HAS_FOLLOWER: both have "팔로워")
+        const c = cards[i];
         return {
-          status: "활성", library_id: card.libid, started_at: "2026. 2. 26.에 게재 시작함",
-          advertiser: card.advertiser || card.libid, follower_raw: `팔로워 ${card.follower}명`,
-          category: "건강/뷰티", page_id: card.page_id || null, platform_offsets: ["-387px -766px"], video_duration: null,
+          status: "활성", library_id: c.libid, started_at: "2026. 2. 26.에 게재 시작함",
+          advertiser: c.advertiser || c.libid, follower_raw: `팔로워 ${c.follower}명`,
+          category: "건강/뷰티", page_id: c.page_id || null, platform_offsets: ["-387px -766px"], video_duration: null,
         };
       }
-      if (expr.includes("팔로워") && expr.includes("followers?")) return true; // HAS_FOLLOWER → skip accordion loop
-      // VIDEO_SRC read: real expr returns { full, key } (signed url + stripped id), or null for non-video.
-      if (expr.includes("real fbcdn mp4")) {
+      if (expr.includes("팔로워") && expr.includes("followers?")) return true;  // HAS_FOLLOWER
+      if (expr.includes("real fbcdn mp4")) {                   // VIDEO_SRC
         const u = cards[i] && cards[i].videoUrl;
         return u ? { full: u, key: u.split("?")[0] } : null;
       }
       return null;
     },
   };
-  return { ctx, flags };
+  return { ctx, flags, collected };
 }
 
-test("captureDetails: dedupKey collision between two distinct advertisers drops the key (+flag), keeps clean keys", async () => {
-  // Card 0: advertiser X on shared key K1.  Card 1: advertiser Y on the SAME key K1 (collision).
-  // Card 2: advertiser Z on its own key K2 (clean).  Card 3: advertiser X again, key K1 — already conflicted.
-  const cards = [
-    { keys: ["K1"], libid: "AAA", advertiser: "X", follower: 10, page_id: "px" },
-    { keys: ["K1"], libid: "BBB", advertiser: "Y", follower: 20, page_id: "py" },
-    { keys: ["K2"], libid: "CCC", advertiser: "Z", follower: 30, page_id: "pz" },
-    { keys: ["K1"], libid: "AAA", advertiser: "X", follower: 10, page_id: "px" },
-  ];
-  const { ctx, flags } = makeCtx(cards);
-  const { metaByKey: out } = await flow.captureDetails(ctx);
+const A = (id) => ({ full: `https://scontent-icn2-1.xx.fbcdn.net/v/t39.35426-6/${id}_n.jpg?oh=sig&oe=exp`, key: `https://scontent-icn2-1.xx.fbcdn.net/v/t39.35426-6/${id}_n.jpg` });
 
-  // K1 must NOT be present (conflicted) — neither X's nor Y's detail attached.
-  assert.equal(out.K1, undefined, "collided key K1 must be dropped, not last-write-wins");
-  // K2 keeps its own correct detail.
-  assert.ok(out.K2, "clean key K2 should retain detail");
-  assert.equal(out.K2.advertiser_name, "Z");
-  assert.equal(out.K2.follower_count, 30);
-  // a collision flag was raised for K1.
-  assert.ok(flags.some((f) => /join-key collision: K1/.test(f)), `expected a K1 collision flag, got: ${JSON.stringify(flags)}`);
+test("captureAndCollect: each ad's record carries ITS OWN detail (1:1 by construction, no mis-join)", async () => {
+  const cards = [
+    { cardAssets: [A("100_1")], modalAssets: [A("100_1")], libid: "AAA", advertiser: "X", follower: 10, page_id: "px" },
+    { cardAssets: [A("200_2")], modalAssets: [A("200_2")], libid: "BBB", advertiser: "Y", follower: 20, page_id: "py" },
+  ];
+  const { ctx, collected } = makeCtx(cards);
+  await flow.captureAndCollect(ctx, "q");
+  assert.equal(collected.length, 2);
+  // ad X's record has X's detail; ad Y's has Y's — never swapped.
+  const recX = collected.find((c) => c.imageKey.includes("100_1"));
+  const recY = collected.find((c) => c.imageKey.includes("200_2"));
+  assert.equal(recX.meta.advertiser_name, "X");
+  assert.equal(recX.meta.follower_count, 10);
+  assert.equal(recX.meta.detail_captured, true);
+  assert.equal(recY.meta.advertiser_name, "Y");
+  assert.equal(recY.meta.follower_count, 20);
+  // the FULL signed url is passed for the fetch; the stripped key is the record id.
+  assert.ok(recX.imageFull.includes("oh=sig"), "full signed url passed to fetch");
+  assert.ok(!recX.imageKey.includes("?"), "imageKey is query-stripped");
 });
 
-test("captureDetails: a video ad's modal <video>.src is carried into metaByKey as video_url (audit I3)", async () => {
-  // A video ad: VIDEO_SRC returns {full,key}; an image ad: VIDEO_SRC returns null.
-  // The mock signs the url with a query (the makeCtx mock derives key = full.split('?')[0]).
+test("captureAndCollect: a RESOLD creative (two ads share one asset) → two records, each its OWN detail", async () => {
+  // Both ads' modal shows the SAME asset basename. Old design dropped it as a join collision; modal-driven
+  // builds TWO independent records (each from its own modal pass) — each correct, no drop, no mis-join.
+  const shared = A("555_5");
+  const cards = [
+    { cardAssets: [shared], modalAssets: [shared], libid: "P-AD", advertiser: "P", follower: 11, page_id: "pp" },
+    { cardAssets: [shared], modalAssets: [shared], libid: "Q-AD", advertiser: "Q", follower: 22, page_id: "pq" },
+  ];
+  const { ctx, collected } = makeCtx(cards);
+  await flow.captureAndCollect(ctx, "q");
+  // first ad collects the asset; the second is deduped by the harness in real runs (mock has no dedup), but the
+  // KEY correctness property is: each collectCreative call carries the calling ad's own detail.
+  assert.equal(collected[0].meta.advertiser_name, "P");
+  assert.equal(collected[1].meta.advertiser_name, "Q");
+  assert.notEqual(collected[0].meta.follower_count, collected[1].meta.follower_count);
+});
+
+test("captureAndCollect: carousel → one record per image, all sharing the ad's detail", async () => {
+  const cards = [
+    { cardAssets: [A("11_1"), A("11_2"), A("11_3")], modalAssets: [A("11_1"), A("11_2"), A("11_3")],
+      libid: "CAR", advertiser: "Carousel", follower: 99, page_id: "pc" },
+  ];
+  const { ctx, collected } = makeCtx(cards);
+  await flow.captureAndCollect(ctx, "q");
+  assert.equal(collected.length, 3, "one record per carousel image");
+  for (const c of collected) {
+    assert.equal(c.meta.advertiser_name, "Carousel");
+    assert.equal(c.meta.follower_count, 99);
+    assert.equal(c.meta.detail_captured, true);
+  }
+});
+
+test("captureAndCollect: modal-fail FALLBACK → collect the grid card img with no detail (coverage not worse)", async () => {
+  const cards = [
+    { cardAssets: [A("ok_1")], modalAssets: [A("ok_1")], libid: "OK", advertiser: "Good", follower: 5, page_id: "po" },
+    { cardAssets: [A("fail_2")], modalFails: true, libid: "NO", advertiser: "Bad", follower: 0, page_id: "pn" },
+  ];
+  const { ctx, collected, flags } = makeCtx(cards);
+  await flow.captureAndCollect(ctx, "q");
+  assert.equal(collected.length, 2, "both creatives collected (fallback for the failed modal)");
+  const ok = collected.find((c) => c.imageKey.includes("ok_1"));
+  const bad = collected.find((c) => c.imageKey.includes("fail_2"));
+  assert.equal(ok.meta.detail_captured, true);
+  // the failed-modal card is still collected, but WITHOUT detail (no advertiser_name, no detail_captured:true).
+  assert.notEqual(bad.meta.detail_captured, true);
+  assert.equal(bad.meta.advertiser_name, undefined);
+  assert.ok(flags.some((f) => /1 fallback/.test(f)), `expected a fallback count flag, got ${JSON.stringify(flags)}`);
+});
+
+test("captureAndCollect: a video ad carries the modal <video>.src (stripped key + full signed) on asset[0]", async () => {
   const mp4Full = "https://video-icn2-1.xx.fbcdn.net/o1/v/t2/f2/m86/AQOvideo.mp4?_nc_cat=1&oh=sig&oe=exp";
   const mp4 = "https://video-icn2-1.xx.fbcdn.net/o1/v/t2/f2/m86/AQOvideo.mp4";
   const cards = [
-    { keys: ["VK"], libid: "VID", advertiser: "VidAdv", follower: 50, page_id: "pv", videoUrl: mp4Full },
-    { keys: ["IK"], libid: "IMG", advertiser: "ImgAdv", follower: 60, page_id: "pi" },  // no videoUrl
+    { cardAssets: [A("vid_1")], modalAssets: [A("vid_1")], libid: "VID", advertiser: "VidAdv", follower: 50, page_id: "pv", videoUrl: mp4Full },
+    { cardAssets: [A("img_2")], modalAssets: [A("img_2")], libid: "IMG", advertiser: "ImgAdv", follower: 60, page_id: "pi" },
   ];
-  const { ctx } = makeCtx(cards);
-  const { metaByKey: out } = await flow.captureDetails(ctx);
-  // video card: detail carries the STRIPPED video_url (stable id) + the FULL signed url for drain to fetch.
-  assert.ok(out.VK, "video card detail should be present");
-  assert.equal(out.VK.video_url, mp4, "stripped <video>.src must be carried as the stable video_url");
-  assert.equal(out.VK.video_url_full, mp4Full, "the FULL signed url must be carried for drain to download");
-  assert.equal(out.VK.advertiser_name, "VidAdv");
-  // image card: neither video field leaks in
-  assert.ok(out.IK, "image card detail should be present");
-  assert.equal(out.IK.video_url, undefined, "non-video card must NOT get a video_url");
-  assert.equal(out.IK.video_url_full, undefined, "non-video card must NOT get a video_url_full");
+  const { ctx, collected } = makeCtx(cards);
+  await flow.captureAndCollect(ctx, "q");
+  const vid = collected.find((c) => c.imageKey.includes("vid_1"));
+  const img = collected.find((c) => c.imageKey.includes("img_2"));
+  assert.equal(vid.videoKey, mp4, "stripped <video>.src carried as videoKey");
+  assert.equal(vid.videoFull, mp4Full, "full signed mp4 url carried for the fetch");
+  assert.equal(vid.meta.advertiser_name, "VidAdv");
+  // non-video ad gets no video url.
+  assert.equal(img.videoKey, null);
+  assert.equal(img.videoFull, null);
 });
 
-test("captureDetails: same advertiser re-touching one key is NOT a conflict (carousel / repeat)", async () => {
+test("captureAndCollect: prefers the MODAL's creative imgs over the grid card imgs when present", async () => {
+  // grid card shows one src; the modal shows a DIFFERENT (full-res) src → the modal one is collected.
   const cards = [
-    { keys: ["KX"], libid: "SAME", advertiser: "OneAdv", follower: 7, page_id: "p1" },
-    { keys: ["KX"], libid: "SAME", advertiser: "OneAdv", follower: 7, page_id: "p1" },
+    { cardAssets: [A("grid_1")], modalAssets: [A("modal_1")], libid: "M", advertiser: "ModalAdv", follower: 7, page_id: "pm" },
   ];
-  const { ctx, flags } = makeCtx(cards);
-  const { metaByKey: out } = await flow.captureDetails(ctx);
-  assert.ok(out.KX, "same-ad re-touch must keep the detail");
-  assert.equal(out.KX.advertiser_name, "OneAdv");
-  assert.ok(!flags.some((f) => /collision/.test(f)), "no collision flag for same-ad re-touch");
+  const { ctx, collected } = makeCtx(cards);
+  await flow.captureAndCollect(ctx, "q");
+  assert.equal(collected.length, 1);
+  assert.ok(collected[0].imageKey.includes("modal_1"), "modal creative img preferred over grid card img");
 });
 
-test("captureDetails: metaByAsset indexes fbcdn asset-id; unique → fallback-able, conflicted → dropped", async () => {
-  // Card A: advertiser P, card key is one SIZE VARIANT of an asset. Card B: advertiser Q, a DIFFERENT asset.
-  // Card C: advertiser P AGAIN reselling the SAME asset as a third party would (different libid) → asset-id
-  // conflict for A's asset. We assert metaByAsset keeps B's unique asset, drops the conflicted one.
-  const A = "https://scontent-icn2-1.xx.fbcdn.net/v/t39.35426-6/100_200_300_n.jpg";   // asset 100_200_300
-  const B = "https://scontent-icn3-1.xx.fbcdn.net/v/t39.35426-6/400_500_600_n.jpg";   // asset 400_500_600
-  const Cvariant = "https://scontent-icn5-9.xx.fbcdn.net/v/t39.35426-6/100_200_300_n.jpg"; // SAME asset as A, diff host
-  const cards = [
-    { keys: [A], libid: "P-AD", advertiser: "P", follower: 11, page_id: "pp" },
-    { keys: [B], libid: "Q-AD", advertiser: "Q", follower: 22, page_id: "pq" },
-    { keys: [Cvariant], libid: "R-AD", advertiser: "R", follower: 33, page_id: "pr" },  // different ad, same asset
-  ];
-  const { ctx, flags } = makeCtx(cards);
-  const { metaByAsset } = await flow.captureDetails(ctx);
-  // B's asset is unique → present and usable as a fallback.
-  assert.ok(metaByAsset["400_500_600"], "unique asset-id retained for fallback");
-  assert.equal(metaByAsset["400_500_600"].advertiser_name, "Q");
-  // A's asset claimed by two DIFFERENT ads (P-AD and R-AD) → conflicted → dropped, with a flag.
-  assert.equal(metaByAsset["100_200_300"], undefined, "asset-id claimed by two ads must be dropped");
-  assert.ok(flags.some((f) => /asset-id collision: 100_200_300/.test(f)), `expected asset-id collision flag, got: ${JSON.stringify(flags)}`);
-});
-
-test("captureDetails: same ad under two fbcdn SIZE VARIANTS is NOT an asset-id conflict (real variant case)", async () => {
-  // The live gap: ONE ad's creative buffered under a CDN size variant. Same libid, different host/path variant
-  // of the SAME asset basename → must NOT conflict; the asset-id stays usable for the drain fallback.
-  const v1 = "https://scontent-icn2-1.xx.fbcdn.net/v/t39.35426-6/777_888_999_n.jpg";
-  const v2 = "https://scontent-a.xx.fbcdn.net/v/t39.35426-6/777_888_999_n.jpg";  // same asset, variant host
-  const cards = [
-    { keys: [v1], libid: "ONE", advertiser: "OneAdv", follower: 5, page_id: "p1" },
-    { keys: [v2], libid: "ONE", advertiser: "OneAdv", follower: 5, page_id: "p1" },
-  ];
-  const { ctx, flags } = makeCtx(cards);
-  const { metaByAsset } = await flow.captureDetails(ctx);
-  assert.ok(metaByAsset["777_888_999"], "same-ad variant keeps the asset-id usable");
-  assert.equal(metaByAsset["777_888_999"].advertiser_name, "OneAdv");
-  assert.ok(!flags.some((f) => /asset-id collision/.test(f)), "same-ad variant must not flag a conflict");
+test("captureAndCollect: honors the cap (limitReached) — stops collecting past totalCap", async () => {
+  const cards = Array.from({ length: 5 }, (_, k) => ({
+    cardAssets: [A(`c_${k}`)], modalAssets: [A(`c_${k}`)], libid: `L${k}`, advertiser: `Adv${k}`, follower: k, page_id: `p${k}`,
+  }));
+  const { ctx, collected } = makeCtx(cards, { cap: 3 });
+  await flow.captureAndCollect(ctx, "q");
+  assert.equal(collected.length, 3, "stops at the cap");
 });

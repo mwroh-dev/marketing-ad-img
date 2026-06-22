@@ -1,5 +1,4 @@
 import { defineFlow } from "../../shared/collect/define-flow.mjs";
-import { fbcdnAssetId } from "../../shared/collect/ad-source-helpers.mjs";
 import { normalizeDetail } from "./detail-normalize.mjs";
 
 // Meta uses the public FILTER URL directly (the documented public-ad-transparency carve-out) — there is
@@ -8,18 +7,24 @@ import { normalizeDetail } from "./detail-normalize.mjs";
 // (q is RUNTIME input — never baked):
 //   a. navigate   target: filter front-door + config params + q   action: ctx.goto (wait load + SPA settle)   → page | blocked → STOP
 //   b. readCount  target: document.body innerText                 action: regex "<n> results"                 → coverage signal only
-//   c. scroll     action: ctx.scroll ×5 (lazy-load creative images)                                            → DOM grows + creatives buffered
-//   d. detail     action: per card open the detail modal (el.click) → DOM-text extract → CDP-click the
-//                 광고주 정보 accordion → extract follower/category/page_id/platforms → normalizeDetail →
-//                 build metaByKey indexed by the card's <img> dedup-key (== network creative url, query-stripped)
-//   e. capture    action: ctx.drain({}, metaByKey) — harness saves buffered imgMatch/videoMatch responses and
-//                 merges each card's detail into the matching creative by image-URL key (deterministic join)
+//   c. scroll     action: ctx.scroll ×5 (lazy-load creative images)                                            → DOM grows
+//   d. collect    action: MODAL-DRIVEN — per ad card: open the detail modal (el.click) → DOM-text extract +
+//                 CDP-click the 광고주 정보 accordion → follower/category/page_id/platforms → read this ad's
+//                 creative image url(s) (card <img> + modal img; carousel → multiple) + modal <video>.src →
+//                 ctx.collectCreative per asset: FETCH the asset by its full signed url, save images/ad-N.jpg
+//                 (+ videos/ad-N.mp4 for video ads), build ONE record with THIS ad's detail attached.
 //
-// IMAGE↔DETAIL ASSOCIATION (decided LIVE, recon §9): opening a modal triggers NO fresh creative network
-// response (buffer grows 0 — creatives load once during grid scroll, then cached), so per-card resetBuffer→
-// drain (Approach A) captures nothing. Instead each card's <img>.src (query-stripped) EXACTLY equals a
-// buffered network creative url (query-stripped) — a deterministic key. So detail is joined to the creative
-// by that key inside drain(metaByKey), NOT by fragile network-order mapping. No order assumption, no mis-join.
+// MODAL-DRIVEN REARCHITECTURE (recon §11/§12): the OLD design ran two passes (grid scroll buffered creative
+// NETWORK responses; a separate modal pass built a metaByKey and drain() joined the two by image-url key).
+// That left ~3/24 creatives detail-less because the buffered-creative set and the opened-modal set did not
+// perfectly overlap (CDN size-variant url mismatches + occasional modal-open misses). The fix UNIFIES the
+// passes: collection is DRIVEN from the modal pass. For each ad we open its modal, extract its detail, AND
+// fetch that ad's creative asset(s) DIRECTLY by the full signed fbcdn url (proven token-authed: a bare Node
+// GET returns the complete jpg/mp4 — recon §12a images, §11a video). Each collected creative is therefore
+// 1:1 with its detail BY CONSTRUCTION — no join, no mis-join (two ads reselling one asset = two records, each
+// from its own modal pass with its own detail). The Network buffer/drain path is RETIRED for Meta (it stays
+// in the harness for Google, which still uses scroll→buffer→drain). Modal-open/extract failure FALLS BACK to
+// collecting the card's grid <img> with detail_captured:false, so creative coverage is never worse than before.
 export default defineFlow({
   name: "meta",
   source: "meta_ad_library",
@@ -35,16 +40,15 @@ export default defineFlow({
     (/\.mp4(\?|$)/i.test(u) && /video-[a-z0-9.-]+\.fbcdn\.net/i.test(u)),
   // filter parameters as NAMED CONFIG (not literals in collect); `q` is always the runtime value.
   // No media_type ⇒ video ads are included (recon §0 front-door shows video without the param).
-  // FULL COVERAGE (done): the per-card modal loop is now UNCAPPED (covers every detail trigger present) so
-  // every collected creative that has a modal gets its detail. This was made affordable by converting the
-  // fixed per-card sleeps to EVENT-DRIVEN polls: modal-open polls !!DLG (≤5s, was a flat 3.2s) and the
-  // accordion-expand polls HAS_FOLLOWER after a QUICK clickAt (was a baked-in flat 7s) — per-card cost drops
-  // from ~13-20s to ~3-6s. The harness hard timeout was raised 180s→360s to fit the deep full pass. (no
-  // maxDetails: the loop bound is nTrig; drain still keeps only the first totalCap creatives.)
+  // MODAL-DRIVEN (rearch): the per-card modal loop is UNCAPPED (covers every detail trigger present) and, for
+  // each ad, both extracts detail AND fetches that ad's creative asset(s) — so every collected creative is 1:1
+  // with its detail by construction. Per-card cost stays low via EVENT-DRIVEN polls (modal-open polls !!DLG
+  // ≤5s; accordion-expand polls HAS_FOLLOWER after a QUICK clickAt) plus the per-ad asset fetch(es) (~0.3-0.5s
+  // each, recon §11/§12). The harness hard timeout is 360s — a real graceful bound for the deep full pass.
   config: { active_status: "active", ad_type: "all", country: "KR", search_type: "keyword_unordered", maxScroll: 5 },
   filterUrl(query) { return `https://www.facebook.com/ads/library/?${new URLSearchParams({ ...this.config, q: query })}`; },
 
-  async collect(ctx) {                       // steps a–e per the FLOW header above
+  async collect(ctx) {                       // steps a–d per the FLOW header above
     for (const { query: q } of ctx.queries) {
       if (ctx.limitReached()) break;
       ctx.resetBuffer();
@@ -56,138 +60,90 @@ export default defineFlow({
       ctx.flag(`"${q}": ${m ? m[1] : "?"} results`);
       await ctx.scroll(this.config.maxScroll);
 
-      // d. per-card detail capture → { metaByKey, metaByAsset } (primary image dedup-key join + the
-      //    additive fbcdn asset-id fallback join, each independently collision-safe — see captureDetails)
-      const { metaByKey, metaByAsset } = await this.captureDetails(ctx);
-      // Honest coverage signal: report distinct ADS we extracted detail from (the real unit), plus the raw
-      // image-key count. The key count is inflated by carousels (several <img> keys per ad) and not every key
-      // matches a buffered grid creative, so "keys" overstates how many creatives end up tagged. (audit I4)
-      const distinctAds = new Set(Object.values(metaByKey).map((d) => d.library_id || d.advertiser_name)).size;
-      ctx.flag(`"${q}": detail extracted for ${distinctAds} ad(s) across ${Object.keys(metaByKey).length} image-key(s)`);
-
-      // e. drain: save buffered creatives, merge each card's detail by image-URL key, with the asset-id
-      //    fallback for creatives whose buffered network url is a CDN-variant of the stored card key.
-      await ctx.drain({}, metaByKey, metaByAsset);
+      // d. MODAL-DRIVEN collection: per ad card open the modal → extract detail → fetch + save this ad's
+      //    creative asset(s) with its detail attached (1:1). No buffer→drain join for Meta.
+      await this.captureAndCollect(ctx, q);
     }
   },
 
-  // Open each ad's detail modal, extract the detail fields, and return BOTH join indexes:
-  //   { metaByKey:   { [imgDedupKey]: detailMeta },     // PRIMARY — exact query-stripped url match (unchanged)
-  //     metaByAsset: { [fbcdnAssetId]: detailMeta } }   // FALLBACK — fbcdn size-invariant asset identity
-  // A card may carry several <img> (carousel) — every one of the card's image keys maps to the same detail.
-  //
-  // COLLISION SAFETY (live §9): the PRIMARY join key is dedupKey(image_url) = the query-stripped url. Two
-  // DIFFERENT advertisers can resell the SAME agency creative (same path, different `?_nc_*` query) → same
-  // dedupKey. Because drain keeps only the FIRST creative per key (seen.has) and a naive last-write map would
-  // keep only the LAST detail, a collision could attach advertiser B's detail to advertiser A's surviving
-  // creative — the exact mis-join the brief forbids ("mis-joined is worse than none"). So we treat a key
-  // touched by two DIFFERENT ads (by library_id, else advertiser_name) as CONFLICTED: drop it from the map
-  // entirely and flag it. A re-touch by the SAME ad (same library_id) is not a conflict. Net: a creative gets
-  // ITS OWN correct detail or none — never another advertiser's.
-  //
-  // SECONDARY (additive) ASSET-ID index: fbcdn serves one asset under different path/size variants, so a
-  // buffered network creative url can have a different query-stripped dedupKey than the card <img>.src the
-  // detail was stored under (live: 3 single_image creatives unmatched, ZERO key collisions — pure variant
-  // mismatch). metaByAsset is keyed by fbcdnAssetId(url) (the stable `_n` basename) under the EXACT SAME
-  // conflict discipline: an asset-id claimed by two DIFFERENT ads is CONFLICTED and dropped, so drain's
-  // fallback can only ever attach a UNIQUE, non-conflicted detail. The primary path is byte-for-byte
-  // unchanged; the asset-id index is consulted by drain ONLY when the primary key misses.
-  async captureDetails(ctx) {
-    const out = {};
-    const byAsset = {};
-    const conflicted = new Set();        // dedupKeys seen with ≥2 distinct ads' details → never attach
-    const assetConflicted = new Set();   // asset-ids seen with ≥2 distinct ads' details → never attach
-    const identOf = (d) => (d && (d.library_id || d.advertiser_name)) || null;  // identity for conflict test
+  // MODAL-DRIVEN per-ad collection (replaces the old captureDetails + drain join). For EACH detail trigger:
+  //   1. open the modal (el.click — recon §9b; CDP-click does not open it in headless)
+  //   2. scroll page to top + expand the 광고주 정보 accordion (CDP-click, block:'start' — recon §9d/§9e)
+  //   3. EXTRACT detail (status/library_id/started_at/advertiser/follower/category/page_id/platforms) + read
+  //      the modal <video>.src (video ads) — pure DOM reads (recon §8/§10)
+  //   4. read THIS ad's creative image asset(s) — modal imgs first (the modal shows the ad's own creative),
+  //      card imgs as fallback; carousel → MULTIPLE images → one record per image, all sharing this detail
+  //   5. close the modal (verified — ESC alone stacks modals, recon §9e) BEFORE collecting (the asset urls
+  //      are already read; the fetch is Node-side and independent of the page)
+  //   6. ctx.collectCreative per asset: fetch the bytes by the full signed url, save, build a record with this
+  //      ad's detail (detail_captured:true). On modal/extract FAILURE, fall back to collecting the card's grid
+  //      <img> with detail_captured:false — so creative coverage is never worse than the old buffer path.
+  // Each record is built from its OWN modal pass, so detail is 1:1 by construction and a resold creative
+  // (two ads, one asset) yields two records each with its own correct detail — no join, no mis-join.
+  async captureAndCollect(ctx, q) {
     const nTrig = await ctx.evalJs(`${TRIG}.length`);
-    // FULL COVERAGE: process EVERY detail trigger present (no artificial cap). drain still only keeps the
-    // first totalCap creatives, so giving detail a pass over all loaded cards lets every collected creative
-    // that has a modal get its detail. The event-driven per-card waits (poll modal-open + poll accordion,
-    // instead of the old fixed ~3.2s+7s sleeps) make this fit the raised harness budget. (full-coverage)
-    const limit = nTrig;
-    for (let i = 0; i < limit; i++) {
+    let withDetail = 0, fallback = 0, total = 0;
+    for (let i = 0; i < nTrig; i++) {
+      if (ctx.limitReached()) break;
+      // card image assets (full signed + stripped key) read BEFORE opening the modal (stable grid DOM) — these
+      // are the FALLBACK if the modal fails. Skip a card with no recognizable creative <img> at all.
+      let cardAssets = [];
+      try { cardAssets = await ctx.evalJs(CARD_IMG_ASSETS(i)); } catch { cardAssets = []; }
+      if (!Array.isArray(cardAssets) || !cardAssets.length) continue;
+
+      let detail = null, video = null, modalAssets = [];
       try {
-        // card image dedup-keys (query-stripped) BEFORE opening the modal (stable grid DOM)
-        const imgKeys = await ctx.evalJs(CARD_IMG_KEYS(i));
-        if (!Array.isArray(imgKeys) || !imgKeys.length) continue;
-
-        // open the detail modal. recon §1 (re-verified live): a CDP click at the trigger's center did
-        // NOT open it in headless (reflow / overlay), but the element's own activation DOES. el.click()
-        // is a real user-gesture-equivalent element activation — NOT DOM value injection / synthetic submit.
+        // open the detail modal (recon §9b: el.click() opens it; CDP-click does not in headless).
         const opened = await ctx.evalJs(`(() => { const b=${TRIG}[${i}]; if(!b) return false; b.scrollIntoView({block:'center'}); b.click(); return true; })()`);
-        if (!opened) continue;
-        // EVENT-DRIVEN modal open (full-coverage): poll for the dialog (≤5s) and proceed the instant it's
-        // present, instead of always paying a fixed 3.2s. modal-fail (never appears) → skip, no fabrication.
-        if (!(await ctx.pollUntil(`!!${DLG}`, { timeoutMs: 5000, intervalMs: 300 }))) continue;
-        // Reset page scroll to top so the modal renders consistently. Live §9: the 2nd+ modal opens with the
-        // page scrolled down, which places the modal's lower accordion ~2100px below the fold where neither
-        // scrollIntoView nor a clamped CDP click can reach it; opening from scrollTop=0 (as the 1st modal does)
-        // keeps the accordion on-screen and clickable. The fixed-overlay modal stays put across this scroll.
-        await ctx.evalJs("window.scrollTo(0,0)");
-        await ctx.sleep(600);
-
-        // expand the 광고주 정보 / About the advertiser accordion. recon §8b (re-verified live): el.click()
-        // does NOT toggle it (innerText unchanged); a real CDP mouse click at its fresh center coords DOES.
-        // The accordion's coords shift per modal, so re-read fresh coords each try and verify the expand
-        // actually revealed the follower/ID block — retry once if not (the single fragile CDP step).
-        for (let attempt = 0; attempt < 2; attempt++) {
-          if (await ctx.evalJs(HAS_FOLLOWER)) break;     // already expanded
-          const accRect = await ctx.evalJs(ACC_RECT);
-          if (!accRect || typeof accRect.x !== "number") break;  // no accordion header → nothing to expand
-          // QUICK CDP click (postWaitMs=200) + EVENT-DRIVEN expand poll (full-coverage): the old clickAt baked
-          // in a flat 7s here — the dominant per-card cost. Now the click settles fast and we poll HAS_FOLLOWER
-          // (≤4s) so we move on the instant the follower/ID block appears. The retry+verify loop still guards a
-          // missed toggle. google's clickAt is untouched (it keeps the default 7s nav wait — no postWaitMs arg).
-          await ctx.clickAt(accRect.x, accRect.y, 200);
-          if (await ctx.pollUntil(HAS_FOLLOWER, { timeoutMs: 4000, intervalMs: 300 })) break;
-        }
-
-        const raw = await ctx.evalJs(EXTRACT);   // flat-line regex extraction (recon §2/§8)
-        // VIDEO URL (recon §10): a video ad's modal <video>.src is the .mp4 URL, already in the DOM
-        // (readyState 4) — a pure read, no playback. The .mp4 never loads in background headless, so this
-        // is the ONLY way to get video_url. Carried into the detail → drain builds a subtype:"video" record.
-        const video = await ctx.evalJs(VIDEO_SRC);  // { full, key } | null — full=signed (fetch), key=stripped (id)
-        await this.closeModal(ctx);               // close (verify) BEFORE moving on — stale modals stack & break the next
-        if (!raw) continue;
-        const detail = normalizeDetail(raw);
-        if (video) {
-          // recon §10a/§11: the mp4 url is on the modal <video>.src. Carry BOTH — the stripped `video_url`
-          // is the stable dedup/join identifier kept in the record; `video_url_full` is the signed,
-          // time-limited url drain fetches the BYTES from soon after capture (recon §11b — not persisted).
-          detail.video_url = video.key;
-          detail.video_url_full = video.full;
-        }
-        if (!detail.detail_captured) continue;    // nothing usable → don't attach an empty join
-        for (const k of imgKeys) {
-          // PRIMARY index — dedupKey (unchanged behavior)
-          if (!conflicted.has(k)) {
-            const prev = out[k];
-            if (prev && identOf(prev) !== identOf(detail)) {  // a DIFFERENT ad already claimed this key
-              delete out[k];                                  // drop both → creative stays detail-less, not mis-joined
-              conflicted.add(k);
-              ctx.flag(`detail join-key collision: ${k} — conflicting ads, detail dropped`);
-            } else {
-              out[k] = detail;                                // free, or a re-touch by the same ad (not a conflict)
-            }
+        if (opened && (await ctx.pollUntil(`!!${DLG}`, { timeoutMs: 5000, intervalMs: 300 }))) {
+          // recon §9d: open the accordion from scrollTop=0 so it stays on-screen (the 2nd+ modal opens scrolled).
+          await ctx.evalJs("window.scrollTo(0,0)");
+          await ctx.sleep(600);
+          for (let attempt = 0; attempt < 2; attempt++) {
+            if (await ctx.evalJs(HAS_FOLLOWER)) break;
+            const accRect = await ctx.evalJs(ACC_RECT);
+            if (!accRect || typeof accRect.x !== "number") break;
+            await ctx.clickAt(accRect.x, accRect.y, 200);
+            if (await ctx.pollUntil(HAS_FOLLOWER, { timeoutMs: 4000, intervalMs: 300 })) break;
           }
-          // SECONDARY index — fbcdn asset-id (additive; same conflict discipline). Skip non-fbcdn keys.
-          const aid = fbcdnAssetId(k);
-          if (aid && !assetConflicted.has(aid)) {
-            const prevA = byAsset[aid];
-            if (prevA && identOf(prevA) !== identOf(detail)) {  // a DIFFERENT ad already claimed this asset-id
-              delete byAsset[aid];                              // drop → no ambiguous asset-id fallback
-              assetConflicted.add(aid);
-              ctx.flag(`detail asset-id collision: ${aid} — conflicting ads, asset-id fallback dropped`);
-            } else {
-              byAsset[aid] = detail;
-            }
+          const raw = await ctx.evalJs(EXTRACT);
+          video = await ctx.evalJs(VIDEO_SRC);          // { full, key } | null
+          try { modalAssets = await ctx.evalJs(MODAL_IMG_ASSETS); } catch { modalAssets = []; }
+          if (raw) {
+            const d = normalizeDetail(raw);
+            if (d.detail_captured) detail = d;
           }
         }
-      } catch {
-        // a single card failing to open/extract must not abort the run — leave it detail-less and move on.
-        try { await this.closeModal(ctx); } catch { /* best-effort close */ }
+      } catch { /* fall through to fallback collection */ }
+      // close (verify) BEFORE collecting — stale modals stack and break the next card (recon §9e).
+      try { await this.closeModal(ctx); } catch { /* best-effort */ }
+
+      // choose the asset list: prefer the modal's own creative imgs (the ad's actual creative) when present,
+      // else the card grid imgs. video ads: the modal img is the poster; we still record it as image_file +
+      // attach the modal <video> url so the record becomes subtype:"video".
+      const assets = (Array.isArray(modalAssets) && modalAssets.length) ? modalAssets : cardAssets;
+      const meta = detail ? { ...detail } : {};
+      // For a video ad: attach the video urls to the record's detail. (buildCreativeRecord drops the signed
+      // *_full before persisting; the harness fetches the mp4 from video_url_full inside collectCreative.)
+      let videoKey = null, videoFull = null;
+      if (video && video.key) { videoKey = video.key; videoFull = video.full; }
+      // carousel: one record per image asset, all sharing this ad's detail (recon §2 note). The video url is
+      // attached to the FIRST asset only (a single ad has one mp4; the poster is asset[0]).
+      let any = false;
+      for (let a = 0; a < assets.length; a++) {
+        if (ctx.limitReached()) break;
+        const { full, key } = assets[a];
+        if (!key) continue;
+        const res = await ctx.collectCreative({
+          imageKey: key, imageFull: full,
+          videoKey: a === 0 ? videoKey : null, videoFull: a === 0 ? videoFull : null,
+          meta,
+        });
+        if (res.collected) { any = true; total++; }
       }
+      if (any) { if (detail) withDetail++; else fallback++; }
     }
-    return { metaByKey: out, metaByAsset: byAsset };
+    ctx.flag(`"${q}": modal-driven collected ${total} creative(s) — ${withDetail} ad(s) with detail, ${fallback} fallback (no modal)`);
   },
 
   // Close the detail modal and VERIFY it closed. Live §9: ESC alone stops closing the modal after a few
@@ -216,19 +172,62 @@ const TRIG = `[...document.querySelectorAll('div[role="button"]')].filter(e => /
 // — anchoring on "ID" excludes the nav panel, which contains the bare word "광고 라이브러리" (recon §9).
 const DLG = `(() => { const ds=[...document.querySelectorAll('[role="dialog"]')]; return ds.map(d=>({d,t:d.innerText||''})).filter(o=>/Library ID|라이브러리 ID/i.test(o.t)).sort((a,b)=>b.t.length-a.t.length)[0]?.d; })()`;
 
-// the i-th card's image dedup-keys (currentSrc/src, query-stripped) — walk up from the trigger to the
-// nearest ancestor holding <img>/<video poster>. These keys join to the buffered network creative urls.
-const CARD_IMG_KEYS = (i) => `(() => {
+// IS_CREATIVE_IMG: a t39.35426 <img> is a real ad CREATIVE, not the advertiser AVATAR/logo. Live probe (recon
+// §12b): the modal/card always renders the page avatar as a tiny `stp=dst-jpg_s60x60` thumbnail (naturalWidth
+// 60, ~1KB) ALONGSIDE the real creatives (`s600x600`, naturalWidth 480–600, 30–50KB). Selecting the avatar as
+// a creative produced url-only "too small" records (no bytes). We reject it by intrinsic size — real creatives
+// are ≥200px on a side; avatars are ≤60 — with a backstop on the small `stp` size token. naturalWidth is the
+// loaded intrinsic size (reliable once the modal has rendered); fall back to the size token if not yet loaded.
+const IS_CREATIVE_IMG = `(im => {
+  const src = im.currentSrc || im.src || '';
+  if(!/t39\\.35426/.test(src)) return false;
+  const nw = im.naturalWidth || 0, nh = im.naturalHeight || 0;
+  if(nw && nh) return nw >= 200 && nh >= 200;                 // intrinsic size known → trust it
+  const m = src.match(/[?&]stp=[^&]*?s(\\d+)x(\\d+)/);          // not loaded → size token backstop
+  if(m) return (+m[1]) >= 200 && (+m[2]) >= 200;
+  return true;                                                 // no size signal at all → keep (don't silently drop)
+})`;
+
+// the i-th card's creative image assets — { full (signed, for the fetch), key (query-stripped, the stable
+// dedup/join id stored in image_url) } — walk up from the trigger to the nearest ancestor holding
+// <img>/<video poster>. MODAL-DRIVEN: `full` is fetched directly (recon §12); `key` is the record id. Only
+// real ad-CREATIVE images (t39.35426, avatar filtered by IS_CREATIVE_IMG) / video posters are kept; deduped
+// on `key`. (a real carousel → several distinct creative entries; repeated same-creative <img> → one entry)
+const CARD_IMG_ASSETS = (i) => `(() => {
+  const isCreative=${IS_CREATIVE_IMG};
   const b=${TRIG}[${i}]; if(!b) return [];
   let p=b;
   for(let k=0;k<12 && p;k++){
-    const srcs=[...p.querySelectorAll('img')].map(im=>im.currentSrc||im.src)
-      .concat([...p.querySelectorAll('video')].map(v=>v.poster||v.currentSrc||v.src))
+    const imgs=[...p.querySelectorAll('img')].filter(isCreative).map(im=>im.currentSrc||im.src);
+    const posters=[...p.querySelectorAll('video')].map(v=>v.poster||v.currentSrc||v.src)
       .filter(Boolean).filter(s=>/t39\\.35426/.test(s) || /video-[a-z0-9.-]+\\.fbcdn\\.net/.test(s));
-    if(srcs.length) return [...new Set(srcs.map(s=>s.split('?')[0]))];
+    const srcs=imgs.concat(posters);
+    if(srcs.length){
+      const seen=new Set(); const out=[];
+      for(const s of srcs){ const key=s.split('?')[0]; if(seen.has(key)) continue; seen.add(key); out.push({full:s,key}); }
+      return out;
+    }
     p=p.parentElement;
   }
   return [];
+})()`;
+
+// the OPEN modal's own creative image assets — { full, key } — the ad's actual creative as shown in the modal
+// (preferred over the grid card img when present; a real carousel modal shows several). t39.35426 + avatar
+// filtered by IS_CREATIVE_IMG + per-key dedup. A video ad's modal poster <img> is kept (the video record's
+// poster). If the avatar filter leaves nothing (e.g. all imgs not-yet-loaded), fall back to the unfiltered set
+// so a creative is never dropped entirely — the harness size floor still rejects a tiny body url-only.
+const MODAL_IMG_ASSETS = `(() => {
+  const isCreative=${IS_CREATIVE_IMG};
+  const d=${DLG}; if(!d) return [];
+  const imgEls=[...d.querySelectorAll('img')];
+  let imgs=imgEls.filter(isCreative).map(im=>im.currentSrc||im.src);
+  if(!imgs.length) imgs=imgEls.map(im=>im.currentSrc||im.src).filter(s=>/t39\\.35426/.test(s));  // fallback: don't drop all
+  const posters=[...d.querySelectorAll('video')].map(v=>v.poster||'').filter(Boolean).filter(s=>/t39\\.35426/.test(s));
+  const srcs=imgs.concat(posters).filter(Boolean);
+  const seen=new Set(); const out=[];
+  for(const s of srcs){ const key=s.split('?')[0]; if(seen.has(key)) continue; seen.add(key); out.push({full:s,key}); }
+  return out;
 })()`;
 
 // coords of the modal's top Close control (recon §2: a "Close"/"닫기" control sits at the dialog's top-right).

@@ -145,3 +145,46 @@ export async function downloadVideoFile(fullUrl, destPath, { fetchFn = fetch, wr
     clearTimeout(timer);
   }
 }
+
+// Direct fetch of a signed fbcdn IMAGE url → write to disk if it's a valid, non-trivial image (recon §12a:
+// fbcdn image is token-authed not cookie-authed — same as video §11 — so a bare GET of the FULL signed
+// scontent/t39.35426 url returns the COMPLETE jpg, full 200, content-length == bytes). The modal-driven Meta
+// flow uses this to fetch EACH ad's creative asset by url right after reading it from the open card/modal, so
+// every collected creative is built 1:1 with its own detail (no grid-buffer→drain join). Mirrors
+// downloadVideoFile exactly: BOUNDED (AbortController timeout + maxBytes ceiling), NEVER fabricates a file
+// (any non-200 / short body / wrong magic → saved:false, caller keeps a url-only fallback). `writer`/`fetchFn`
+// are injected so the wiring is unit-testable without real IO/network.
+// Magic-byte validation: JPEG `ffd8ff`, PNG `89504e47`, WEBP `RIFF…WEBP`, GIF `GIF8`. A small size floor
+// (default 2KB) rejects page-chrome icon thumbnails the unscoped <img> sweep can pick up (recon §12a).
+export async function downloadImageFile(fullUrl, destPath, { fetchFn = fetch, writeFile, timeoutMs = 30000, maxBytes = 25 * 1024 * 1024, minBytes = 2000 } = {}) {
+  if (!fullUrl || typeof fullUrl !== "string") return { saved: false, reason: "no url" };
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), timeoutMs);
+  try {
+    const res = await fetchFn(fullUrl, { signal: ac.signal });
+    if (!res.ok) return { saved: false, reason: `status ${res.status}` };
+    const cl = parseInt(res.headers?.get?.("content-length") || "0", 10);
+    if (cl > maxBytes) return { saved: false, reason: `too large (${cl}B)` };
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length > maxBytes) return { saved: false, reason: `too large (${buf.length}B)` };
+    if (buf.length < minBytes) return { saved: false, reason: `too small (${buf.length}B)` };
+    if (!isImageMagic(buf)) return { saved: false, reason: `not an image (magic ${buf.slice(0, 4).toString("hex")})` };
+    if (writeFile) writeFile(destPath, buf);
+    return { saved: true, bytes: buf.length };
+  } catch (e) {
+    return { saved: false, reason: e?.name === "AbortError" ? `timeout (${timeoutMs}ms)` : (e?.message || "fetch error") };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// True if the buffer's leading bytes are a known raster-image signature (JPEG/PNG/WEBP/GIF).
+export function isImageMagic(buf) {
+  if (!buf || buf.length < 12) return false;
+  const h4 = buf.slice(0, 4).toString("hex");
+  if (h4.startsWith("ffd8ff")) return true;                                   // JPEG
+  if (h4 === "89504e47") return true;                                          // PNG
+  if (buf.slice(0, 4).toString("ascii") === "GIF8") return true;              // GIF
+  if (buf.slice(0, 4).toString("ascii") === "RIFF" && buf.slice(8, 12).toString("ascii") === "WEBP") return true; // WEBP
+  return false;
+}

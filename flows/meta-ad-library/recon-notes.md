@@ -465,3 +465,42 @@ base64 round-trip.
 Throwaway `flows/meta-ad-library/_recon_video_download.mjs` (open modal → read full `<video>.src` WITH query
 → Node `fetch` ×3 header variants → status/ct/bytes/magic). Non-intrusive (headless, ko-KR, in-page scrollBy,
 timeout-bound, no bringToFront/activateTarget, STOP-on-block via isBlocked). Deleted after these notes.
+
+## 12. IMAGE FILE DOWNLOAD — direct fetch of the FULL signed scontent url (STEP A enabler for modal-driven rearch)
+
+Re-run live (`q=다이어트`, KR, dedicated headless via acquire-port→launch-chrome, viewport 1280×1696).
+**Not blocked.** The modal-driven rearchitecture (per-ad: open modal → detail + FETCH that ad's creative
+asset by url) depends on the same direct-fetch technique that already works for video (§11) also working for
+IMAGES (`scontent` + `t39.35426` signed urls). This run probed it. Result: **CONFIRMED, it just works.**
+
+### 12a. WINNER — Node 20 global `fetch(fullSignedScontentUrl)` returns a valid complete jpg
+Card `<img>.currentSrc` (full, signed) = `https://scontent-icn2-1.xx.fbcdn.net/v/t39.35426-6/<id>_n.jpg?...oh=...oe=...`
+(the `oh`/`oe` query is the fbcdn auth, same as video). A **bare** `fetch(fullUrl)` (no UA, no cookie, no Referer):
+
+| sample | status | content-type | bytes | magic (hex@0) | valid |
+|---|---|---|---|---|---|
+| ad creative #1 | 200 | image/jpeg | 33776 | `ffd8ffe0` | YES (JPEG) |
+| ad creative #2 | 200 | image/jpeg | 35967 | `ffd8ffe0` | YES (JPEG) |
+| ad creative #3 | 200 | image/jpeg | 37770 | `ffd8ffe0` | YES (JPEG) |
+| (page chrome icon) | 200 | image/jpeg | 1181 | `ffd8ffe0` | tiny (filtered by size floor) |
+
+**Key findings:**
+- fbcdn IMAGE is **token-authed, not cookie-authed** (identical to video §11a) — the bare GET returns the WHOLE
+  file (full 200), `content-length == bytes`. No UA/Referer/cookie needed.
+- magic bytes at offset 0 are `ffd8ff` → a real JPEG. Real ad creatives are 30–40 KB; the unscoped `<img>` sweep
+  also picks up tiny page-chrome icons (~1 KB) — so the download helper applies a **small size floor (~2 KB)** +
+  a magic-byte check (JPEG `ffd8ff` / PNG `89504e47` / WEBP `RIFF…WEBP`) to reject non-image / trivial bodies
+  (NEVER fabricates a file). The modal-driven flow scopes image urls to the ad CARD (walk up from the trigger),
+  so it does not see page-chrome icons in the first place — the floor is defense-in-depth.
+- ~300–500 ms per fetch; the signature does not expire within a run.
+
+### 12b. Consequence — `downloadImageFile` mirrors `downloadVideoFile`
+Added `downloadImageFile(fullUrl, dest, {…})` in `shared/collect/ad-source-helpers.mjs` (same bounded shape:
+AbortController timeout + maxBytes ceiling, magic-byte + size-floor validation, `{saved,bytes,reason}`, never
+fabricates). The FULL signed url is fetched promptly (signature still valid) and is **NEVER persisted** (it
+expires); only the stripped `image_url` key is stored in the record + the saved `image_file` path.
+
+### How §12 recon was run
+Throwaway `flows/meta-ad-library/_recon_image_download.mjs` (scroll → collect card `<img>.currentSrc` WITH query
+→ Node bare `fetch` → status/ct/bytes/magic/valid). Non-intrusive (headless, ko-KR, in-page scrollBy,
+timeout-bound, no bringToFront/activateTarget). Deleted after these notes.
