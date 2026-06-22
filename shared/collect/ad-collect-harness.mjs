@@ -20,7 +20,7 @@
 //                            MODAL-DRIVEN per-ad collection (Meta): fetch THIS ad's creative asset(s) by the
 //                            full signed url + write images/ad-N.jpg (+ videos/ad-N.mp4 for video ads), build
 //                            ONE record with this ad's detail attached (1:1 by construction — no join). url-only
-//                            fallback on fetch failure; dedups on imageKey; honors totalCap. (google uses drain.)
+//                            fallback on fetch failure; dedups on imageKey; honors the image budget. (google uses drain.)
 //   drain(meta, metaByKey, metaByAsset)
 //                            getResponseBody on buffered image/video (classifyResponse) responses → save + push.
 //                            `meta` merges into EVERY saved record; `metaByKey` (optional
@@ -33,7 +33,7 @@
 //                            dropped any id ≥2 ads claimed, so only a unique non-conflicted detail attaches
 //                            (never another advertiser's, never an override of a primary match).
 //   flag(msg)                push a coverage flag
-//   limitReached() -> bool   totalCap hit or blocked
+//   limitReached() -> bool   image target hit or blocked
 //
 // Non-intrusive: dedicated headless Chrome (default 9291), never bringToFront/activateTarget.
 import { realScroll, sleep, isBlocked, matchToolEntry } from "./lib.mjs";
@@ -58,7 +58,7 @@ export function makeResult({ personaId, source, queries, mode }) {
   };
 }
 
-export async function runCollection({ adapter, queries, personaId, runId, port = 9291, totalCap = 24 }) {
+export async function runCollection({ adapter, queries, personaId, runId, port = 9291, totalImages = 50, imagesPerQuery = 8, hardTimeoutMs = 1800000 }) {
   const allowedEntrypoints = adapter.entrypoints || []; // CODE-enforced no-URL-assembly whitelist
   safeName(runId, "runId"); safeName(personaId, "personaId"); safeName(adapter.source, "source");
   const outDir = `.generate-ads-img/runs/${runId}/ad-creatives/${personaId}`;
@@ -72,17 +72,18 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
   const tgt = await CDP.New({ port, url: "about:blank" });
   const c = await CDP({ port, target: tgt.id });
   const seen = new Set();
+  let imagesCollected = 0;   // IMAGE creatives are the PRIMARY budget; videos are uncapped, collected incidentally
   const buf = new Map();
   // Hard timeout: never process.exit() from a library — it skips the finally cleanup and kills any
   // parent process. Instead flag + close the socket so in-flight CDP calls reject and adapter.collect
   // unwinds; the catch below turns that into a blocked/partial result, and the finally still runs.
   let timedOut = false;
-  // Deep-collection budget. Full per-card detail coverage (every collected creative gets a modal pass) at the
-  // event-driven per-card cost (~3-6s/card vs the old ~13-20s) needs more than the old 180s ceiling: ~24 cards
-  // × worst-case ~6s + scroll(~12s) + per-query nav ≈ comfortably under 6 min. 360s is a deliberate deep bound,
-  // NOT removed — on overrun we still flag + return a graceful partial (the catch below), never a hard crash.
-  const HARD_TIMEOUT_MS = 360000; // 6 min — deep full-coverage collection budget
-  const guard = setTimeout(() => { timedOut = true; console.error(`ad-collect: hard timeout (${HARD_TIMEOUT_MS / 1000}s) — aborting source`); c.close().catch(() => {}); }, HARD_TIMEOUT_MS);
+  // The REAL stop is progress-driven: collect until the IMAGE target (totalImages) is hit or every keyword's
+  // result list is exhausted; each unit of work (modal poll, asset/video download) is independently timeout-
+  // bounded (per-AD, not a global wall-clock). This `hardTimeoutMs` is only a FAR backstop so a pathological
+  // hang can't run forever — generous by design (videos are slow and that's accepted). On overrun we still flag
+  // + return a graceful partial (the catch below), never a hard crash.
+  const guard = setTimeout(() => { timedOut = true; console.error(`ad-collect: hard timeout (${hardTimeoutMs / 1000}s) — aborting source`); c.close().catch(() => {}); }, hardTimeoutMs);
   try {
     await c.Page.enable(); await c.Runtime.enable(); await c.Network.enable();
     // Deterministic layout viewport. The default headless visual viewport is short (innerHeight ≈ 469) and
@@ -107,8 +108,9 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
 
     const ctx = {
       queries,
+      imagesPerQuery,              // per-keyword IMAGE cap (spread image collection across keywords)
       evalJs,
-      limitReached: () => result.creatives.length >= totalCap || result.blocked,
+      limitReached: () => imagesCollected >= totalImages || result.blocked,   // IMAGE target = the stop
       resetBuffer: () => buf.clear(),
       sleep: (ms) => sleep(ms),   // bounded settle wait (e.g. after a modal-open click before reading the dialog)
       flag: (s) => result.coverage_flags.push(s),
@@ -204,45 +206,52 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
       //   meta       this ad's normalized detail (detail_captured etc.) merged into the record
       // Dedups on imageKey (a creative already collected this run is skipped — but a re-collect by ANOTHER ad
       // with its OWN detail is still its own correct record because each modal pass is independent; the dedup
-      // here only prevents the SAME url being written twice within the modal loop). Honors totalCap.
+      // here only prevents the SAME url being written twice within the modal loop). Honors the image budget.
       // Returns { collected, index, imageSaved, videoSaved, reason }.
       collectCreative: async ({ imageKey, imageFull = null, videoKey = null, videoFull = null, meta = {} } = {}) => {
+        // VIDEO ad → collect as a VIDEO ONLY: fetch the mp4 to videos/, build a subtype:"video" record. The
+        // video's first-frame POSTER is NOT saved into images/ — a video ad is ONE creative (a video), and its
+        // poster is not a real image ad, so it must never pollute the image corpus the human reviews.
+        if (videoKey) {
+          const vkey = dedupKey(videoKey);
+          if (seen.has(vkey)) return { collected: false, reason: "dup" };
+          // videos are UNCAPPED (collected incidentally while we hunt images) — no image-budget check here.
+          const n = result.creatives.length;
+          let videoSaved = false;
+          if (videoFull) {
+            const dl = await downloadVideoFile(videoFull, `${vidDir}/ad-${n}.mp4`, { writeFile: (p, b) => writeFileSync(p, b) });
+            videoSaved = dl.saved;
+            result.coverage_flags.push(dl.saved
+              ? `video downloaded (${(dl.bytes / 1024).toFixed(0)}KB) → videos/ad-${n}.mp4`
+              : `video not downloaded (${dl.reason}) — url only`);
+          }
+          seen.add(vkey);
+          result.creatives.push(buildCreativeRecord({ kind: "video", key: vkey, n, meta, saved: videoSaved }));
+          return { collected: true, index: n, videoSaved };
+        }
+        // IMAGE ad → ONE image to images/ (best-effort fetch; url-only fallback, never fabricate a file).
+        // Images are the PRIMARY budget: refuse once the image target is met.
         if (!imageKey || typeof imageKey !== "string") return { collected: false, reason: "no imageKey" };
         const key = dedupKey(imageKey);
         if (seen.has(key)) return { collected: false, reason: "dup" };
-        if (result.creatives.length >= totalCap) return { collected: false, reason: "cap" };
+        if (imagesCollected >= totalImages) return { collected: false, reason: "image-cap" };
         const n = result.creatives.length;
-        // fetch + save the image bytes (best-effort; url-only fallback on any failure — never fabricate a file)
         let imageSaved = false;
         if (imageFull) {
           const dl = await downloadImageFile(imageFull, `${imgDir}/ad-${n}.jpg`, { writeFile: (p, b) => writeFileSync(p, b) });
           imageSaved = dl.saved;
           if (!dl.saved) result.coverage_flags.push(`image not downloaded (${dl.reason}) — url only`);
         }
-        // for a VIDEO ad: image bytes are the poster (image_file), and we also fetch the actual mp4 (recon §11)
-        let videoSaved = false;
-        const fullMeta = { ...meta };
-        if (videoKey) {
-          fullMeta.video_url = videoKey;
-          if (videoFull) {
-            const dl = await downloadVideoFile(videoFull, `${vidDir}/ad-${n}.mp4`, { writeFile: (p, b) => writeFileSync(p, b) });
-            videoSaved = dl.saved;
-            result.coverage_flags.push(dl.saved
-              ? `video file downloaded (${(dl.bytes / 1024).toFixed(0)}KB) → videos/ad-${n}.mp4`
-              : `video file not downloaded (${dl.reason}) — url only`);
-          }
-        }
         seen.add(key);
-        // kind:"image" → buildCreativeRecord routes to subtype "video" when fullMeta.video_url is present
-        // (poster jpg as image_file + the mp4 video_url/video_file), else subtype "single_image".
-        result.creatives.push(buildCreativeRecord({ kind: "image", key, n, meta: fullMeta, saved: imageSaved, videoSaved }));
-        return { collected: true, index: n, imageSaved, videoSaved };
+        result.creatives.push(buildCreativeRecord({ kind: "image", key, n, meta, saved: imageSaved }));
+        imagesCollected++;
+        return { collected: true, index: n, imageSaved };
       },
       drain: async (meta = {}, metaByKey = null, metaByAsset = null) => {
         await sleep(1200);
         for (const [u, { rid, kind }] of buf) {
           const key = dedupKey(u);
-          if (seen.has(key) || result.creatives.length >= totalCap) continue;
+          if (seen.has(key) || imagesCollected >= totalImages) continue;   // image target = stop (Google drain)
           // per-creative detail merged via the deterministic image-URL key join (card <img> src ==
           // network response url, query-stripped). Falls back to {} so a creative with no matched
           // detail is still saved (detail_captured stays falsy/absent — never a fabricated join).
@@ -277,12 +286,13 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
               // drain is the buffer→getResponseBody path (Google). Meta no longer uses it (modal-driven
               // collectCreative replaced it), so there is no per-card detail/video here — a plain image record.
               result.creatives.push(buildCreativeRecord({ kind: "image", key, n, meta: fullMeta, saved: true }));
+              imagesCollected++;
             }
           } catch (e) {
             // Video bytes often unavailable via getResponseBody (MSE/range). Keep the URL, skip the file.
             const isVideoEvict = kind === "video" && /evict|No resource|No data found/i.test(e?.message ?? "");
             if (isVideoEvict) {
-              if (!seen.has(key) && result.creatives.length < totalCap) {
+              if (!seen.has(key)) {              // videos uncapped
                 seen.add(key);
                 const n = result.creatives.length;
                 result.creatives.push(buildCreativeRecord({ kind: "video", key, n, meta: fullMeta, saved: false }));

@@ -58,92 +58,86 @@ export default defineFlow({
       const body = await ctx.evalJs("document.body.innerText.slice(0,5000)");
       const m = body.match(/~?\s*([0-9,]+)\s*results/i) || body.match(/결과\s*(?:약\s*)?~?\s*([0-9,]+)\s*개/);
       ctx.flag(`"${q}": ${m ? m[1] : "?"} results`);
-      await ctx.scroll(this.config.maxScroll);
-
-      // d. MODAL-DRIVEN collection: per ad card open the modal → extract detail → fetch + save this ad's
-      //    creative asset(s) with its detail attached (1:1). No buffer→drain join for Meta.
+      // d. IMAGE-DRIVEN scroll+collect for this keyword (no fixed up-front scroll — the loop scrolls as needed).
       await this.captureAndCollect(ctx, q);
     }
   },
 
-  // MODAL-DRIVEN per-ad collection (replaces the old captureDetails + drain join). For EACH detail trigger:
+  // IMAGE-DRIVEN collection for ONE keyword. The budget is IMAGES (the primary target) — videos are collected
+  // incidentally alongside (uncapped, and never as a poster in the image corpus). The loop interleaves
+  // scroll-to-load-more with per-card collection, so a keyword keeps yielding IMAGES even when video ads
+  // dominate the page (the old fixed up-front scroll + all-creative cap let a wall of videos exhaust the
+  // budget with 0 images). Stops when this keyword contributed imagesPerQuery images, the GLOBAL image target
+  // is reached (ctx.limitReached), or the result list is exhausted (2 consecutive scrolls load no new cards).
+  async captureAndCollect(ctx, q) {
+    const perQueryImages = ctx.imagesPerQuery || Infinity;
+    let withDetail = 0, fallback = 0, total = 0, images = 0, videos = 0;
+    let i = 0;        // next detail-trigger index to process
+    let stale = 0;    // consecutive scrolls that loaded no new triggers
+    while (images < perQueryImages && !ctx.limitReached()) {
+      const nTrig = await ctx.evalJs(`${TRIG}.length`);
+      if (i >= nTrig) {                                   // need more cards → scroll to load more
+        await ctx.scroll(2);
+        const after = await ctx.evalJs(`${TRIG}.length`);
+        if (after <= nTrig) { if (++stale >= 2) break; }  // exhausted: no new cards after 2 scrolls
+        else stale = 0;
+        continue;
+      }
+      const r = await this.collectOneCard(ctx, i);
+      i++;
+      if (r.collected) { total++; if (r.isVideo) videos++; else images++; if (r.detail) withDetail++; else fallback++; }
+    }
+    ctx.flag(`"${q}": collected ${total} (${images} img, ${videos} video) — ${withDetail} with detail, ${fallback} fallback`);
+  },
+
+  // Process ONE detail trigger (one ad) and collect EXACTLY ONE creative for it:
   //   1. open the modal (el.click — recon §9b; CDP-click does not open it in headless)
   //   2. scroll page to top + expand the 광고주 정보 accordion (CDP-click, block:'start' — recon §9d/§9e)
-  //   3. EXTRACT detail (status/library_id/started_at/advertiser/follower/category/page_id/platforms) + read
-  //      the modal <video>.src (video ads) — pure DOM reads (recon §8/§10)
-  //   4. read THIS ad's creative image asset(s) — modal imgs first (the modal shows the ad's own creative),
-  //      card imgs as fallback; carousel → MULTIPLE images → one record per image, all sharing this detail
-  //   5. close the modal (verified — ESC alone stacks modals, recon §9e) BEFORE collecting (the asset urls
-  //      are already read; the fetch is Node-side and independent of the page)
-  //   6. ctx.collectCreative per asset: fetch the bytes by the full signed url, save, build a record with this
-  //      ad's detail (detail_captured:true). On modal/extract FAILURE, fall back to collecting the card's grid
-  //      <img> with detail_captured:false — so creative coverage is never worse than the old buffer path.
-  // Each record is built from its OWN modal pass, so detail is 1:1 by construction and a resold creative
-  // (two ads, one asset) yields two records each with its own correct detail — no join, no mis-join.
-  async captureAndCollect(ctx, q) {
-    const nTrig = await ctx.evalJs(`${TRIG}.length`);
-    let withDetail = 0, fallback = 0, total = 0;
-    for (let i = 0; i < nTrig; i++) {
-      if (ctx.limitReached()) break;
-      // card image assets (full signed + stripped key) read BEFORE opening the modal (stable grid DOM) — these
-      // are the FALLBACK if the modal fails. Skip a card with no recognizable creative <img> at all.
-      let cardAssets = [];
-      try { cardAssets = await ctx.evalJs(CARD_IMG_ASSETS(i)); } catch { cardAssets = []; }
-      if (!Array.isArray(cardAssets) || !cardAssets.length) continue;
+  //   3. EXTRACT detail + read the modal <video>.src (video ads) + this ad's creative img asset(s) — pure DOM
+  //   4. close the modal (ESC alone stacks modals, recon §9e) BEFORE collecting
+  //   5. VIDEO ad → ONE video record (mp4 to videos/, NO poster in the image corpus). IMAGE ad → ONE
+  //      representative image (modal preferred, card fallback); aspect/carousel renditions are NOT re-collected.
+  //      On modal/extract failure, fall back to the grid card img with detail_captured:false.
+  // Returns { collected, isVideo, detail } so the keyword loop can count IMAGES vs videos.
+  async collectOneCard(ctx, i) {
+    // card image assets (full signed + stripped key) read BEFORE opening the modal — the modal-fail FALLBACK.
+    let cardAssets = [];
+    try { cardAssets = await ctx.evalJs(CARD_IMG_ASSETS(i)); } catch { cardAssets = []; }
+    if (!Array.isArray(cardAssets) || !cardAssets.length) return { collected: false };
 
-      let detail = null, video = null, modalAssets = [];
-      try {
-        // open the detail modal (recon §9b: el.click() opens it; CDP-click does not in headless).
-        const opened = await ctx.evalJs(`(() => { const b=${TRIG}[${i}]; if(!b) return false; b.scrollIntoView({block:'center'}); b.click(); return true; })()`);
-        if (opened && (await ctx.pollUntil(`!!${DLG}`, { timeoutMs: 5000, intervalMs: 300 }))) {
-          // recon §9d: open the accordion from scrollTop=0 so it stays on-screen (the 2nd+ modal opens scrolled).
-          await ctx.evalJs("window.scrollTo(0,0)");
-          await ctx.sleep(600);
-          for (let attempt = 0; attempt < 2; attempt++) {
-            if (await ctx.evalJs(HAS_FOLLOWER)) break;
-            const accRect = await ctx.evalJs(ACC_RECT);
-            if (!accRect || typeof accRect.x !== "number") break;
-            await ctx.clickAt(accRect.x, accRect.y, 200);
-            if (await ctx.pollUntil(HAS_FOLLOWER, { timeoutMs: 4000, intervalMs: 300 })) break;
-          }
-          const raw = await ctx.evalJs(EXTRACT);
-          video = await ctx.evalJs(VIDEO_SRC);          // { full, key } | null
-          try { modalAssets = await ctx.evalJs(MODAL_IMG_ASSETS); } catch { modalAssets = []; }
-          if (raw) {
-            const d = normalizeDetail(raw);
-            if (d.detail_captured) detail = d;
-          }
+    let detail = null, video = null, modalAssets = [];
+    try {
+      const opened = await ctx.evalJs(`(() => { const b=${TRIG}[${i}]; if(!b) return false; b.scrollIntoView({block:'center'}); b.click(); return true; })()`);
+      if (opened && (await ctx.pollUntil(`!!${DLG}`, { timeoutMs: 5000, intervalMs: 300 }))) {
+        await ctx.evalJs("window.scrollTo(0,0)");
+        await ctx.sleep(600);
+        for (let attempt = 0; attempt < 2; attempt++) {
+          if (await ctx.evalJs(HAS_FOLLOWER)) break;
+          const accRect = await ctx.evalJs(ACC_RECT);
+          if (!accRect || typeof accRect.x !== "number") break;
+          await ctx.clickAt(accRect.x, accRect.y, 200);
+          if (await ctx.pollUntil(HAS_FOLLOWER, { timeoutMs: 4000, intervalMs: 300 })) break;
         }
-      } catch { /* fall through to fallback collection */ }
-      // close (verify) BEFORE collecting — stale modals stack and break the next card (recon §9e).
-      try { await this.closeModal(ctx); } catch { /* best-effort */ }
-
-      // choose the asset list: prefer the modal's own creative imgs (the ad's actual creative) when present,
-      // else the card grid imgs. video ads: the modal img is the poster; we still record it as image_file +
-      // attach the modal <video> url so the record becomes subtype:"video".
-      const assets = (Array.isArray(modalAssets) && modalAssets.length) ? modalAssets : cardAssets;
-      const meta = detail ? { ...detail } : {};
-      // For a video ad: pass the video urls to collectCreative, which fetches the mp4 from the `videoFull`
-      // PARAM (the signed url) and persists only the stripped `videoKey` (buildCreativeRecord drops *_full).
-      let videoKey = null, videoFull = null;
-      if (video && video.key) { videoKey = video.key; videoFull = video.full; }
-      // carousel: one record per image asset, all sharing this ad's detail (recon §2 note). The video url is
-      // attached to the FIRST asset only (a single ad has one mp4; the poster is asset[0]).
-      let any = false;
-      for (let a = 0; a < assets.length; a++) {
-        if (ctx.limitReached()) break;
-        const { full, key } = assets[a];
-        if (!key) continue;
-        const res = await ctx.collectCreative({
-          imageKey: key, imageFull: full,
-          videoKey: a === 0 ? videoKey : null, videoFull: a === 0 ? videoFull : null,
-          meta,
-        });
-        if (res.collected) { any = true; total++; }
+        const raw = await ctx.evalJs(EXTRACT);
+        video = await ctx.evalJs(VIDEO_SRC);          // { full, key } | null
+        try { modalAssets = await ctx.evalJs(MODAL_IMG_ASSETS); } catch { modalAssets = []; }
+        if (raw) { const d = normalizeDetail(raw); if (d.detail_captured) detail = d; }
       }
-      if (any) { if (detail) withDetail++; else fallback++; }
+    } catch { /* fall through to fallback collection */ }
+    try { await this.closeModal(ctx); } catch { /* best-effort */ }
+
+    const meta = detail ? { ...detail } : {};
+    if (video && video.key) {
+      const res = await ctx.collectCreative({ videoKey: video.key, videoFull: video.full, meta });
+      return { collected: res.collected, isVideo: true, detail: !!detail };
     }
-    ctx.flag(`"${q}": modal-driven collected ${total} creative(s) — ${withDetail} ad(s) with detail, ${fallback} fallback (no modal)`);
+    const assets = (Array.isArray(modalAssets) && modalAssets.length) ? modalAssets : cardAssets;
+    const primary = assets.find((a) => a && a.key);   // the ad's primary creative (modal preferred, card fallback)
+    if (primary) {
+      const res = await ctx.collectCreative({ imageKey: primary.key, imageFull: primary.full, meta });
+      return { collected: res.collected, isVideo: false, detail: !!detail };
+    }
+    return { collected: false };
   },
 
   // Close the detail modal and VERIFY it closed. Live §9: ESC alone stops closing the modal after a few

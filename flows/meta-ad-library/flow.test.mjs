@@ -6,15 +6,16 @@ import flow from "./flow.mjs";
 // opens the modal, extracts detail, reads that ad's creative asset(s), and calls ctx.collectCreative per asset
 // with this ad's detail attached. There is no buffer→drain join (Meta retired it). These tests drive
 // captureAndCollect with a scripted fake ctx (no browser) and assert on the recorded collectCreative calls:
-// per-ad record building (detail 1:1), carousel (one call per image), modal-fail fallback (detail_captured
-// false via the grid card img), and the video record (modal <video>.src carried + attached to asset[0]).
+// ONE creative per ad (per-ad detail 1:1; multi-rendition ads are NOT inflated), modal-fail fallback
+// (detail_captured false via the grid card img), and the video record (video-only: <video>.src carried as
+// videoKey, NO poster image so a video's first frame never pollutes the image corpus).
 
 // Build a fake ctx scripting a sequence of cards. Each card:
 //   { cardAssets:[{full,key}], modalAssets:[{full,key}]|null, modalFails?, libid, advertiser, follower,
 //     page_id, videoUrl? }
 // The fake answers each in-page expression by matching a recognizable substring, models dialog open/close,
 // and RECORDS every collectCreative call so tests can assert the produced records.
-function makeCtx(cards, { cap = 24 } = {}) {
+function makeCtx(cards, { cap = 24, imagesPerQuery } = {}) {
   let i = -1;                 // current card index (advanced when CARD_IMG_ASSETS([n]) is read)
   let dialogOpen = false;
   const flags = [];
@@ -22,6 +23,8 @@ function makeCtx(cards, { cap = 24 } = {}) {
   const ctx = {
     flag: (s) => flags.push(s),
     sleep: async () => {},
+    scroll: async () => {},   // mock list is fixed → a scroll loads no new cards (drives exhaustion detection)
+    imagesPerQuery,           // per-keyword IMAGE cap (undefined → Infinity in captureAndCollect)
     clickAt: async () => {},  // accordion click — no-op in the mock (HAS_FOLLOWER is scripted true)
     esc: async () => { dialogOpen = false; },
     limitReached: () => collected.length >= cap,
@@ -108,19 +111,19 @@ test("captureAndCollect: a RESOLD creative (two ads share one asset) → two rec
   assert.notEqual(collected[0].meta.follower_count, collected[1].meta.follower_count);
 });
 
-test("captureAndCollect: carousel → one record per image, all sharing the ad's detail", async () => {
+test("captureAndCollect: an ad with multiple image renditions → ONE record (primary creative, no per-variant inflation)", async () => {
+  // One ad surfacing several renditions (aspect-ratio variants / carousel slides) must NOT inflate into
+  // multiple ad records — the corpus counts distinct ADS. Only the primary (first) creative is collected.
   const cards = [
     { cardAssets: [A("11_1"), A("11_2"), A("11_3")], modalAssets: [A("11_1"), A("11_2"), A("11_3")],
       libid: "CAR", advertiser: "Carousel", follower: 99, page_id: "pc" },
   ];
   const { ctx, collected } = makeCtx(cards);
   await flow.captureAndCollect(ctx, "q");
-  assert.equal(collected.length, 3, "one record per carousel image");
-  for (const c of collected) {
-    assert.equal(c.meta.advertiser_name, "Carousel");
-    assert.equal(c.meta.follower_count, 99);
-    assert.equal(c.meta.detail_captured, true);
-  }
+  assert.equal(collected.length, 1, "one record per ad (renditions/variants not re-collected)");
+  assert.ok(collected[0].imageKey.includes("11_1"), "the primary (first) creative is kept");
+  assert.equal(collected[0].meta.advertiser_name, "Carousel");
+  assert.equal(collected[0].meta.detail_captured, true);
 });
 
 test("captureAndCollect: modal-fail FALLBACK → collect the grid card img with no detail (coverage not worse)", async () => {
@@ -140,7 +143,7 @@ test("captureAndCollect: modal-fail FALLBACK → collect the grid card img with 
   assert.ok(flags.some((f) => /1 fallback/.test(f)), `expected a fallback count flag, got ${JSON.stringify(flags)}`);
 });
 
-test("captureAndCollect: a video ad carries the modal <video>.src (stripped key + full signed) on asset[0]", async () => {
+test("captureAndCollect: a video ad → ONE video-only record (videoKey, NO poster image); image ad → image-only", async () => {
   const mp4Full = "https://video-icn2-1.xx.fbcdn.net/o1/v/t2/f2/m86/AQOvideo.mp4?_nc_cat=1&oh=sig&oe=exp";
   const mp4 = "https://video-icn2-1.xx.fbcdn.net/o1/v/t2/f2/m86/AQOvideo.mp4";
   const cards = [
@@ -149,14 +152,17 @@ test("captureAndCollect: a video ad carries the modal <video>.src (stripped key 
   ];
   const { ctx, collected } = makeCtx(cards);
   await flow.captureAndCollect(ctx, "q");
-  const vid = collected.find((c) => c.imageKey.includes("vid_1"));
-  const img = collected.find((c) => c.imageKey.includes("img_2"));
+  const vid = collected.find((c) => c.videoKey);
+  const img = collected.find((c) => c.imageKey && c.imageKey.includes("img_2"));
+  // VIDEO ad → video-only: videoKey/videoFull carried, and NO poster image (imageKey absent) so the video's
+  // first-frame never enters the image corpus the human reviews.
   assert.equal(vid.videoKey, mp4, "stripped <video>.src carried as videoKey");
   assert.equal(vid.videoFull, mp4Full, "full signed mp4 url carried for the fetch");
+  assert.equal(vid.imageKey, undefined, "video ad emits NO poster image");
   assert.equal(vid.meta.advertiser_name, "VidAdv");
-  // non-video ad gets no video url.
-  assert.equal(img.videoKey, null);
-  assert.equal(img.videoFull, null);
+  // IMAGE ad → image-only: imageKey set, no video url.
+  assert.ok(img.imageKey.includes("img_2"));
+  assert.equal(img.videoKey, undefined);
 });
 
 test("captureAndCollect: prefers the MODAL's creative imgs over the grid card imgs when present", async () => {
@@ -170,11 +176,31 @@ test("captureAndCollect: prefers the MODAL's creative imgs over the grid card im
   assert.ok(collected[0].imageKey.includes("modal_1"), "modal creative img preferred over grid card img");
 });
 
-test("captureAndCollect: honors the cap (limitReached) — stops collecting past totalCap", async () => {
+test("captureAndCollect: honors the global limit (limitReached) — stops collecting once reached", async () => {
   const cards = Array.from({ length: 5 }, (_, k) => ({
     cardAssets: [A(`c_${k}`)], modalAssets: [A(`c_${k}`)], libid: `L${k}`, advertiser: `Adv${k}`, follower: k, page_id: `p${k}`,
   }));
   const { ctx, collected } = makeCtx(cards, { cap: 3 });
   await flow.captureAndCollect(ctx, "q");
-  assert.equal(collected.length, 3, "stops at the cap");
+  assert.equal(collected.length, 3, "stops at the global limit");
+});
+
+test("captureAndCollect: IMAGE budget drives the loop — videos are incidental and don't consume it", async () => {
+  // A page interleaving video and image ads. With imagesPerQuery=2 the loop must keep going PAST the videos
+  // until it has 2 IMAGES — the videos it passes are collected (uncapped) but never count toward the budget.
+  const mp4 = (id) => `https://video-icn2-1.xx.fbcdn.net/o1/v/t2/${id}.mp4?oh=s&oe=e`;
+  const cards = [
+    { cardAssets: [A("v1")], modalAssets: [A("v1")], libid: "V1", advertiser: "Va", follower: 1, page_id: "p1", videoUrl: mp4("v1") },
+    { cardAssets: [A("i1")], modalAssets: [A("i1")], libid: "I1", advertiser: "Ia", follower: 2, page_id: "p2" },
+    { cardAssets: [A("v2")], modalAssets: [A("v2")], libid: "V2", advertiser: "Vb", follower: 3, page_id: "p3", videoUrl: mp4("v2") },
+    { cardAssets: [A("i2")], modalAssets: [A("i2")], libid: "I2", advertiser: "Ib", follower: 4, page_id: "p4" },
+    { cardAssets: [A("i3")], modalAssets: [A("i3")], libid: "I3", advertiser: "Ic", follower: 5, page_id: "p5" },
+  ];
+  const { ctx, collected } = makeCtx(cards, { imagesPerQuery: 2 });
+  await flow.captureAndCollect(ctx, "q");
+  const imgs = collected.filter((c) => c.imageKey);
+  const vids = collected.filter((c) => c.videoKey);
+  assert.equal(imgs.length, 2, "stops at the 2-IMAGE budget");
+  assert.equal(vids.length, 2, "both videos passed en route are collected (uncapped, not counted)");
+  assert.ok(!collected.some((c) => c.imageKey && c.imageKey.includes("i3")), "the 3rd image is never reached — budget hit at the 2nd");
 });
