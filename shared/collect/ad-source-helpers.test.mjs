@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseAdvertiserId, filterQueriesByModes, dedupKey, chooseAdvertiser, safeName } from "./ad-source-helpers.mjs";
+import { parseAdvertiserId, filterQueriesByModes, dedupKey, chooseAdvertiser, safeName, buildCreativeRecord, classifyResponse } from "./ad-source-helpers.mjs";
 
 test("safeName accepts a plain segment, rejects traversal/separators", () => {
   assert.equal(safeName("buyer", "personaId"), "buyer");
@@ -54,4 +54,31 @@ test("chooseAdvertiser returns null when no name relates", () => {
 test("chooseAdvertiser matches advertiser name ignoring spaces/case", () => {
   const pick = chooseAdvertiser([{ text: "BrandX SKY\n인증", x: 5, y: 5 }], "BrandXSKY");
   assert.equal(pick.quality, "exact");
+});
+
+test("classifyResponse prefers video then image then null, uses mime", () => {
+  const a = { imgMatch: (u) => u.includes("img"), videoMatch: (u, mime) => /^video\//.test(mime) || u.includes("vid") };
+  assert.equal(classifyResponse("https://x/vid.mp4", a), "video");
+  assert.equal(classifyResponse("https://x/anything", a, "video/mp4"), "video");   // mime-led
+  assert.equal(classifyResponse("https://x/img.jpg", a), "image");
+  assert.equal(classifyResponse("https://x/other", a), null);
+  assert.equal(classifyResponse("https://x/img", { imgMatch: (u) => u.includes("img") }), "image"); // no videoMatch
+});
+
+test("buildCreativeRecord shapes image and video records", () => {
+  const img = buildCreativeRecord({ kind: "image", key: "https://x/i", n: 0, meta: { detail_captured: true } });
+  assert.equal(img.subtype, "single_image");
+  assert.equal(img.image_url, "https://x/i");
+  assert.equal(img.image_file, "images/ad-0.jpg");
+  assert.equal(img.detail_captured, true);
+
+  const vid = buildCreativeRecord({ kind: "video", key: "https://x/v", n: 2, meta: {} });
+  assert.equal(vid.subtype, "video");
+  assert.equal(vid.video_url, "https://x/v");
+  assert.equal(vid.video_file, "videos/ad-2.mp4");
+  assert.equal(vid.image_url, undefined);
+
+  const unsaved = buildCreativeRecord({ kind: "video", key: "https://x/v", n: 3, meta: {}, saved: false });
+  assert.equal(unsaved.video_file, undefined);
+  assert.equal(unsaved.video_url, "https://x/v");
 });

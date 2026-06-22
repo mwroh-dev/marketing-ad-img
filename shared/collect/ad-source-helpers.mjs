@@ -52,3 +52,23 @@ export function chooseAdvertiser(suggestions, query) {
   const { rank, ...rest } = best;
   return rest;
 }
+
+// Classify a network response for an adapter: video takes precedence over image.
+// mime is passed through (Meta videos are reliably mime=video/mp4; URL alone is a weaker signal).
+export function classifyResponse(url, adapter, mime = "") {
+  if (adapter && typeof adapter.videoMatch === "function" && adapter.videoMatch(url, mime)) return "video";
+  if (adapter && typeof adapter.imgMatch === "function" && adapter.imgMatch(url)) return "image";
+  return null;
+}
+
+// Build one creative record. `meta` carries detail-modal fields merged from normalizeDetail.
+export function buildCreativeRecord({ kind, key, n, meta = {}, saved = true }) {
+  if (kind === "video") {
+    const rec = { video_url: key, subtype: "video", ...meta };
+    if (saved) rec.video_file = `videos/ad-${n}.mp4`;
+    return rec;
+  }
+  const rec = { image_url: key, subtype: "single_image", ...meta };
+  if (saved) rec.image_file = `images/ad-${n}.jpg`;
+  return rec;
+}
