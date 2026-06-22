@@ -65,7 +65,7 @@ test("captureDetails: dedupKey collision between two distinct advertisers drops 
     { keys: ["K1"], libid: "AAA", advertiser: "X", follower: 10, page_id: "px" },
   ];
   const { ctx, flags } = makeCtx(cards);
-  const out = await flow.captureDetails(ctx);
+  const { metaByKey: out } = await flow.captureDetails(ctx);
 
   // K1 must NOT be present (conflicted) — neither X's nor Y's detail attached.
   assert.equal(out.K1, undefined, "collided key K1 must be dropped, not last-write-wins");
@@ -87,7 +87,7 @@ test("captureDetails: a video ad's modal <video>.src is carried into metaByKey a
     { keys: ["IK"], libid: "IMG", advertiser: "ImgAdv", follower: 60, page_id: "pi" },  // no videoUrl
   ];
   const { ctx } = makeCtx(cards);
-  const out = await flow.captureDetails(ctx);
+  const { metaByKey: out } = await flow.captureDetails(ctx);
   // video card: detail carries the STRIPPED video_url (stable id) + the FULL signed url for drain to fetch.
   assert.ok(out.VK, "video card detail should be present");
   assert.equal(out.VK.video_url, mp4, "stripped <video>.src must be carried as the stable video_url");
@@ -105,8 +105,46 @@ test("captureDetails: same advertiser re-touching one key is NOT a conflict (car
     { keys: ["KX"], libid: "SAME", advertiser: "OneAdv", follower: 7, page_id: "p1" },
   ];
   const { ctx, flags } = makeCtx(cards);
-  const out = await flow.captureDetails(ctx);
+  const { metaByKey: out } = await flow.captureDetails(ctx);
   assert.ok(out.KX, "same-ad re-touch must keep the detail");
   assert.equal(out.KX.advertiser_name, "OneAdv");
   assert.ok(!flags.some((f) => /collision/.test(f)), "no collision flag for same-ad re-touch");
+});
+
+test("captureDetails: metaByAsset indexes fbcdn asset-id; unique → fallback-able, conflicted → dropped", async () => {
+  // Card A: advertiser P, card key is one SIZE VARIANT of an asset. Card B: advertiser Q, a DIFFERENT asset.
+  // Card C: advertiser P AGAIN reselling the SAME asset as a third party would (different libid) → asset-id
+  // conflict for A's asset. We assert metaByAsset keeps B's unique asset, drops the conflicted one.
+  const A = "https://scontent-icn2-1.xx.fbcdn.net/v/t39.35426-6/100_200_300_n.jpg";   // asset 100_200_300
+  const B = "https://scontent-icn3-1.xx.fbcdn.net/v/t39.35426-6/400_500_600_n.jpg";   // asset 400_500_600
+  const Cvariant = "https://scontent-icn5-9.xx.fbcdn.net/v/t39.35426-6/100_200_300_n.jpg"; // SAME asset as A, diff host
+  const cards = [
+    { keys: [A], libid: "P-AD", advertiser: "P", follower: 11, page_id: "pp" },
+    { keys: [B], libid: "Q-AD", advertiser: "Q", follower: 22, page_id: "pq" },
+    { keys: [Cvariant], libid: "R-AD", advertiser: "R", follower: 33, page_id: "pr" },  // different ad, same asset
+  ];
+  const { ctx, flags } = makeCtx(cards);
+  const { metaByAsset } = await flow.captureDetails(ctx);
+  // B's asset is unique → present and usable as a fallback.
+  assert.ok(metaByAsset["400_500_600"], "unique asset-id retained for fallback");
+  assert.equal(metaByAsset["400_500_600"].advertiser_name, "Q");
+  // A's asset claimed by two DIFFERENT ads (P-AD and R-AD) → conflicted → dropped, with a flag.
+  assert.equal(metaByAsset["100_200_300"], undefined, "asset-id claimed by two ads must be dropped");
+  assert.ok(flags.some((f) => /asset-id collision: 100_200_300/.test(f)), `expected asset-id collision flag, got: ${JSON.stringify(flags)}`);
+});
+
+test("captureDetails: same ad under two fbcdn SIZE VARIANTS is NOT an asset-id conflict (real variant case)", async () => {
+  // The live gap: ONE ad's creative buffered under a CDN size variant. Same libid, different host/path variant
+  // of the SAME asset basename → must NOT conflict; the asset-id stays usable for the drain fallback.
+  const v1 = "https://scontent-icn2-1.xx.fbcdn.net/v/t39.35426-6/777_888_999_n.jpg";
+  const v2 = "https://scontent-a.xx.fbcdn.net/v/t39.35426-6/777_888_999_n.jpg";  // same asset, variant host
+  const cards = [
+    { keys: [v1], libid: "ONE", advertiser: "OneAdv", follower: 5, page_id: "p1" },
+    { keys: [v2], libid: "ONE", advertiser: "OneAdv", follower: 5, page_id: "p1" },
+  ];
+  const { ctx, flags } = makeCtx(cards);
+  const { metaByAsset } = await flow.captureDetails(ctx);
+  assert.ok(metaByAsset["777_888_999"], "same-ad variant keeps the asset-id usable");
+  assert.equal(metaByAsset["777_888_999"].advertiser_name, "OneAdv");
+  assert.ok(!flags.some((f) => /asset-id collision/.test(f)), "same-ad variant must not flag a conflict");
 });

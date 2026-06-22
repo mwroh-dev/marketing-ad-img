@@ -16,17 +16,23 @@
 //   clickAt(x,y[,postWaitMs]) real mouse click; postWaitMs defaults to 7000 (google nav wait), pass a
 //                            short value for quick clicks that poll their own completion (meta accordion)
 //   pollUntil(expr,opts)     poll an in-page boolean expr until true or timeout (event-driven settle)
-//   drain(meta, metaByKey)   getResponseBody on buffered image/video (classifyResponse) responses → save + push.
+//   drain(meta, metaByKey, metaByAsset)
+//                            getResponseBody on buffered image/video (classifyResponse) responses → save + push.
 //                            `meta` merges into EVERY saved record; `metaByKey` (optional
-//                            { [dedupKey(url)]: extraMeta }) merges per-creative — the
+//                            { [dedupKey(url)]: extraMeta }) merges per-creative — the PRIMARY
 //                            deterministic image-URL join used to attach detail-modal fields
 //                            to the right creative (network order ≠ card order, so key-join).
+//                            `metaByAsset` (optional { [fbcdnAssetId(url)]: extraMeta }) is an ADDITIVE
+//                            FALLBACK consulted ONLY when the primary key misses — fbcdn serves one asset
+//                            under path/size variants whose dedupKeys differ; the asset-id index already
+//                            dropped any id ≥2 ads claimed, so only a unique non-conflicted detail attaches
+//                            (never another advertiser's, never an override of a primary match).
 //   flag(msg)                push a coverage flag
 //   limitReached() -> bool   totalCap hit or blocked
 //
 // Non-intrusive: dedicated headless Chrome (default 9291), never bringToFront/activateTarget.
 import { realScroll, sleep, isBlocked, matchToolEntry } from "./lib.mjs";
-import { dedupKey, safeName, classifyResponse, buildCreativeRecord, downloadVideoFile } from "./ad-source-helpers.mjs";
+import { dedupKey, fbcdnAssetId, safeName, classifyResponse, buildCreativeRecord, downloadVideoFile } from "./ad-source-helpers.mjs";
 import CDP from "chrome-remote-interface";
 import { writeFileSync, mkdirSync } from "fs";
 
@@ -174,7 +180,7 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
         await c.Input.dispatchKeyEvent({ type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27, nativeVirtualKeyCode: 27 });
         await sleep(1200);
       },
-      drain: async (meta = {}, metaByKey = null) => {
+      drain: async (meta = {}, metaByKey = null, metaByAsset = null) => {
         await sleep(1200);
         for (const [u, { rid, kind }] of buf) {
           const key = dedupKey(u);
@@ -182,8 +188,23 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
           // per-creative detail merged via the deterministic image-URL key join (card <img> src ==
           // network response url, query-stripped). Falls back to {} so a creative with no matched
           // detail is still saved (detail_captured stays falsy/absent — never a fabricated join).
-          const perKey = (metaByKey && metaByKey[key]) || {};
-          const fullMeta = { ...meta, ...perKey };
+          let perKey = (metaByKey && metaByKey[key]) || null;
+          // ADDITIVE FALLBACK (only when the PRIMARY key missed): fbcdn serves the same asset under
+          // different path/size variants, so a buffered creative url can have a different query-stripped
+          // dedupKey than the card <img>.src the detail was stored under. Try the size-invariant asset id —
+          // but attach ONLY a UNIQUE, non-conflicted detail (metaByAsset already dropped any asset-id that
+          // ≥2 distinct ads claimed). This never overrides a primary match and can only ever add the SAME
+          // ad's own detail to a CDN-variant creative — never another advertiser's. google passes no
+          // metaByAsset → this branch is inert. (live: closes the 3 single_image variant-mismatch misses)
+          if (!perKey && metaByAsset) {
+            const aid = fbcdnAssetId(u);
+            const byAsset = aid ? metaByAsset[aid] : null;
+            if (byAsset) {
+              perKey = byAsset;
+              result.coverage_flags.push(`detail attached via asset-id fallback: ${aid}`);
+            }
+          }
+          const fullMeta = { ...meta, ...(perKey || {}) };
           try {
             const b = await c.Network.getResponseBody({ requestId: rid });
             const bytes = b.base64Encoded ? Buffer.from(b.body, "base64") : Buffer.from(b.body);

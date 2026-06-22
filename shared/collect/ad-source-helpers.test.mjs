@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseAdvertiserId, filterQueriesByModes, dedupKey, chooseAdvertiser, safeName, buildCreativeRecord, classifyResponse, downloadVideoFile } from "./ad-source-helpers.mjs";
+import { parseAdvertiserId, filterQueriesByModes, dedupKey, fbcdnAssetId, chooseAdvertiser, safeName, buildCreativeRecord, classifyResponse, downloadVideoFile } from "./ad-source-helpers.mjs";
 
 test("safeName accepts a plain segment, rejects traversal/separators", () => {
   assert.equal(safeName("buyer", "personaId"), "buyer");
@@ -26,6 +26,31 @@ test("filterQueriesByModes keeps only accepted modes", () => {
 test("dedupKey strips query string", () => {
   assert.equal(dedupKey("https://h/img.jpg?a=1&b=2"), "https://h/img.jpg");
   assert.equal(dedupKey("https://h/img.jpg"), "https://h/img.jpg");
+});
+
+test("fbcdnAssetId: same id across two different-SIZE/path variants of one asset; null when no _n basename", () => {
+  // The live gap: fbcdn serves one asset under different host/path/size variants → different dedupKeys.
+  // The `_n.(jpg|mp4)` basename is the stable, size-invariant identity → both variants share one asset id.
+  const v1 = "https://scontent-icn2-1.xx.fbcdn.net/v/t39.35426-6/643399974_1422859576201451_1855107910192996339_n.jpg?stp=dst-jpg_s600x600&_nc_cat=1&oh=A&oe=B";
+  const v2 = "https://scontent-a.xx.fbcdn.net/v/t39.35426-6/643399974_1422859576201451_1855107910192996339_n.jpg?stp=dst-jpg_p1080x1080&_nc_cat=9&oh=C&oe=D";
+  const id = "643399974_1422859576201451_1855107910192996339";
+  assert.equal(fbcdnAssetId(v1), id);
+  assert.equal(fbcdnAssetId(v2), id, "size/host variants of the same asset must yield the SAME asset id");
+  assert.equal(fbcdnAssetId(v1), fbcdnAssetId(v2));
+
+  // mp4 basename also supported (poster→video asset stems)
+  assert.equal(fbcdnAssetId("https://video-icn2-1.xx.fbcdn.net/o1/v/t2/f2/m86/100_200_300_n.mp4?oh=x"), "100_200_300");
+  // single-leading-number forms still parse (≥1 underscore-joined number + _n)
+  assert.equal(fbcdnAssetId("https://x.fbcdn.net/v/t39.35426-6/12345_67890_n.jpg"), "12345_67890");
+
+  // null cases: no _n basename / non-conforming / non-string
+  assert.equal(fbcdnAssetId("https://x.fbcdn.net/v/t39.35426-6/poster.jpg"), null);
+  assert.equal(fbcdnAssetId("https://x.fbcdn.net/v/t39.35426-6/643399974_1422859576201451_o.jpg"), null, "_o (not _n) is not an ad asset basename");
+  assert.equal(fbcdnAssetId("https://adstransparency.google.com/creative/abc.png"), null);
+  assert.equal(fbcdnAssetId(""), null);
+  assert.equal(fbcdnAssetId(null), null);
+  assert.equal(fbcdnAssetId(undefined), null);
+  assert.equal(fbcdnAssetId(12345), null);
 });
 
 test("chooseAdvertiser prefers exact, then prefix, over substring (BrandY ≠ XBrandY)", () => {

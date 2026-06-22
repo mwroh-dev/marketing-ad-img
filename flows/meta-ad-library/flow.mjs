@@ -1,4 +1,5 @@
 import { defineFlow } from "../../shared/collect/define-flow.mjs";
+import { fbcdnAssetId } from "../../shared/collect/ad-source-helpers.mjs";
 import { normalizeDetail } from "./detail-normalize.mjs";
 
 // Meta uses the public FILTER URL directly (the documented public-ad-transparency carve-out) — there is
@@ -55,33 +56,47 @@ export default defineFlow({
       ctx.flag(`"${q}": ${m ? m[1] : "?"} results`);
       await ctx.scroll(this.config.maxScroll);
 
-      // d. per-card detail capture → metaByKey (image dedup-key → normalized detail)
-      const metaByKey = await this.captureDetails(ctx);
+      // d. per-card detail capture → { metaByKey, metaByAsset } (primary image dedup-key join + the
+      //    additive fbcdn asset-id fallback join, each independently collision-safe — see captureDetails)
+      const { metaByKey, metaByAsset } = await this.captureDetails(ctx);
       // Honest coverage signal: report distinct ADS we extracted detail from (the real unit), plus the raw
       // image-key count. The key count is inflated by carousels (several <img> keys per ad) and not every key
       // matches a buffered grid creative, so "keys" overstates how many creatives end up tagged. (audit I4)
       const distinctAds = new Set(Object.values(metaByKey).map((d) => d.library_id || d.advertiser_name)).size;
       ctx.flag(`"${q}": detail extracted for ${distinctAds} ad(s) across ${Object.keys(metaByKey).length} image-key(s)`);
 
-      // e. drain: save buffered creatives, merge each card's detail by image-URL key
-      await ctx.drain({}, metaByKey);
+      // e. drain: save buffered creatives, merge each card's detail by image-URL key, with the asset-id
+      //    fallback for creatives whose buffered network url is a CDN-variant of the stored card key.
+      await ctx.drain({}, metaByKey, metaByAsset);
     }
   },
 
-  // Open each ad's detail modal, extract the detail fields, and return { [imgDedupKey]: detailMeta }.
+  // Open each ad's detail modal, extract the detail fields, and return BOTH join indexes:
+  //   { metaByKey:   { [imgDedupKey]: detailMeta },     // PRIMARY — exact query-stripped url match (unchanged)
+  //     metaByAsset: { [fbcdnAssetId]: detailMeta } }   // FALLBACK — fbcdn size-invariant asset identity
   // A card may carry several <img> (carousel) — every one of the card's image keys maps to the same detail.
   //
-  // COLLISION SAFETY (live §9): the join key is dedupKey(image_url) = the query-stripped url. Two DIFFERENT
-  // advertisers can resell the SAME agency creative (same path, different `?_nc_*` query) → same dedupKey.
-  // Because drain keeps only the FIRST creative per key (seen.has) and a naive last-write map would keep only
-  // the LAST detail, a collision could attach advertiser B's detail to advertiser A's surviving creative — the
-  // exact mis-join the brief forbids ("mis-joined is worse than none"). So we treat a key touched by two
-  // detail DIFFERENT ads (by library_id, else advertiser_name) as CONFLICTED: drop it from the map entirely
-  // and flag it. A re-touch by the SAME ad (same library_id) is not a conflict. Net: a creative gets ITS OWN
-  // correct detail or none — never another advertiser's.
+  // COLLISION SAFETY (live §9): the PRIMARY join key is dedupKey(image_url) = the query-stripped url. Two
+  // DIFFERENT advertisers can resell the SAME agency creative (same path, different `?_nc_*` query) → same
+  // dedupKey. Because drain keeps only the FIRST creative per key (seen.has) and a naive last-write map would
+  // keep only the LAST detail, a collision could attach advertiser B's detail to advertiser A's surviving
+  // creative — the exact mis-join the brief forbids ("mis-joined is worse than none"). So we treat a key
+  // touched by two DIFFERENT ads (by library_id, else advertiser_name) as CONFLICTED: drop it from the map
+  // entirely and flag it. A re-touch by the SAME ad (same library_id) is not a conflict. Net: a creative gets
+  // ITS OWN correct detail or none — never another advertiser's.
+  //
+  // SECONDARY (additive) ASSET-ID index: fbcdn serves one asset under different path/size variants, so a
+  // buffered network creative url can have a different query-stripped dedupKey than the card <img>.src the
+  // detail was stored under (live: 3 single_image creatives unmatched, ZERO key collisions — pure variant
+  // mismatch). metaByAsset is keyed by fbcdnAssetId(url) (the stable `_n` basename) under the EXACT SAME
+  // conflict discipline: an asset-id claimed by two DIFFERENT ads is CONFLICTED and dropped, so drain's
+  // fallback can only ever attach a UNIQUE, non-conflicted detail. The primary path is byte-for-byte
+  // unchanged; the asset-id index is consulted by drain ONLY when the primary key misses.
   async captureDetails(ctx) {
     const out = {};
-    const conflicted = new Set();   // keys seen with ≥2 distinct ads' details → never attach
+    const byAsset = {};
+    const conflicted = new Set();        // dedupKeys seen with ≥2 distinct ads' details → never attach
+    const assetConflicted = new Set();   // asset-ids seen with ≥2 distinct ads' details → never attach
     const identOf = (d) => (d && (d.library_id || d.advertiser_name)) || null;  // identity for conflict test
     const nTrig = await ctx.evalJs(`${TRIG}.length`);
     // FULL COVERAGE: process EVERY detail trigger present (no artificial cap). drain still only keeps the
@@ -143,22 +158,36 @@ export default defineFlow({
         }
         if (!detail.detail_captured) continue;    // nothing usable → don't attach an empty join
         for (const k of imgKeys) {
-          if (conflicted.has(k)) continue;                 // already poisoned by an earlier collision
-          const prev = out[k];
-          if (prev && identOf(prev) !== identOf(detail)) {  // a DIFFERENT ad already claimed this key
-            delete out[k];                                  // drop both → creative stays detail-less, not mis-joined
-            conflicted.add(k);
-            ctx.flag(`detail join-key collision: ${k} — conflicting ads, detail dropped`);
-            continue;
+          // PRIMARY index — dedupKey (unchanged behavior)
+          if (!conflicted.has(k)) {
+            const prev = out[k];
+            if (prev && identOf(prev) !== identOf(detail)) {  // a DIFFERENT ad already claimed this key
+              delete out[k];                                  // drop both → creative stays detail-less, not mis-joined
+              conflicted.add(k);
+              ctx.flag(`detail join-key collision: ${k} — conflicting ads, detail dropped`);
+            } else {
+              out[k] = detail;                                // free, or a re-touch by the same ad (not a conflict)
+            }
           }
-          out[k] = detail;                                  // free, or a re-touch by the same ad (not a conflict)
+          // SECONDARY index — fbcdn asset-id (additive; same conflict discipline). Skip non-fbcdn keys.
+          const aid = fbcdnAssetId(k);
+          if (aid && !assetConflicted.has(aid)) {
+            const prevA = byAsset[aid];
+            if (prevA && identOf(prevA) !== identOf(detail)) {  // a DIFFERENT ad already claimed this asset-id
+              delete byAsset[aid];                              // drop → no ambiguous asset-id fallback
+              assetConflicted.add(aid);
+              ctx.flag(`detail asset-id collision: ${aid} — conflicting ads, asset-id fallback dropped`);
+            } else {
+              byAsset[aid] = detail;
+            }
+          }
         }
       } catch {
         // a single card failing to open/extract must not abort the run — leave it detail-less and move on.
         try { await this.closeModal(ctx); } catch { /* best-effort close */ }
       }
     }
-    return out;
+    return { metaByKey: out, metaByAsset: byAsset };
   },
 
   // Close the detail modal and VERIFY it closed. Live §9: ESC alone stops closing the modal after a few

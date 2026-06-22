@@ -26,6 +26,25 @@ export function dedupKey(url) {
   return String(url).split("?")[0];
 }
 
+// SECONDARY join identity for fbcdn assets (additive — never replaces dedupKey). fbcdn serves the SAME
+// underlying asset under different path-prefix / size-param variants, so two URLs that point at one media
+// item can have different query-stripped dedupKeys (live: 3 single_image creatives whose buffered NETWORK
+// url did not equal any card <img>.src key the detail was stored under). The fbcdn filename is the stable,
+// size-invariant identity: `.../<a>_<BIGNUM>_<c>_n.jpg` (or `_n.mp4`). The three numbers form fbcdn's
+// globally-unique media id; the basename does NOT change across size variants (size lives in the query,
+// e.g. `stp=dst-jpg_s600x600`). We key on the FULL `_<a>_<b>_<c>_n` basename (not just the middle number)
+// so the id is maximally specific — collision-safe by construction: two genuinely different assets cannot
+// share a full basename. Returns null when the url has no fbcdn `_n.(jpg|mp4)` basename (e.g. a google
+// creative or a non-conforming url) → callers simply skip the asset-id path for it.
+export function fbcdnAssetId(url) {
+  if (!url || typeof url !== "string") return null;
+  const path = url.split("?")[0];                 // drop size/query params — basename is size-invariant
+  const base = path.split("/").pop() || "";       // the filename
+  // fbcdn ad-asset filename: one-or-more underscore-separated big numbers, ending in `_n.(jpg|mp4)`.
+  const m = base.match(/^((?:\d+_)+\d+)_n\.(?:jpg|mp4|png|webp)$/i);
+  return m ? m[1] : null;                          // the stable numeric stem (no `_n`, no extension)
+}
+
 // Pick the best advertiser suggestion for a query, avoiding wrong substring matches
 // (e.g. "토스" must NOT silently resolve to "파낙토스"). suggestions: [{text, x, y, ...}]
 // where text is the suggestion item's innerText (first line = advertiser name).
