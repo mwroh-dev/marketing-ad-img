@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marketing-img/schemas/keyword-plan.schema.json",
+  "title": "KeywordPlan",
+  "description": "PRE-collection ad-search keyword plan (수요 기반 키워드 확장). An LLM expands ONE product/persona into a broad, multi-angle keyword set across three axes — 핵심 니즈(Needs) / 사용 맥락(Use-case) / 연관 카테고리(Adjacency) — and flattens them into keyword queries that feed Meta keyword search (run-flow.mjs --from-keyword-plan). Goal is COVERAGE (모수), not precision: same-product relevance does not matter because hooks transfer across products; quality/fit is the human's later cut. NOT the post-analysis keyword-model.schema.json (which has corpus/tf-df stats and functional ad-slots) — this is a fresh, cold, intent-axis artifact.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["product_id", "persona_id", "target_market", "axes", "queries"],
+  "properties": {
+    "product_id": { "type": "string", "minLength": 1 },
+    "persona_id": { "type": "string", "minLength": 1 },
+    "target_market": { "type": "string", "minLength": 1, "description": "language/market scope the queries are written for, e.g. KR" },
+    "axes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["needs", "use_case", "adjacency"],
+      "description": "the three expansion axes; each is a list of terms with a one-line rationale (used for the user-facing announce + provenance)",
+      "properties": {
+        "needs": { "$ref": "#/$defs/axisTerms", "description": "핵심 니즈 — the underlying job/desire the buyer is solving" },
+        "use_case": { "$ref": "#/$defs/axisTerms", "description": "사용 맥락 — when/where the behavior happens (occasion/scene)" },
+        "adjacency": { "$ref": "#/$defs/axisTerms", "description": "연관 카테고리 — products the same buyer also seeks (concrete co-sought nouns)" }
+      }
+    },
+    "queries": {
+      "type": "array",
+      "minItems": 1,
+      "description": "flattened search queries (the collection input). Every query traces to an axis.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["query", "mode", "axis"],
+        "properties": {
+          "query": { "type": "string", "minLength": 1, "description": "the actual search string for Meta keyword search" },
+          "mode": { "type": "string", "enum": ["keyword"], "description": "keyword-plan queries are always keyword mode; competitor/advertiser queries come from the competitor track" },
+          "axis": { "type": "string", "enum": ["needs", "use_case", "adjacency"] }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "axisTerms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["term"],
+        "properties": {
+          "term": { "type": "string", "minLength": 1 },
+          "rationale": { "type": "string", "description": "one line: why this term belongs to this axis" }
+        }
+      }
+    }
+  }
+}
