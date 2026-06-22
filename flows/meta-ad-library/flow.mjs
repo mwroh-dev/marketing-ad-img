@@ -62,8 +62,19 @@ export default defineFlow({
 
   // Open each ad's detail modal, extract the detail fields, and return { [imgDedupKey]: detailMeta }.
   // A card may carry several <img> (carousel) — every one of the card's image keys maps to the same detail.
+  //
+  // COLLISION SAFETY (live §9): the join key is dedupKey(image_url) = the query-stripped url. Two DIFFERENT
+  // advertisers can resell the SAME agency creative (same path, different `?_nc_*` query) → same dedupKey.
+  // Because drain keeps only the FIRST creative per key (seen.has) and a naive last-write map would keep only
+  // the LAST detail, a collision could attach advertiser B's detail to advertiser A's surviving creative — the
+  // exact mis-join the brief forbids ("mis-joined is worse than none"). So we treat a key touched by two
+  // detail DIFFERENT ads (by library_id, else advertiser_name) as CONFLICTED: drop it from the map entirely
+  // and flag it. A re-touch by the SAME ad (same library_id) is not a conflict. Net: a creative gets ITS OWN
+  // correct detail or none — never another advertiser's.
   async captureDetails(ctx) {
     const out = {};
+    const conflicted = new Set();   // keys seen with ≥2 distinct ads' details → never attach
+    const identOf = (d) => (d && (d.library_id || d.advertiser_name)) || null;  // identity for conflict test
     const nTrig = await ctx.evalJs(`${TRIG}.length`);
     const limit = Math.min(nTrig, this.config.maxDetails);
     for (let i = 0; i < limit; i++) {
@@ -102,7 +113,17 @@ export default defineFlow({
         if (!raw) continue;
         const detail = normalizeDetail(raw);
         if (!detail.detail_captured) continue;    // nothing usable → don't attach an empty join
-        for (const k of imgKeys) out[k] = detail;
+        for (const k of imgKeys) {
+          if (conflicted.has(k)) continue;                 // already poisoned by an earlier collision
+          const prev = out[k];
+          if (prev && identOf(prev) !== identOf(detail)) {  // a DIFFERENT ad already claimed this key
+            delete out[k];                                  // drop both → creative stays detail-less, not mis-joined
+            conflicted.add(k);
+            ctx.flag(`detail join-key collision: ${k} — conflicting ads, detail dropped`);
+            continue;
+          }
+          out[k] = detail;                                  // free, or a re-touch by the same ad (not a conflict)
+        }
       } catch {
         // a single card failing to open/extract must not abort the run — leave it detail-less and move on.
         try { await this.closeModal(ctx); } catch { /* best-effort close */ }
