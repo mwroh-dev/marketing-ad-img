@@ -34,9 +34,11 @@ export default defineFlow({
     (/\.mp4(\?|$)/i.test(u) && /video-[a-z0-9.-]+\.fbcdn\.net/i.test(u)),
   // filter parameters as NAMED CONFIG (not literals in collect); `q` is always the runtime value.
   // No media_type ⇒ video ads are included (recon §0 front-door shows video without the param).
-  // maxDetails bounds the per-card modal loop so the whole source stays under the harness' 180s hard timeout
-  // (each card ≈ open + accordion CDP-click(~7s) + ESC). 6 proves the join across image+video cards comfortably.
-  config: { active_status: "active", ad_type: "all", country: "KR", search_type: "keyword_unordered", maxScroll: 5, maxDetails: 6 },
+  // maxDetails bounds the per-card modal loop so the whole source stays under the harness' 180s hard timeout.
+  // Per-card cost ≈ open(~3.2s) + accordion CDP-click(~7s) + close(~2.4s) ≈ ~13-20s; minus ~15s scroll leaves
+  // ~165s ⇒ ~8 cards is the safe ceiling at the current fixed sleeps. (To cover more of totalCap=24, make the
+  // per-card waits event-driven — poll for the dialog instead of fixed sleeps — then raise this. Follow-up.)
+  config: { active_status: "active", ad_type: "all", country: "KR", search_type: "keyword_unordered", maxScroll: 5, maxDetails: 8 },
   filterUrl(query) { return `https://www.facebook.com/ads/library/?${new URLSearchParams({ ...this.config, q: query })}`; },
 
   async collect(ctx) {                       // steps a–e per the FLOW header above
@@ -44,16 +46,20 @@ export default defineFlow({
       if (ctx.limitReached()) break;
       ctx.resetBuffer();
       if (!(await ctx.goto(this.filterUrl(q)))) { ctx.flag(`blocked: ${q}`); break; }
-      // results-count coverage signal (KR ⊥ EN): EN "~5,700 results" / KR "결과 ~5,800개" (live §9)
+      // results-count coverage signal (KR ⊥ EN): EN "~5,700 results" / KR "결과 약 5,800개" (live §9).
+      // KR renders an optional 약("about") infix → make it optional so the count isn't dropped as "?".
       const body = await ctx.evalJs("document.body.innerText.slice(0,5000)");
-      const m = body.match(/~?\s*([0-9,]+)\s*results/i) || body.match(/결과\s*~?\s*([0-9,]+)\s*개/);
+      const m = body.match(/~?\s*([0-9,]+)\s*results/i) || body.match(/결과\s*(?:약\s*)?~?\s*([0-9,]+)\s*개/);
       ctx.flag(`"${q}": ${m ? m[1] : "?"} results`);
       await ctx.scroll(this.config.maxScroll);
 
       // d. per-card detail capture → metaByKey (image dedup-key → normalized detail)
       const metaByKey = await this.captureDetails(ctx);
-      const captured = Object.keys(metaByKey).length;
-      ctx.flag(`"${q}": detail captured for ${captured} card-image(s)`);
+      // Honest coverage signal: report distinct ADS we extracted detail from (the real unit), plus the raw
+      // image-key count. The key count is inflated by carousels (several <img> keys per ad) and not every key
+      // matches a buffered grid creative, so "keys" overstates how many creatives end up tagged. (audit I4)
+      const distinctAds = new Set(Object.values(metaByKey).map((d) => d.library_id || d.advertiser_name)).size;
+      ctx.flag(`"${q}": detail extracted for ${distinctAds} ad(s) across ${Object.keys(metaByKey).length} image-key(s)`);
 
       // e. drain: save buffered creatives, merge each card's detail by image-URL key
       await ctx.drain({}, metaByKey);

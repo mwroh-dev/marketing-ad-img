@@ -39,6 +39,7 @@ function makeCtx(cards) {
         };
       }
       if (expr.includes("팔로워") && expr.includes("followers?")) return true; // HAS_FOLLOWER → skip accordion loop
+      if (expr.includes("real fbcdn mp4")) return cards[i] ? (cards[i].videoUrl || null) : null; // VIDEO_SRC read
       return null;
     },
   };
@@ -65,6 +66,24 @@ test("captureDetails: dedupKey collision between two distinct advertisers drops 
   assert.equal(out.K2.follower_count, 30);
   // a collision flag was raised for K1.
   assert.ok(flags.some((f) => /join-key collision: K1/.test(f)), `expected a K1 collision flag, got: ${JSON.stringify(flags)}`);
+});
+
+test("captureDetails: a video ad's modal <video>.src is carried into metaByKey as video_url (audit I3)", async () => {
+  // A video ad: VIDEO_SRC returns the modal's mp4 URL; an image ad: VIDEO_SRC returns null.
+  const mp4 = "https://video-icn2-1.xx.fbcdn.net/o1/v/t2/f2/m86/AQOvideo.mp4";
+  const cards = [
+    { keys: ["VK"], libid: "VID", advertiser: "VidAdv", follower: 50, page_id: "pv", videoUrl: mp4 },
+    { keys: ["IK"], libid: "IMG", advertiser: "ImgAdv", follower: 60, page_id: "pi" },  // no videoUrl
+  ];
+  const { ctx } = makeCtx(cards);
+  const out = await flow.captureDetails(ctx);
+  // video card: detail carries video_url (drain/buildCreativeRecord then turns this into subtype:"video")
+  assert.ok(out.VK, "video card detail should be present");
+  assert.equal(out.VK.video_url, mp4, "modal <video>.src must be carried as video_url");
+  assert.equal(out.VK.advertiser_name, "VidAdv");
+  // image card: no video_url leaks in
+  assert.ok(out.IK, "image card detail should be present");
+  assert.equal(out.IK.video_url, undefined, "non-video card must NOT get a video_url");
 });
 
 test("captureDetails: same advertiser re-touching one key is NOT a conflict (carousel / repeat)", async () => {
