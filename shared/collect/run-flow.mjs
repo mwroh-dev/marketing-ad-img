@@ -58,16 +58,12 @@ if (planPath) {
 }
 queries = filterQueriesByModes(queries, flow.acceptModes);
 
-// run id: an explicit positional wins; otherwise auto-generate a DATED id so a second run never silently
-// overwrites the first (the old "adlib" default did). Resolved here — after flow.source + the queries' mode
-// are known. track = keyword corpus vs competitor/advertiser.
+// run id: explicit positional wins; else auto-generate a dated id (the old "adlib" default overwrote prior runs).
 const runId = runIdArg && runIdArg !== "adlib" ? runIdArg : datedRunId(flow.source, queries[0]?.mode || mode);
 safeName(runId, "run");
 const track = queries.some((q) => q.mode === "advertiser") ? "competitor" : "category_keyword";
 
-// Collection budget = IMAGES (the primary target). The loop scroll-collects per keyword, counting IMAGES,
-// spreading across keywords (imagesPerQuery) until the total image target is met or keywords are exhausted.
-// Videos are collected incidentally alongside (uncapped). Tunable via --images / --images-per-keyword.
+// Budget = IMAGES (videos collected incidentally, uncapped). Tunable via --images / --images-per-keyword.
 const totalImages = argVal("--images") ? Number(argVal("--images")) : 50;
 const imagesPerQuery = argVal("--images-per-keyword") ? Number(argVal("--images-per-keyword")) : 8;
 

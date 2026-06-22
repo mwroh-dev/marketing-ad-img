@@ -1,9 +1,5 @@
-// CLI: advance a run's pipeline stage in its run.json ledger. The orchestrator calls this after the
-// human keep/delete review (→ human_reviewed) and after the deterministic screen (→ screened); the
-// analysis step closes it (→ analyzed). Monotonic — see advanceStage in run-manifest.mjs.
-//
-// Usage:
-//   node shared/collect/advance-stage.mjs <run_id> <stage> [--kept N] [--screened N] [--analyzed N]
+// CLI: advance a run's stage in its run.json ledger (monotonic — see advanceStage in run-manifest.mjs).
+// Usage: node shared/collect/advance-stage.mjs <run_id> <stage> [--kept N] [--screened N] [--analyzed N]
 //   stage ∈ collected | human_reviewed | screened | analyzed
 import { advanceStage } from "./run-manifest.mjs";
 import { fileURLToPath } from "url";

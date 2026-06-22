@@ -78,11 +78,8 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
   // parent process. Instead flag + close the socket so in-flight CDP calls reject and adapter.collect
   // unwinds; the catch below turns that into a blocked/partial result, and the finally still runs.
   let timedOut = false;
-  // The REAL stop is progress-driven: collect until the IMAGE target (totalImages) is hit or every keyword's
-  // result list is exhausted; each unit of work (modal poll, asset/video download) is independently timeout-
-  // bounded (per-AD, not a global wall-clock). This `hardTimeoutMs` is only a FAR backstop so a pathological
-  // hang can't run forever — generous by design (videos are slow and that's accepted). On overrun we still flag
-  // + return a graceful partial (the catch below), never a hard crash.
+  // Stop is progress-driven (image target or exhaustion) with per-step timeouts; hardTimeoutMs is only a far
+  // backstop against a pathological hang. On overrun: flag + graceful partial (catch below), never a crash.
   const guard = setTimeout(() => { timedOut = true; console.error(`ad-collect: hard timeout (${hardTimeoutMs / 1000}s) — aborting source`); c.close().catch(() => {}); }, hardTimeoutMs);
   try {
     await c.Page.enable(); await c.Runtime.enable(); await c.Network.enable();
@@ -209,13 +206,11 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
       // here only prevents the SAME url being written twice within the modal loop). Honors the image budget.
       // Returns { collected, index, imageSaved, videoSaved, reason }.
       collectCreative: async ({ imageKey, imageFull = null, videoKey = null, videoFull = null, meta = {} } = {}) => {
-        // VIDEO ad → collect as a VIDEO ONLY: fetch the mp4 to videos/, build a subtype:"video" record. The
-        // video's first-frame POSTER is NOT saved into images/ — a video ad is ONE creative (a video), and its
-        // poster is not a real image ad, so it must never pollute the image corpus the human reviews.
+        // VIDEO ad → video-only: mp4 to videos/, no poster in images/ (a video's first frame is not an image ad).
+        // Videos are uncapped (collected while hunting images).
         if (videoKey) {
           const vkey = dedupKey(videoKey);
           if (seen.has(vkey)) return { collected: false, reason: "dup" };
-          // videos are UNCAPPED (collected incidentally while we hunt images) — no image-budget check here.
           const n = result.creatives.length;
           let videoSaved = false;
           if (videoFull) {
@@ -229,8 +224,7 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
           result.creatives.push(buildCreativeRecord({ kind: "video", key: vkey, n, meta, saved: videoSaved }));
           return { collected: true, index: n, videoSaved };
         }
-        // IMAGE ad → ONE image to images/ (best-effort fetch; url-only fallback, never fabricate a file).
-        // Images are the PRIMARY budget: refuse once the image target is met.
+        // IMAGE ad → one image to images/ (best-effort; url-only fallback). Images are the budget — refuse past target.
         if (!imageKey || typeof imageKey !== "string") return { collected: false, reason: "no imageKey" };
         const key = dedupKey(imageKey);
         if (seen.has(key)) return { collected: false, reason: "dup" };

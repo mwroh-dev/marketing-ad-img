@@ -1,9 +1,7 @@
-// Deterministic ad-image screen — the ONLY automated keep/drop, and it runs AFTER the human keep/delete
-// review (not before, and no LLM). The human already absorbed the quality/relevance judgement (logos, UI,
-// off-target) using fast, cheap visual cognition; this pass only normalizes what's left: drop the
-// mechanically-useless (too small / degenerate dimensions / exact duplicate). Recall-biased: when in doubt,
-// KEEP. Pure `screenImages` is unit-tested; the CLI gathers file metadata, calls it, and advances the run
-// stage to `screened`.
+// Deterministic ad-image screen — the only automated keep/drop, run AFTER the human review (no LLM). The
+// human handled quality/relevance; this pass only normalizes the survivors: drop the mechanically-useless
+// (too small / degenerate dimensions / exact duplicate), recall-biased. Pure `screenImages` is unit-tested;
+// the CLI gathers file metadata, calls it, and advances the run stage to `screened`.
 
 import { readdirSync, readFileSync, statSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -59,13 +57,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.error("Usage: node shared/collect/screen-images.mjs <run_id> <persona_id> <imagesDir> [outPath]");
     process.exit(2);
   }
-  // Screening file lives at the RUN level (runs/{run}/screening/screen-{persona}.json) — the SAME file the
-  // human keep/delete review wrote. imagesDir = runs/{run}/ad-creatives/{persona}/images → up 3 = runs/{run}.
+  // Run-level screening file (runs/{run}/screening/...) — the same file the human review wrote.
+  // imagesDir = runs/{run}/ad-creatives/{persona}/images → up 3 = runs/{run}.
   const out = outArg ?? resolve(dirname(dirname(dirname(imagesDir))), "screening", `screen-${personaId}.json`);
 
-  // If the human review already wrote this file, screen ONLY its `kept` survivors and MERGE drops, so a
-  // human-deleted image is never resurrected by a fresh dir scan. No prior file (e.g. own-detail-cut path)
-  // → screen the whole dir.
+  // If the human review wrote it, screen only its `kept` survivors and merge drops (never resurrect a
+  // human-deleted image). No prior file (e.g. own-detail-cut path) → screen the whole dir.
   let whitelist = null;
   let priorDropped = [];
   if (existsSync(out)) {

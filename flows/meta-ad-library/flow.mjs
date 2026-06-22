@@ -63,12 +63,10 @@ export default defineFlow({
     }
   },
 
-  // IMAGE-DRIVEN collection for ONE keyword. The budget is IMAGES (the primary target) — videos are collected
-  // incidentally alongside (uncapped, and never as a poster in the image corpus). The loop interleaves
-  // scroll-to-load-more with per-card collection, so a keyword keeps yielding IMAGES even when video ads
-  // dominate the page (the old fixed up-front scroll + all-creative cap let a wall of videos exhaust the
-  // budget with 0 images). Stops when this keyword contributed imagesPerQuery images, the GLOBAL image target
-  // is reached (ctx.limitReached), or the result list is exhausted (2 consecutive scrolls load no new cards).
+  // IMAGE-DRIVEN collection for ONE keyword: the budget is IMAGES (videos collected incidentally, uncapped).
+  // Interleaves scroll-load-more with per-card collection so the keyword keeps yielding images even when video
+  // ads dominate. Stops at imagesPerQuery images, the global target (ctx.limitReached), or exhaustion (2 scrolls
+  // with no new cards).
   async captureAndCollect(ctx, q) {
     const perQueryImages = ctx.imagesPerQuery || Infinity;
     let withDetail = 0, fallback = 0, total = 0, images = 0, videos = 0;
@@ -90,15 +88,10 @@ export default defineFlow({
     ctx.flag(`"${q}": collected ${total} (${images} img, ${videos} video) — ${withDetail} with detail, ${fallback} fallback`);
   },
 
-  // Process ONE detail trigger (one ad) and collect EXACTLY ONE creative for it:
-  //   1. open the modal (el.click — recon §9b; CDP-click does not open it in headless)
-  //   2. scroll page to top + expand the 광고주 정보 accordion (CDP-click, block:'start' — recon §9d/§9e)
-  //   3. EXTRACT detail + read the modal <video>.src (video ads) + this ad's creative img asset(s) — pure DOM
-  //   4. close the modal (ESC alone stacks modals, recon §9e) BEFORE collecting
-  //   5. VIDEO ad → ONE video record (mp4 to videos/, NO poster in the image corpus). IMAGE ad → ONE
-  //      representative image (modal preferred, card fallback); aspect/carousel renditions are NOT re-collected.
-  //      On modal/extract failure, fall back to the grid card img with detail_captured:false.
-  // Returns { collected, isVideo, detail } so the keyword loop can count IMAGES vs videos.
+  // Process ONE ad: open its modal, extract detail + read the <video>.src and creative img(s), close, then
+  // collect EXACTLY ONE creative — VIDEO ad → one video record (no poster in images/); IMAGE ad → one
+  // representative image (modal preferred, card fallback; renditions not re-collected). Modal/extract failure →
+  // grid card img, detail false. Returns { collected, isVideo, detail } so the keyword loop counts img vs video.
   async collectOneCard(ctx, i) {
     // card image assets (full signed + stripped key) read BEFORE opening the modal — the modal-fail FALLBACK.
     let cardAssets = [];

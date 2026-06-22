@@ -37,9 +37,7 @@ export function checkState(stateDir = STATE_DIR) {
   const personas = brands.flatMap((b) => b.products.flatMap((p) => p.personas));
   const setup_complete = personas.length > 0;
 
-  // Per-run progress (resumability): walk runs/*/run.json so a returning user sees exactly how far each
-  // collection run got (collected → human_reviewed → screened → analyzed) — no more "files exist but where
-  // was I?". Reuses the missing-dir-safe `ls`; mirrors the runs/ walk in run-competitive-trend.ts.
+  // Per-run progress (resumability): each run.json's stage, so a returning user sees how far each run got.
   const runsDir = resolve(stateDir, "runs");
   const runs = ls(runsDir).filter((e) => e.isDirectory()).map((d) => {
     const rp = resolve(runsDir, d.name, "run.json");

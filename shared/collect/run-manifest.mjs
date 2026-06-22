@@ -1,11 +1,6 @@
-// Per-run progress ledger (runs/{run_id}/run.json). Pure ESM + raw fs — mirrors the .mjs collection
-// convention (ad-collect-harness.mjs), so run-flow.mjs can import it under plain `node` without a TS loader.
-// Shape contract: schemas/collection/run-manifest.schema.json (validate via shared/validators/validate-run-manifest.ts).
-//
-// WHY: the old runId default was the static string "adlib" — a second collection with no explicit run id
-// silently OVERWROTE the first. A dated id + a stage ledger turns runs into resumable, non-clobbering
-// snapshots: a returning user can see exactly how far each run got (collected → human_reviewed → screened
-// → analyzed). Stage advance is monotonic — you cannot walk a run backwards.
+// Per-run progress ledger (runs/{run_id}/run.json). Pure ESM/raw-fs so run-flow.mjs imports it under plain
+// `node`. Shape: schemas/collection/run-manifest.schema.json. The dated run id replaces the old static
+// "adlib" default that silently overwrote prior runs; stage advance is monotonic and resumable.
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from "fs";
 import { safeName } from "./ad-source-helpers.mjs";
 
@@ -14,25 +9,20 @@ export const STAGES = ["collected", "human_reviewed", "screened", "analyzed"];
 const runDir = (runId) => `.generate-ads-img/runs/${safeName(runId, "runId")}`;
 const manifestPath = (runId) => `${runDir(runId)}/run.json`;
 
-// LOCAL wall-clock timestamp "YYYY-MM-DDTHH:MM" — the run id is a human-facing label, so it should read
-// as the collection's LOCAL date (a 1am KST run is today, not yesterday-UTC). Machine timestamps elsewhere
-// (created_at) stay UTC ISO.
+// Local wall-clock "YYYY-MM-DDTHH:MM" — the run id reads as the collection's local date (created_at stays UTC).
 function localStamp(d = new Date()) {
   const p = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-// Short, READABLE, collision-resistant run id, e.g. "2026-06-23-1430-meta-keyword". `now` is injected
-// (an ISO-ish "YYYY-MM-DDTHH:MM…" string) so the id is deterministic and unit-testable; the default is the
-// local wall clock. Date+HHMM keeps distinct runs (different day/minute/source/mode) from clobbering.
+// Readable, collision-resistant run id, e.g. "2026-06-23-1430-meta-keyword". `now` injected for deterministic tests.
 export function datedRunId(source, mode, now = localStamp()) {
   const iso = String(now);
-  const date = iso.slice(0, 10);                       // YYYY-MM-DD
-  const hm = iso.slice(11, 16).replace(":", "");       // HHMM
+  const date = iso.slice(0, 10);
+  const hm = iso.slice(11, 16).replace(":", "");
   const srcShort = String(source || "src").split("_")[0] || "src";
   const modeShort = String(mode || "run");
-  const id = `${date}-${hm}-${srcShort}-${modeShort}`;
-  return safeName(id, "runId");
+  return safeName(`${date}-${hm}-${srcShort}-${modeShort}`, "runId");
 }
 
 export function readManifest(runId) {
@@ -63,8 +53,7 @@ export function buildCollectedManifest({ runId, source, track, personaId, produc
   };
 }
 
-// Advance a run's stage MONOTONICALLY. Going backward throws; re-stating the current stage is a no-op
-// (idempotent) but still merges any countsPatch. countsPatch e.g. { kept_by_human: 18 }.
+// Advance stage monotonically (backward throws); same-stage is a no-op that still merges countsPatch.
 export function advanceStage(runId, stage, countsPatch = {}, now = new Date().toISOString()) {
   if (!STAGES.includes(stage)) throw new Error(`unknown stage '${stage}' (expected one of ${STAGES.join(", ")})`);
   const m = readManifest(runId);
