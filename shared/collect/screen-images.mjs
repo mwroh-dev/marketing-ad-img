@@ -1,11 +1,14 @@
-// Deterministic FIRST pass of ad-image screening — runs before the LLM relevance pass (ad-image-screener agent).
-// Cheap, no LLM, no judgement: drop only the mechanically-useless (too small / degenerate dimensions / exact
-// duplicate). Everything that survives goes to the agent for the relevance verdict. Recall-biased: when in
-// doubt, KEEP. Pure `screenImages` is unit-tested; the CLI just gathers file metadata and calls it.
+// Deterministic ad-image screen — the ONLY automated keep/drop, and it runs AFTER the human keep/delete
+// review (not before, and no LLM). The human already absorbed the quality/relevance judgement (logos, UI,
+// off-target) using fast, cheap visual cognition; this pass only normalizes what's left: drop the
+// mechanically-useless (too small / degenerate dimensions / exact duplicate). Recall-biased: when in doubt,
+// KEEP. Pure `screenImages` is unit-tested; the CLI gathers file metadata, calls it, and advances the run
+// stage to `screened`.
 
-import { readdirSync, readFileSync, statSync, writeFileSync, mkdirSync } from "node:fs";
+import { readdirSync, readFileSync, statSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve, dirname, basename } from "node:path";
+import { advanceStage } from "./run-manifest.mjs";
 
 // Pure: metas = [{ image_file, bytes, sha256, width?, height? }] → { kept:[image_file], dropped:[{image_file, reason}] }
 // reason ∈ image-screening.schema enum (deterministic subset): broken_or_empty | duplicate
@@ -56,12 +59,34 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.error("Usage: node shared/collect/screen-images.mjs <run_id> <persona_id> <imagesDir> [outPath]");
     process.exit(2);
   }
-  const metas = gatherImageMetas(imagesDir);
+  // Screening file lives at the RUN level (runs/{run}/screening/screen-{persona}.json) — the SAME file the
+  // human keep/delete review wrote. imagesDir = runs/{run}/ad-creatives/{persona}/images → up 3 = runs/{run}.
+  const out = outArg ?? resolve(dirname(dirname(dirname(imagesDir))), "screening", `screen-${personaId}.json`);
+
+  // If the human review already wrote this file, screen ONLY its `kept` survivors and MERGE drops, so a
+  // human-deleted image is never resurrected by a fresh dir scan. No prior file (e.g. own-detail-cut path)
+  // → screen the whole dir.
+  let whitelist = null;
+  let priorDropped = [];
+  if (existsSync(out)) {
+    try {
+      const prev = JSON.parse(readFileSync(out, "utf8"));
+      if (Array.isArray(prev.kept)) whitelist = new Set(prev.kept);
+      if (Array.isArray(prev.dropped)) priorDropped = prev.dropped;
+    } catch { /* unreadable → treat as a fresh screen */ }
+  }
+
+  let metas = gatherImageMetas(imagesDir);
+  if (whitelist) metas = metas.filter((m) => whitelist.has(m.image_file));
   const { kept, dropped } = screenImages(metas);
-  const out = outArg ?? resolve(dirname(dirname(imagesDir)), "screening", `screen-${personaId}.json`);
-  const result = { run_id: runId, persona_id: personaId, total: metas.length, kept, dropped };
+  const mergedDropped = [...priorDropped, ...dropped];               // human drops (user_removed) + deterministic drops
+  const result = { run_id: runId, persona_id: personaId, total: kept.length + mergedDropped.length, kept, dropped: mergedDropped };
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, JSON.stringify(result, null, 2) + "\n", "utf8");
-  console.log(`SCREENED(deterministic) ${metas.length} → kept ${kept.length}, dropped ${dropped.length} (${out})`);
-  console.log("  NOTE: deterministic pass only (size/dimension/duplicate). Hand `kept` to ad-image-screener for the relevance verdict.");
+  console.log(`SCREENED(deterministic) ${whitelist ? `${metas.length} human-kept survivors` : `${metas.length} images`} → kept ${kept.length}, +${dropped.length} dropped (total dropped ${mergedDropped.length}) (${out})`);
+  console.log("  NOTE: deterministic only (size/dimension/duplicate). Runs AFTER the human keep/delete review — `kept` goes straight to analysis (no LLM screener).");
+  // advance the run ledger to `screened`. Best-effort: a manually-pointed imagesDir may not map to a run
+  // manifest (e.g. own-detail-cut path), so a missing manifest is a warning, not a failure.
+  try { advanceStage(runId, "screened", { screened: kept.length }); }
+  catch (e) { console.warn(`  (stage not advanced: ${e.message})`); }
 }

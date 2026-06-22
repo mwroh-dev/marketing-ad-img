@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://marketing-img/schemas/image-screening.schema.json",
   "title": "ImageScreening",
-  "description": "collection → analysis gate: which collected ad images are kept for the expensive analysis pipeline and which were dropped (with reason). Recall-biased; every collected image accounted for.",
+  "description": "collection → analysis gate: which collected ad images are kept and which were dropped (with reason). Two producers write this shape: (1) the HUMAN keep/delete review (reason user_removed) — the first-pass quality/fit cut, fast and cheap; (2) the deterministic screen-images.mjs pass (reason broken_or_empty | duplicate) that runs AFTER the human, on the survivors. Every collected image is accounted for; nothing dropped silently.",
   "type": "object",
   "additionalProperties": false,
   "required": ["run_id", "persona_id", "total", "kept", "dropped"],
@@ -26,7 +26,7 @@
           "reason": {
             "type": "string",
             "description": "concrete one-line reason from the allowed set",
-            "enum": ["logo_only", "ui_or_screenshot", "unrelated", "broken_or_empty", "duplicate", "no_ad_content", "unreadable"]
+            "enum": ["user_removed", "logo_only", "ui_or_screenshot", "unrelated", "broken_or_empty", "duplicate", "no_ad_content", "unreadable"]
           }
         }
       }

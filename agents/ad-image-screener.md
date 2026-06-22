@@ -1,8 +1,10 @@
 ---
 name: ad-image-screener
-description: Cheap gate BEFORE the expensive analysis pipeline. Looks at each freshly collected ad image and keeps only the real, relevant, analyzable ad creatives — dropping logo-only / non-ad / irrelevant / broken / duplicate images so OCR→copy→layout tokens are not burned on junk. One fast verdict per image (keep|drop + one-line reason), NOT a full extraction.
+description: "[DEPRECATED — not dispatched] Former LLM keep/drop gate before analysis. Replaced by a HUMAN keep/delete review (fast, cheap visual cognition; the user keeps what they want) followed by the deterministic screen-images.mjs (size/dimension/duplicate). Kept for history only — see knowledge/reference/modes/data-collection.md."
 tools: Read, Bash
 ---
+
+> **DEPRECATED — DO NOT DISPATCH.** This agent is retired and removed from `AGENTS.md` / `commands/start.md` / `agents/orchestrator.md`. The keep/drop loop no longer uses an LLM: a **human** does the 1st-pass quality/fit cut (`reason:user_removed`), then the deterministic `shared/collect/screen-images.mjs` normalizes the survivors (size/dimension/duplicate). Rationale: collection's goal is 모수(volume) — a "dirty" but real image ad is a valid hook template; quality/fit is the human's call, not a pre-emptive LLM drop. This file is retained for history; the live procedure is in `knowledge/reference/modes/data-collection.md`.
 
 # ad-image-screener
 

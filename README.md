@@ -27,7 +27,7 @@ only — it is NOT loaded for consumers.)
 | Mode | Input | What it does | Output |
 |---|---|---|---|
 | **initial-setup** | brand · product · product URL · **target market (국내/해외)** | data-first synergy: collect pointers → announce "병렬로 찾아볼게요" → fan out `brand-researcher` (page / reviews / positioning) → present data-derived category + persona **candidates as choices** (never free-form). | confirmed brand / product / persona state |
-| **data-collection** | persona · target market | **Track 1 (primary, ungated)**: broad category/keyword ad corpus (Meta keyword search). **Track 2 (optional)**: competitor enrichment (`discovery-scout` → `competitor-curator` HARD GATE). `ad-image-screener` drops junk before analysis. Real CDP · non-intrusive · STOP-on-block. | collected ad images + manifest (provenance: source · query · counts · gaps) |
+| **data-collection** | persona · target market | **Track 1 (primary, ungated)**: broad category/keyword ad corpus (Meta keyword search). **Track 2 (optional)**: competitor enrichment (`discovery-scout` → `competitor-curator` HARD GATE). After collection: **human keep/delete review** (1st-pass) → deterministic `screen-images.mjs` (size/dup) before analysis. Real CDP · non-intrusive · STOP-on-block. | collected ad images + manifest (provenance: source · query · counts · gaps) |
 | **analysis** | screened ad images | `ocr-extractor` → `copy-analyst` ⊥ `layout-analyst` → `ad-analyst` → `pattern-synthesizer`. | ad-pattern + keyword model on the persona |
 | **image-prompt generation** | brand/product/persona · analysis signals · the product photo | `creative-brief-analyst` → `copy-layout-planner` → `image-prompt-adapter` → `critic-verifier` → finalize. Composes WITH the product photo; Korean copy preserved byte-for-byte. | **4 prompt candidates** (ChatGPT + Gemini) |
 
@@ -71,7 +71,7 @@ CLAUDE.md                                         DEV reference — NOT shipped/
 ### The 16 subagents (by stage)
 - **evaluation** — `request-evaluator`, `interview-controller`
 - **setup** — `brand-researcher`
-- **collection** — `discovery-scout`, `competitor-curator`, `ad-creative-refiner`, `ad-image-screener`
+- **collection** — `discovery-scout`, `competitor-curator`, `ad-creative-refiner` (post-collection keep/drop is a human review + deterministic `screen-images.mjs`, no LLM)
 - **analysis** — `ocr-extractor`, `copy-analyst`, `layout-analyst`, `ad-analyst`, `pattern-synthesizer`
 - **generation** — `creative-brief-analyst`, `copy-layout-planner`, `image-prompt-adapter`, `critic-verifier`
 
