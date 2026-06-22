@@ -64,8 +64,10 @@ safeName(runId, "run");
 const track = queries.some((q) => q.mode === "advertiser") ? "competitor" : "category_keyword";
 
 // Budget = IMAGES (videos collected incidentally, uncapped). Tunable via --images / --images-per-keyword.
-const totalImages = argVal("--images") ? Number(argVal("--images")) : 50;
-const imagesPerQuery = argVal("--images-per-keyword") ? Number(argVal("--images-per-keyword")) : 8;
+// Fall back to the default on an absent OR non-numeric value (a NaN limit would disable the cap → runaway).
+const numArg = (flag, def) => { const v = argVal(flag); const n = Number(v); return v != null && !Number.isNaN(n) ? n : def; };
+const totalImages = numArg("--images", 50);
+const imagesPerQuery = numArg("--images-per-keyword", 8);
 
 let result;
 if (dry) {

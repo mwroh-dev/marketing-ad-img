@@ -18,6 +18,12 @@ test("parseFollowerCount handles KR 명/천/만/억 and EN K/M, commas, junk", (
   assert.equal(parseFollowerCount("-387px -766px"), null);
 });
 
+test("normalizeDetail tolerates null / undefined raw (no TypeError)", () => {
+  assert.deepEqual(normalizeDetail(null), { detail_captured: false });
+  assert.deepEqual(normalizeDetail(undefined), { detail_captured: false });
+  assert.deepEqual(normalizeDetail({}), { detail_captured: false });
+});
+
 test("parseStartedAt handles KR and EN date formats", () => {
   assert.equal(parseStartedAt("2026. 2. 26.에 게재 시작함"), "2026-02-26");
   assert.equal(parseStartedAt("Started running on 26 Feb 2026"), "2026-02-26");

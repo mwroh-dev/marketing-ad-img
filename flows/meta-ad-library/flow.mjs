@@ -141,7 +141,7 @@ export default defineFlow({
     for (let attempt = 0; attempt < 3; attempt++) {
       if (!(await ctx.evalJs(`!!${DLG}`))) return true;      // already closed
       const closeRect = await ctx.evalJs(CLOSE_RECT);
-      if (closeRect && typeof closeRect.x === "number") await ctx.clickAt(closeRect.x, closeRect.y);
+      if (closeRect && typeof closeRect.x === "number") await ctx.clickAt(closeRect.x, closeRect.y, 500);  // short wait — close is verified by !!DLG below; the 7s default wastes ~7s/card
       else await ctx.esc();
       if (!(await ctx.evalJs(`!!${DLG}`))) return true;
       await ctx.esc();                                        // fallback / second nudge

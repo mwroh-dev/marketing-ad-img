@@ -65,6 +65,7 @@ export function normalizeStatus(raw) {
 }
 
 export function normalizeDetail(raw = {}) {
+  raw = raw ?? {};                 // default param doesn't catch an explicit null
   const out = {};
   const status = normalizeStatus(raw.status);
   if (raw.status != null && String(raw.status).trim()) out.status = status;
