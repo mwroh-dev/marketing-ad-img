@@ -17,7 +17,7 @@
 //
 // Non-intrusive: dedicated headless Chrome (default 9291), never bringToFront/activateTarget.
 import { realScroll, sleep, isBlocked, matchToolEntry } from "./lib.mjs";
-import { dedupKey, safeName } from "./ad-source-helpers.mjs";
+import { dedupKey, safeName, classifyResponse, buildCreativeRecord } from "./ad-source-helpers.mjs";
 import CDP from "chrome-remote-interface";
 import { writeFileSync, mkdirSync } from "fs";
 
@@ -39,7 +39,9 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
   safeName(runId, "runId"); safeName(personaId, "personaId"); safeName(adapter.source, "source");
   const outDir = `.generate-ads-img/runs/${runId}/ad-creatives/${personaId}`;
   const imgDir = `${outDir}/images`;
+  const vidDir = `${outDir}/videos`;
   mkdirSync(imgDir, { recursive: true });
+  mkdirSync(vidDir, { recursive: true });
   const result = makeResult({ personaId, source: adapter.source, queries, mode: queries[0]?.mode || "advertiser" });
   if (!queries.length) console.warn("runCollection: queries is empty — check competitor source / filterQueriesByModes");
 
@@ -56,7 +58,8 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
     await c.Page.enable(); await c.Runtime.enable(); await c.Network.enable();
     c.Network.responseReceived((p) => {
       const u = (p.response && p.response.url) || "";
-      if (adapter.imgMatch(u)) buf.set(u, p.requestId);
+      const kind = classifyResponse(u, adapter, (p.response && p.response.mimeType) || "");
+      if (kind) buf.set(u, { rid: p.requestId, kind });
     });
     const evalJs = async (e) => {
       const { result: r, exceptionDetails } = await c.Runtime.evaluate({ expression: e, returnByValue: true });
@@ -125,19 +128,35 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
       },
       drain: async (meta = {}) => {
         await sleep(1200);
-        for (const [u, rid] of buf) {
+        for (const [u, { rid, kind }] of buf) {
           const key = dedupKey(u);
           if (seen.has(key) || result.creatives.length >= totalCap) continue;
           try {
             const b = await c.Network.getResponseBody({ requestId: rid });
             const bytes = b.base64Encoded ? Buffer.from(b.body, "base64") : Buffer.from(b.body);
-            if (bytes.length > 2000) {
-              seen.add(key);
-              const n = result.creatives.length;
+            if (bytes.length <= 2000) continue;
+            seen.add(key);
+            const n = result.creatives.length;
+            if (kind === "video") {
+              writeFileSync(`${vidDir}/ad-${n}.mp4`, bytes);
+              result.creatives.push(buildCreativeRecord({ kind: "video", key, n, meta, saved: true }));
+            } else {
               writeFileSync(`${imgDir}/ad-${n}.jpg`, bytes);
-              result.creatives.push({ image_url: key, image_file: `images/ad-${n}.jpg`, subtype: "single_image", ...meta });
+              result.creatives.push(buildCreativeRecord({ kind: "image", key, n, meta, saved: true }));
             }
-          } catch (e) { if (!/evict|No resource|No data found/i.test(e?.message ?? "")) console.error("drain skip:", key, e?.message); }
+          } catch (e) {
+            // Video bytes often unavailable via getResponseBody (MSE/range). Keep the URL, skip the file.
+            if (kind === "video" && /evict|No resource|No data found/i.test(e?.message ?? "")) {
+              if (!seen.has(key) && result.creatives.length < totalCap) {
+                seen.add(key);
+                const n = result.creatives.length;
+                result.creatives.push(buildCreativeRecord({ kind: "video", key, n, meta, saved: false }));
+                result.coverage_flags.push("video bytes unavailable — url only");
+              }
+            } else if (!/evict|No resource|No data found/i.test(e?.message ?? "")) {
+              console.error("drain skip:", key, e?.message);
+            }
+          }
         }
       },
     };
