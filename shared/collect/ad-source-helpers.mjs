@@ -101,18 +101,28 @@ export function buildCreativeRecord({ kind, key, n, meta = {}, saved = true, vid
 // 206 range). PURE-ish (network + one write); returns { saved, bytes, reason }. NEVER fabricates a file:
 // any non-200 / short body / non-mp4 magic → saved:false (the caller keeps the url-only fallback).
 // `writer` is injected ({ writeFile, fetchFn }) so the wiring is unit-testable without real IO/network.
-export async function downloadVideoFile(fullUrl, destPath, { fetchFn = fetch, writeFile } = {}) {
+// BOUNDED: an AbortController deadline (timeoutMs) caps a hung CDN fetch — closing the harness CDP socket does
+// NOT cancel a live Node fetch, so without this a stalled fbcdn node could eat the whole 180s budget. A
+// Content-Length / buffer ceiling (maxBytes) guards against materializing an unexpectedly huge body.
+export async function downloadVideoFile(fullUrl, destPath, { fetchFn = fetch, writeFile, timeoutMs = 30000, maxBytes = 50 * 1024 * 1024 } = {}) {
   if (!fullUrl || typeof fullUrl !== "string") return { saved: false, reason: "no url" };
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), timeoutMs);
   try {
-    const res = await fetchFn(fullUrl);
+    const res = await fetchFn(fullUrl, { signal: ac.signal });
     if (!res.ok) return { saved: false, reason: `status ${res.status}` };
+    const cl = parseInt(res.headers?.get?.("content-length") || "0", 10);
+    if (cl > maxBytes) return { saved: false, reason: `too large (${cl}B)` };
     const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length > maxBytes) return { saved: false, reason: `too large (${buf.length}B)` };
     // valid mp4 = ISO-BMFF `ftyp` box at offset 4 (recon §11a magic `…66747970…`); non-trivial > 50KB.
     const isMp4 = buf.length > 8 && buf.slice(4, 8).toString("ascii") === "ftyp";
     if (buf.length <= 50 * 1024 || !isMp4) return { saved: false, reason: `invalid mp4 (${buf.length}B, magic ${buf.slice(4, 8).toString("hex")})` };
     if (writeFile) writeFile(destPath, buf);
     return { saved: true, bytes: buf.length };
   } catch (e) {
-    return { saved: false, reason: e?.message || "fetch error" };
+    return { saved: false, reason: e?.name === "AbortError" ? `timeout (${timeoutMs}ms)` : (e?.message || "fetch error") };
+  } finally {
+    clearTimeout(timer);
   }
 }

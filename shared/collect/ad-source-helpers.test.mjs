@@ -174,3 +174,28 @@ test("downloadVideoFile: writes a valid non-trivial mp4, rejects 403 / short / n
   const none = await downloadVideoFile(null, "/tmp/v.mp4", {});
   assert.equal(none.saved, false);
 });
+
+test("downloadVideoFile: bounded — aborts a hung fetch (timeout) and rejects oversized bodies (no budget/memory blowup)", async () => {
+  // hung CDN: fetch never resolves until the AbortController signal fires → timeout reason, no write.
+  let hungWrote = false;
+  const hung = await downloadVideoFile("https://x/clip.mp4?oh=sig", "/tmp/v.mp4", {
+    timeoutMs: 5,
+    fetchFn: (url, { signal }) => new Promise((_, rej) => {
+      signal.addEventListener("abort", () => { const e = new Error("aborted"); e.name = "AbortError"; rej(e); });
+    }),
+    writeFile: () => { hungWrote = true; },
+  });
+  assert.equal(hung.saved, false);
+  assert.match(hung.reason, /timeout/);
+  assert.equal(hungWrote, false, "must not write a file from a timed-out fetch");
+
+  // oversized: Content-Length above maxBytes → rejected before buffering, no write.
+  const mkResH = (cl) => ({ ok: true, status: 200, headers: { get: () => String(cl) }, arrayBuffer: async () => Buffer.alloc(0) });
+  const big = await downloadVideoFile("https://x/clip.mp4", "/tmp/v.mp4", {
+    maxBytes: 50 * 1024 * 1024,
+    fetchFn: async () => mkResH(200 * 1024 * 1024),  // 200MB
+    writeFile: () => { throw new Error("should not write an oversized body"); },
+  });
+  assert.equal(big.saved, false);
+  assert.match(big.reason, /too large/);
+});
