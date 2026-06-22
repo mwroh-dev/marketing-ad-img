@@ -98,13 +98,72 @@ Every collection run owns its browser through code — no manual Chrome launch:
 ```
 1. Enter the public ad-library front door (a whitelisted entrypoint in config/tool-entrypoints.yaml)
    via gotoTool — never assemble a result/pagination URL by hand
-2. Real search: type the keyword / advertiser name into the search box (Input.insertText),
-   pick a suggestion by name-match, click it (no synthetic Enter, no DOM value injection)
+2. Meta: navigate directly to the filter URL (public ad-transparency carve-out; query `q` is a runtime
+   parameter, validated by matchToolEntry against the whitelist). Google: type into the search box
+   (Input.insertText), pick a suggestion, click it — no synthetic Enter, no DOM value injection.
 3. On any block/verification page, STOP immediately (lib.isBlocked) — no workaround
-4. Scroll to induce lazy loading → buffer ad-creative image responses (Network.responseReceived)
-5. Drain buffered images via Network.getResponseBody → save images/ad-N.jpg + structured creatives
-6. Honestly record no_advertiser_match / no creatives in coverage_flags (no false completion)
+4. Scroll to induce lazy loading → buffer ad-creative image + video responses (Network.responseReceived)
+5. [Meta only] Per-card detail-modal expansion — see below.
+6. Drain buffered images via Network.getResponseBody → save images/ad-N.jpg + structured creatives
+   (each creative merged with its card's detail by image-URL key join). Honestly record
+   no_advertiser_match / no creatives in coverage_flags (no false completion).
 ```
+
+### Meta: per-card detail-modal expansion
+
+After the grid scroll, Meta's adapter opens each ad card's "광고 상세 정보 보기 / See ad details"
+modal (a `div[role="button"]`) to extract additional fields. Both KR and EN label variants are
+handled (the headless throwaway profile renders EN; real user sessions may render KR).
+
+**Steps (per card, up to `maxDetails` cards):**
+
+1. Read the card's `<img>.currentSrc` (query-stripped) — this is the join key that ties the card's
+   detail to the buffered network creative (the image is already in the buffer from the scroll phase;
+   opening the modal triggers no fresh network response).
+2. Open the modal: `el.click()` on the trigger element (real element activation — not DOM-value
+   injection). CDP `Input.dispatchMouseEvent` does NOT open the modal in headless (reflow mis-hit);
+   `el.click()` does reliably.
+3. Locate the open dialog: `[role="dialog"]` whose text contains `Library ID` / `라이브러리 ID`
+   (anchored on the *labelled* ID to exclude the nav panel, which contains the bare words
+   "광고 라이브러리").
+4. Extract from `dialog.innerText` by flat-line regex: `library_id`, `started_at` (two date formats:
+   EN `"26 Feb 2026"`, KR `"2026. 2. 26.에 게재 시작함"`), `status`, `advertiser_name` (line before
+   "광고"/"Sponsored" marker), `video_duration` (timestamp pattern → video-ad signal).
+5. Expand the **광고주 정보 / About the advertiser accordion** (collapsed by default). This requires a
+   real CDP `Input.dispatchMouseEvent` at the header's fresh `getBoundingClientRect` center — `el.click()`
+   does NOT toggle it. Load-bearing: use `scrollIntoView({block:'start'})` (NOT `'center'`); at the
+   headless viewport height the `'center'` position silently no-ops. Retry once; gate on a
+   HAS_FOLLOWER verify (`팔로워 / followers?` in dialog text).
+6. Extract from the expanded accordion: `follower_count` (raw `팔로워 N명` / `N followers`; handle KR
+   magnitude suffixes 천/만/억 and EN K/M/B), `page_category`, `page_id` (an `ID:` that differs from
+   `library_id`).
+7. Extract `platforms` from platform-icon CSS `mask-position` Y-offsets (the icons have no
+   aria-label/alt; distinct Y-offset = distinct platform). An offset→name lookup table resolves
+   names; unknown offsets are recorded as `platform:"unknown(<offset>)"` (not dropped). The count
+   is reliable; the name table needs maintenance if Meta re-bakes the sprite.
+8. Call `normalizeDetail(raw)` → `{ started_at, advertiser_name, follower_count, platforms,
+   page_category, page_id, library_id, status, detail_captured }`. `detail_captured:false` means
+   the modal yielded nothing usable — the creative is still saved, just without detail fields (no
+   fabrication, no error hiding).
+9. Close the modal: CDP-click the top-most "Close"/"닫기" control, then **verify the dialog is gone**
+   before the next card. ESC-only close stacks unclosed modals across cards (verified live: dialog
+   count grew 2→6, corrupting all later accordion reads). ESC is the fallback only.
+
+**Image↔detail join (collision-safe):** each card's image dedup-key (query-stripped URL) exactly
+matches a buffered network creative URL (verified live: 100% match). `drain(meta, metaByKey)` merges
+detail into the matching creative by key. Collision: two distinct ads can share an agency creative
+(same path, different query params → same dedup-key). A key claimed by two different ads (by
+`library_id` or `advertiser_name`) is **dropped from the map** (neither detail attaches) and flagged.
+A creative gets its own correct detail or none — never another advertiser's.
+
+**Video ads:** the Meta front-door URL omits `media_type`, so video ads are included. Video network
+responses are HTTP 206 (partial content); `Network.getResponseBody` fails on them — no video bytes
+are retrievable in a background headless tab. Video ads are therefore recorded as `video_url` only
+(no `video_file`). Many video ads also fire **no `.mp4` network response** (no autoplay in a
+non-painting headless tab) and are captured as their image thumbnail with `video_duration` preserved.
+The `videoMatch` predicate (mime-led: `video/mp4`; URL fallback: `video-<region>.xx.fbcdn.net +
+.mp4`) is wired and will populate `subtype:"video"` records when a `.mp4` response does fire; the
+absence is an honest headless limitation, not a flow defect.
 
 Implementation: `${CLAUDE_PLUGIN_ROOT}/shared/collect/ad-collect-harness.mjs` (shared CDP lifecycle, image capture, dedup, block STOP, tab cleanup) + per-source adapter `${CLAUDE_PLUGIN_ROOT}/flows/<source>/flow.mjs` (`defineFlow`), dispatched by name via `${CLAUDE_PLUGIN_ROOT}/shared/collect/flow-registry.mjs` and run by the single `${CLAUDE_PLUGIN_ROOT}/shared/collect/run-flow.mjs`. The adapter supplies only that platform's flow + image matching; the harness owns everything else. See `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/ad-source-adapter-contract.md`.
 
