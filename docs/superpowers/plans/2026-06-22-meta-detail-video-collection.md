@@ -89,11 +89,15 @@ git commit -m "recon: Meta detail-modal selectors + video URL pattern + byte ava
 `schemas/collection/ad-creative.schema.json`의 creatives.items에서:
 - `"required": ["image_url", "subtype"]` → `"required": ["subtype"]` 로 변경 (라인 30).
 - `subtype` enum (라인 38)을 `["single_image", "carousel", "video_thumb", "video"]` 로 변경.
-- properties에 다음 추가:
+- properties에 다음 추가 (recon에서 전부 in-modal 추출 확정. `platforms`·`started_at`은 기존 필드 재사용):
 ```json
 "video_url": { "type": "string" },
 "video_file": { "type": "string" },
+"video_duration": { "type": "string" },
 "follower_count": { "type": ["integer", "null"], "minimum": 0 },
+"status": { "type": "string", "enum": ["active", "inactive", "unknown"] },
+"page_category": { "type": "string" },
+"page_id": { "type": "string" },
 "detail_captured": { "type": "boolean" },
 "advertiser_name": { "type": "string" }
 ```
@@ -128,43 +132,77 @@ git commit -m "feat(schema): add video + detail-modal fields to ad-creative; rel
 - Create: `flows/meta-ad-library/detail-normalize.mjs`
 - Create: `flows/meta-ad-library/detail-normalize.test.mjs`
 
-**Interfaces:**
+**Interfaces (recon-실측 반영):**
+- 입력 raw 객체 형태 (Task 6 flow가 in-page evalJs로 생성, recon §8d 픽스처와 동일):
+  `{ status?, library_id?, started_at?, advertiser?, follower_raw?, category?, page_id?, platform_offsets?: string[], video_duration? }`
 - Produces:
-  - `parseFollowerCount(raw: string|null): number|null` — "1.2K"→1200, "3.4M"→3400000, "12,345"→12345, 빈/널/파싱불가→null.
-  - `normalizeDetail(raw: {started_at?, platforms?, advertiser?, follower_raw?, library_id?}): {started_at?, platforms?, advertiser_name?, follower_count?, library_id?, detail_captured: boolean}` — 문자열 trim, platforms 배열 정리(빈 항목 제거·소문자), follower_count=parseFollowerCount(follower_raw), 의미있는 필드가 하나라도 있으면 `detail_captured:true`. 빈 입력이면 `{detail_captured:false}`.
+  - `parseFollowerCount(raw: string|null): number|null` — KR `"팔로워 35명"`→35, `"팔로워 1.2천명"`→1200, `"3만"`→30000, `"1.2억"`→120000000; EN `"12,345 followers"`→12345, `"1.2K followers"`→1200; 빈/널/파싱불가→null. (KR 단위 천=1e3·만=1e4·억=1e8, EN K/M/B.)
+  - `parseStartedAt(raw: string|null): string|null` — KR `"2026. 2. 26.에 게재 시작함"`→`"2026-02-26"`; EN `"Started running on 26 Feb 2026"`/`"26 Feb 2026"`→`"2026-02-26"`; 파싱불가→null.
+  - `mapPlatforms(offsets: string[]): string[]` — mask-position 문자열(`"-387px -766px"`)의 Y-offset을 테이블로 매핑(`-766px`→facebook, `-805px`→instagram, `-818px`→messenger, `-831px`→threads); 모르는 offset→`"unknown(<yoffset>)"`. 빈 입력→`[]`.
+  - `normalizeStatus(raw: string|null): "active"|"inactive"|"unknown"` — `활성`/`Active`→active, `비활성`/`Inactive`→inactive, else unknown.
+  - `normalizeDetail(raw): { status?, library_id?, started_at?, advertiser_name?, follower_count?, page_category?, page_id?, platforms?, video_duration?, detail_captured: boolean }` — 위 파서들로 조립, 문자열 trim, 의미있는 필드가 하나라도 있으면 `detail_captured:true`, 빈 입력이면 `{detail_captured:false}`.
 - Consumes: Task 6의 flow가 in-page evalJs로 만든 raw 객체.
 
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [ ] **Step 1: 실패하는 테스트 작성 (recon §8d 실측 픽스처 사용)**
 
 `flows/meta-ad-library/detail-normalize.test.mjs`:
 ```js
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseFollowerCount, normalizeDetail } from "./detail-normalize.mjs";
+import { parseFollowerCount, parseStartedAt, mapPlatforms, normalizeStatus, normalizeDetail } from "./detail-normalize.mjs";
 
-test("parseFollowerCount handles K/M, commas, junk", () => {
-  assert.equal(parseFollowerCount("1.2K"), 1200);
-  assert.equal(parseFollowerCount("3.4M"), 3400000);
-  assert.equal(parseFollowerCount("12,345"), 12345);
-  assert.equal(parseFollowerCount("987"), 987);
+test("parseFollowerCount handles KR 명/천/만/억 and EN K/M, commas, junk", () => {
+  assert.equal(parseFollowerCount("팔로워 35명"), 35);
+  assert.equal(parseFollowerCount("팔로워 192명"), 192);
+  assert.equal(parseFollowerCount("팔로워 1.2천명"), 1200);
+  assert.equal(parseFollowerCount("3만"), 30000);
+  assert.equal(parseFollowerCount("1.2억"), 120000000);
+  assert.equal(parseFollowerCount("12,345 followers"), 12345);
+  assert.equal(parseFollowerCount("1.2K followers"), 1200);
   assert.equal(parseFollowerCount(""), null);
   assert.equal(parseFollowerCount(null), null);
   assert.equal(parseFollowerCount("팔로워 없음"), null);
 });
 
-test("normalizeDetail trims, builds platforms, sets detail_captured", () => {
+test("parseStartedAt handles KR and EN date formats", () => {
+  assert.equal(parseStartedAt("2026. 2. 26.에 게재 시작함"), "2026-02-26");
+  assert.equal(parseStartedAt("Started running on 26 Feb 2026"), "2026-02-26");
+  assert.equal(parseStartedAt("26 Feb 2026"), "2026-02-26");
+  assert.equal(parseStartedAt(""), null);
+  assert.equal(parseStartedAt("게재 시작 정보 없음"), null);
+});
+
+test("mapPlatforms resolves known offsets, keeps unknown", () => {
+  assert.deepEqual(mapPlatforms(["-387px -766px", "-387px -805px"]), ["facebook", "instagram"]);
+  assert.deepEqual(mapPlatforms(["-387px -766px", "-387px -805px", "-387px -818px", "-387px -831px"]),
+    ["facebook", "instagram", "messenger", "threads"]);
+  assert.deepEqual(mapPlatforms(["-387px -999px"]), ["unknown(-999px)"]);
+  assert.deepEqual(mapPlatforms([]), []);
+});
+
+test("normalizeStatus maps KR/EN", () => {
+  assert.equal(normalizeStatus("활성"), "active");
+  assert.equal(normalizeStatus("Active"), "active");
+  assert.equal(normalizeStatus("비활성"), "inactive");
+  assert.equal(normalizeStatus("???"), "unknown");
+});
+
+test("normalizeDetail assembles a real recon fixture (KR, accordion expanded)", () => {
   const out = normalizeDetail({
-    started_at: " 2026-05-01 ",
-    platforms: ["Facebook", "", "Instagram"],
-    advertiser: "  BrandX  ",
-    follower_raw: "1.2K",
-    library_id: "123456789",
+    status: "활성", library_id: "1972922693648310",
+    started_at: "2026. 2. 26.에 게재 시작함", advertiser: "진시황의 비밀",
+    follower_raw: "팔로워 35명", category: "건강/뷰티", page_id: "275345032325614",
+    platform_offsets: ["-387px -766px", "-387px -805px"], video_duration: "0:00 / 0:43",
   });
-  assert.equal(out.started_at, "2026-05-01");
+  assert.equal(out.status, "active");
+  assert.equal(out.library_id, "1972922693648310");
+  assert.equal(out.started_at, "2026-02-26");
+  assert.equal(out.advertiser_name, "진시황의 비밀");
+  assert.equal(out.follower_count, 35);
+  assert.equal(out.page_category, "건강/뷰티");
+  assert.equal(out.page_id, "275345032325614");
   assert.deepEqual(out.platforms, ["facebook", "instagram"]);
-  assert.equal(out.advertiser_name, "BrandX");
-  assert.equal(out.follower_count, 1200);
-  assert.equal(out.library_id, "123456789");
+  assert.equal(out.video_duration, "0:00 / 0:43");
   assert.equal(out.detail_captured, true);
 });
 
@@ -182,34 +220,89 @@ Expected: FAIL — `Cannot find module './detail-normalize.mjs'`.
 
 `flows/meta-ad-library/detail-normalize.mjs`:
 ```js
-// Pure normalization of the Meta detail-modal raw fields scraped in-page.
-// Selectors live in flow.mjs (live-confirmed via recon); this module is the testable cleanup layer.
+// Pure normalization of the Meta detail-modal raw fields scraped in-page (recon-verified, KR⊥EN).
+// Selectors live in flow.mjs (live-confirmed via recon-notes.md); this module is the testable cleanup layer.
+
+const KR_MULT = { 천: 1e3, 만: 1e4, 억: 1e8 };
+const EN_MULT = { k: 1e3, m: 1e6, b: 1e9 };
 
 export function parseFollowerCount(raw) {
   if (raw == null) return null;
   const s = String(raw).trim();
-  const m = s.match(/([\d.,]+)\s*([KMkm])?/);
-  if (!m) return null;
-  const num = parseFloat(m[1].replace(/,/g, ""));
-  if (!isFinite(num)) return null;
-  const mult = m[2] ? { k: 1e3, m: 1e6 }[m[2].toLowerCase()] : 1;
-  return Math.round(num * mult);
+  // KR: number + optional 천/만/억 (+ optional 명)
+  let m = s.match(/([\d.,]+)\s*(천|만|억)?\s*명/);
+  if (!m) m = s.match(/([\d.,]+)\s*(천|만|억)/);
+  if (m) {
+    const num = parseFloat(m[1].replace(/,/g, ""));
+    if (!isFinite(num)) return null;
+    return Math.round(num * (m[2] ? KR_MULT[m[2]] : 1));
+  }
+  // EN: number + optional K/M/B (+ optional "followers")
+  m = s.match(/([\d.,]+)\s*([KMBkmb])?\s*(?:followers?)?/i);
+  if (m && m[1] && /\d/.test(m[1])) {
+    const num = parseFloat(m[1].replace(/,/g, ""));
+    if (!isFinite(num)) return null;
+    return Math.round(num * (m[2] ? EN_MULT[m[2].toLowerCase()] : 1));
+  }
+  return null;
+}
+
+const MONTHS = { jan:1, feb:2, mar:3, apr:4, may:5, jun:6, jul:7, aug:8, sep:9, oct:10, nov:11, dec:12 };
+const pad = (n) => String(n).padStart(2, "0");
+
+export function parseStartedAt(raw) {
+  if (raw == null) return null;
+  const s = String(raw).trim();
+  // KR: "2026. 2. 26.에 게재 시작함" → extract "2026. 2. 26"
+  let m = s.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})/);
+  if (m) return `${m[1]}-${pad(+m[2])}-${pad(+m[3])}`;
+  // EN: "...26 Feb 2026"
+  m = s.match(/(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})/);
+  if (m) {
+    const mo = MONTHS[m[2].toLowerCase()];
+    if (mo) return `${m[3]}-${pad(mo)}-${pad(+m[1])}`;
+  }
+  return null;
+}
+
+// mask-position Y-offset → platform. recon §8c (🟡 best-inference; keep raw offset for unknowns).
+const PLATFORM_BY_YOFFSET = { "-766px": "facebook", "-805px": "instagram", "-818px": "messenger", "-831px": "threads" };
+
+export function mapPlatforms(offsets) {
+  if (!Array.isArray(offsets)) return [];
+  return offsets.map((o) => {
+    const y = String(o).trim().split(/\s+/).pop();   // "-387px -766px" → "-766px"
+    return PLATFORM_BY_YOFFSET[y] || `unknown(${y})`;
+  });
+}
+
+export function normalizeStatus(raw) {
+  const s = String(raw ?? "").trim().toLowerCase();
+  if (s === "활성" || s === "active") return "active";
+  if (s === "비활성" || s === "inactive") return "inactive";
+  return "unknown";
 }
 
 export function normalizeDetail(raw = {}) {
   const out = {};
-  const started = (raw.started_at ?? "").toString().trim();
+  const status = normalizeStatus(raw.status);
+  if (raw.status != null && String(raw.status).trim()) out.status = status;
+  const lib = (raw.library_id ?? "").toString().trim();
+  if (lib) out.library_id = lib;
+  const started = parseStartedAt(raw.started_at);
   if (started) out.started_at = started;
-  const platforms = Array.isArray(raw.platforms)
-    ? raw.platforms.map((p) => String(p || "").trim().toLowerCase()).filter(Boolean)
-    : [];
-  if (platforms.length) out.platforms = platforms;
   const adv = (raw.advertiser ?? "").toString().trim();
   if (adv) out.advertiser_name = adv;
   const fc = parseFollowerCount(raw.follower_raw);
   if (fc != null) out.follower_count = fc;
-  const lib = (raw.library_id ?? "").toString().trim();
-  if (lib) out.library_id = lib;
+  const cat = (raw.category ?? "").toString().trim();
+  if (cat) out.page_category = cat;
+  const pid = (raw.page_id ?? "").toString().trim();
+  if (pid) out.page_id = pid;
+  const platforms = mapPlatforms(raw.platform_offsets);
+  if (platforms.length) out.platforms = platforms;
+  const dur = (raw.video_duration ?? "").toString().trim();
+  if (dur) out.video_duration = dur;
   out.detail_captured = Object.keys(out).length > 0;
   return out;
 }
@@ -218,7 +311,7 @@ export function normalizeDetail(raw = {}) {
 - [ ] **Step 4: 테스트 통과 확인**
 
 Run: `node --test flows/meta-ad-library/detail-normalize.test.mjs`
-Expected: PASS (3 tests).
+Expected: PASS (6 tests).
 
 - [ ] **Step 5: 커밋**
 
@@ -247,9 +340,10 @@ git commit -m "feat(meta): detail-modal field normalization (parseFollowerCount,
 ```js
 import { chooseAdvertiser, buildCreativeRecord, classifyResponse } from "./ad-source-helpers.mjs";
 
-test("classifyResponse prefers video then image then null", () => {
-  const a = { imgMatch: (u) => u.includes("img"), videoMatch: (u) => u.includes("vid") };
+test("classifyResponse prefers video then image then null, uses mime", () => {
+  const a = { imgMatch: (u) => u.includes("img"), videoMatch: (u, mime) => /^video\//.test(mime) || u.includes("vid") };
   assert.equal(classifyResponse("https://x/vid.mp4", a), "video");
+  assert.equal(classifyResponse("https://x/anything", a, "video/mp4"), "video");   // mime-led
   assert.equal(classifyResponse("https://x/img.jpg", a), "image");
   assert.equal(classifyResponse("https://x/other", a), null);
   assert.equal(classifyResponse("https://x/img", { imgMatch: (u) => u.includes("img") }), "image"); // no videoMatch
@@ -283,9 +377,10 @@ Expected: FAIL — `buildCreativeRecord is not a function` / `classifyResponse i
 
 `shared/collect/ad-source-helpers.mjs` 끝에 추가:
 ```js
-// Classify a network response URL for an adapter: video takes precedence over image.
-export function classifyResponse(url, adapter) {
-  if (adapter && typeof adapter.videoMatch === "function" && adapter.videoMatch(url)) return "video";
+// Classify a network response for an adapter: video takes precedence over image.
+// mime is passed through (Meta videos are reliably mime=video/mp4; URL alone is a weaker signal).
+export function classifyResponse(url, adapter, mime = "") {
+  if (adapter && typeof adapter.videoMatch === "function" && adapter.videoMatch(url, mime)) return "video";
   if (adapter && typeof adapter.imgMatch === "function" && adapter.imgMatch(url)) return "image";
   return null;
 }
@@ -338,7 +433,7 @@ import { dedupKey, safeName, classifyResponse, buildCreativeRecord } from "./ad-
 ```js
 c.Network.responseReceived((p) => {
   const u = (p.response && p.response.url) || "";
-  const kind = classifyResponse(u, adapter);
+  const kind = classifyResponse(u, adapter, (p.response && p.response.mimeType) || "");
   if (kind) buf.set(u, { rid: p.requestId, kind });
 });
 ```
@@ -404,78 +499,61 @@ git commit -m "feat(harness): buffer video responses + drain saves videos/ via b
 
 ---
 
-### Task 6: 메타 flow — 모달 expand 루프 + 비디오 매처 + media_type 해제
+### Task 6: 메타 flow — 모달 expand 루프 + 비디오 매처 + media_type 해제 (라이브 빌드+검증)
+
+이 태스크는 CDP 라이브가 필요해 순수 단위테스트로 닫히지 않는다. 구현자는 recon-notes.md(§2·§8)를 셀렉터 SOT로 쓰고, **실제 CDP로 돌려가며** flow를 완성·검증한다. acquire-port → launch-chrome(헤드리스, ko-KR Accept-Language) → attach 패턴은 Task 1 _recon 스크립트와 동일.
 
 **Files:**
 - Modify: `flows/meta-ad-library/flow.mjs`
 
 **Interfaces:**
-- Consumes: `normalizeDetail` (Task 3), ctx 프리미티브 `evalJs`/`clickAt`/`scroll`/`drain` (harness).
-- 셀렉터 문자열과 `videoMatch` 패턴은 **Task 1 recon-notes.md의 확정값으로 채운다** (아래는 구조; `<RECON:*>`는 recon 값으로 치환).
+- Consumes: `normalizeDetail` (Task 3), ctx 프리미티브 `evalJs`/`clickAt`/`scroll`/`drain`/`resetBuffer` (harness, Task 5 적용본).
+- 셀렉터/패턴/오프셋의 SOT = `flows/meta-ad-library/recon-notes.md` (전부 라이브 검증값). 추측 금지.
 
 - [ ] **Step 1: videoMatch + media_type 해제**
 
-`flows/meta-ad-library/flow.mjs`에서:
-- 상단 import 추가: `import { normalizeDetail } from "./detail-normalize.mjs";`
-- `imgMatch` 다음 줄에 `videoMatch` 추가 (recon 패턴으로):
+`flows/meta-ad-library/flow.mjs`:
+- import 추가: `import { normalizeDetail } from "./detail-normalize.mjs";`
+- `imgMatch` 다음 줄에 `videoMatch` 추가 (recon §4 — mime 우선, URL fallback):
 ```js
-videoMatch: (u) => u.indexOf("<RECON:VIDEO_HOST_OR_EXT>") > -1,   // recon-notes.md에서 확정
+videoMatch: (u, mime = "") =>
+  /^video\//i.test(mime) ||
+  (/\.mp4(\?|$)/i.test(u) && /video-[a-z0-9-]+\.fbcdn\.net/i.test(u)),
 ```
-- `config`에서 `media_type: "image"` 제거(또는 `media_type: "all"`로 — recon에서 비디오가 포함되는 값 확인). filterUrl이 config를 펼치므로 키 제거로 충분.
+- `config`에서 `media_type: "image"` **제거** (키 삭제 → 비디오 포함; recon §0 front-door는 media_type 없이 비디오 노출 확인).
 
-- [ ] **Step 2: 모달 expand 루프 추가**
+- [ ] **Step 2: 광고별 모달 expand → 필드 추출 → 아코디언 expand → drain 루프**
 
-`collect(ctx)`에서 `await ctx.scroll(...)` 다음, `await ctx.drain()` **전에** 광고별 상세정보 추출 루프를 삽입. drain은 마지막에 각 creative에 detail meta를 병합해야 하므로, detail은 광고 카드 순서대로 모은 뒤 drain에 마지막 카드의 meta가 아니라 카드별 meta가 필요 → 구조상 detail을 카드별로 모아 배열로 보관하고, drain 후 인덱스로 병합한다. 구현:
+`collect(ctx)`에 광고별 루프를 구현한다. recon에서 확정된 사실(반드시 반영):
+- **detail 트리거**(recon §8a): `div[role="button"]` 중 innerText가 `/^(See ad details|광고 상세 정보 보기|상세정보)$/` (summary 변형 `요약 세부 사항 보기`/`See summary details`는 제외).
+- **모달 열기 GOTCHA**(recon §2): 캐시 좌표는 reflow로 빗나감. `scrollIntoView({block:'center'})` → **클릭 직전 좌표 재읽기** → `ctx.clickAt(x,y)` (CDP 실클릭). `el.click()`로 expand 대체 금지.
+- **모달 식별**(recon §2): `[role="dialog"]` 중 텍스트에 `Library ID|라이브러리` 포함 + 가장 긴 것.
+- **필드는 `dialog.innerText` flat-line regex로 추출**(recon §2 표, §8): `library_id`=`(?:Library ID|라이브러리 ID):\s*([0-9]+)`(첫 매치), `started_at`=`(?:Started running on|게재 시작)` 인접 + `2026. 2. 26.`/`26 Feb 2026` 패턴 원문, `status`=`^(Active|Inactive|활성|비활성)$` 라인, `advertiser`=`Sponsored`/`광고` 라인 바로 윗줄.
+- **아코디언 expand**(recon §8b): dialog 안 텍스트가 정확히 `광고주 정보`/`About the advertiser`/`Advertiser info`인 leaf 요소 → scrollIntoView → 좌표 재읽기 → **CDP 실클릭**(el.click 토글 안 됨). 펼친 뒤 dialog.innerText에서 `follower_raw`=`팔로워\s*([0-9][0-9.,]*\s*(?:천|만|억)?\s*명?)`(EN: `([0-9][0-9.,]*[KMB]?)\s*followers`), `category`(팔로워 줄 다음), `page_id`=`ID:\s*([0-9]+)`(accordion 내).
+- **platforms**(recon §8c): `플랫폼`/`Platforms` 라벨 컨테이너의 각 아이콘에 `getComputedStyle(el).maskPosition`(또는 `webkitMaskPosition`)을 읽어 순서대로 문자열 배열 → `platform_offsets`로 raw 그대로 전달(매핑은 `normalizeDetail`/`mapPlatforms`가 담당).
+- 위 raw들을 한 객체 `{status, library_id, started_at, advertiser, follower_raw, category, page_id, platform_offsets, video_duration}`로 모아 `normalizeDetail(raw)` → detail meta.
+- **모달 닫기**(recon §3): ESC 키 이벤트(`Input.dispatchKeyEvent` rawKeyDown+keyUp). aria close 버튼 의존 금지.
 
-```js
-async collect(ctx) {
-  for (const { query: q } of ctx.queries) {
-    if (ctx.limitReached()) break;
-    ctx.resetBuffer();
-    if (!(await ctx.goto(this.filterUrl(q)))) { ctx.flag(`blocked: ${q}`); break; }
-    const m = (await ctx.evalJs("document.body.innerText.slice(0,5000)")).match(/~?\s*([0-9,]+)\s*results/i);
-    ctx.flag(`"${q}": ${m ? m[1] : "?"} results`);
-    await ctx.scroll(this.config.maxScroll);
+**이미지↔상세 연결(association) — 라이브로 확정할 설계 결정:** 그리드 스크롤 시 이미지/비디오 응답이 이미 버퍼링되므로, 카드와 creative를 1:1로 묶는 방법을 라이브로 검증해 택1하고 그 근거를 `recon-notes.md`(또는 IMPLEMENTATION_NOTES)에 기록한다:
+- (A) **카드 단위**: 카드별로 `resetBuffer()` → 모달 열기(모달이 그 광고 creative를 새로 로드하면 그 응답만 버퍼됨) → 필드 추출 → `drain(detail)`. 모달이 새 이미지/비디오 응답을 일으키는지 라이브 확인 필요(캐시면 새 응답 없음 → getResponseBody evict 가능).
+- (B) **그리드 일괄 + 순서 매핑**: 기존처럼 그리드 스크롤 후 한 번에 `drain`하고, detail은 카드 순서 배열로 모아 creative와 인덱스로 병합. 단 네트워크 응답 순서 ≠ 카드 순서일 수 있음 → 신뢰도 라이브 확인.
+구현자는 A를 먼저 시도하고, 모달이 새 creative 응답을 일으키지 않으면 B로 전환하되 매핑 신뢰도를 flag로 노출한다. 어느 쪽이든 detail이 엉뚱한 creative에 붙으면 안 됨(가짜연결 금지) — 불확실하면 detail을 creative에 병합하지 말고 `result`에 별도 `ad_details[]` 배열로 보관하고 그 사실을 flag로 남긴다.
 
-    // 광고 카드별 "상세정보" 모달 expand → 필드 추출. 카드 좌표는 evalJs로 수집, clickAt로 실제 클릭.
-    const triggers = await ctx.evalJs(`JSON.stringify([...document.querySelectorAll(${JSON.stringify("<RECON:DETAIL_TRIGGER_SELECTOR>")})].slice(0, ${this.config.maxScroll * 3}).map(e=>{const r=e.getBoundingClientRect();return{x:Math.round(r.left+r.width/2),y:Math.round(r.top+r.height/2),w:r.width,h:r.height}}).filter(o=>o.w>0&&o.h>0))`);
-    for (const t of JSON.parse(triggers || "[]")) {
-      if (ctx.limitReached()) break;
-      await ctx.clickAt(t.x, t.y);
-      const rawJson = await ctx.evalJs(`(function(){
-        const q=(s)=>document.querySelector(s); const txt=(s)=>{const e=q(s);return e?e.innerText.trim():"";};
-        return JSON.stringify({
-          started_at: txt(${JSON.stringify("<RECON:STARTED_AT_SELECTOR>")}),
-          platforms: [...document.querySelectorAll(${JSON.stringify("<RECON:PLATFORM_SELECTOR>")})].map(e=>e.getAttribute("aria-label")||e.alt||e.innerText||""),
-          advertiser: txt(${JSON.stringify("<RECON:ADVERTISER_SELECTOR>")}),
-          follower_raw: txt(${JSON.stringify("<RECON:FOLLOWER_SELECTOR>")}),
-          library_id: txt(${JSON.stringify("<RECON:LIBRARY_ID_SELECTOR>")})
-        });
-      })()`);
-      const detail = normalizeDetail(JSON.parse(rawJson || "{}"));
-      ctx.flag(`detail ${detail.detail_captured ? "ok" : "miss"}: ${detail.advertiser_name || "?"}`);
-      // 모달 닫기 (recon에서 닫기 셀렉터/ESC 확인)
-      await ctx.evalJs(`(q=>q&&q.click())(document.querySelector(${JSON.stringify("<RECON:MODAL_CLOSE_SELECTOR>")}))`);
-      // detail meta를 다음 drain에 실어보낸다(카드 단위 drain).
-      ctx.resetBuffer();
-      await ctx.drain(detail);
-    }
-  }
-}
-```
+각 CDP 스텝은 타임아웃 바운드(harness ctx가 이미 sleep 내장; 추가 대기는 `Promise.race`). 차단/모달 미오픈 → 더 우회 말고 그 카드 `detail_captured:false`로 두고 진행, 반복 차단이면 STOP.
 
-> 설계 메모: drain을 카드 단위로 호출(모달 닫은 뒤 `resetBuffer`→`drain(detail)`)하면 그 카드의 이미지/비디오 응답에만 detail meta가 붙는다. recon에서 "모달 안에 큰 해상도 이미지/비디오 응답이 실제로 뜨는지"가 확인되면 이 카드-단위 방식이 가장 정확하다. recon 결과 카드-단위 매핑이 불가능하면(예: 모든 이미지가 그리드에서 한꺼번에 로드됨) recon-notes.md에 적고, 그리드 일괄 drain + detail은 별도 배열로 저장하는 방식으로 IMPLEMENTATION_NOTES에 대안을 기록한다.
+- [ ] **Step 3: 라이브 검증 (real-data)**
 
-- [ ] **Step 3: flow 정적 검증**
-
-Run: `node --check flows/meta-ad-library/flow.mjs && node --test shared`
-Expected: 구문 OK + 기존 스위트 그린. 동작 검증은 Task 8 라이브.
+acquire-port + launch-chrome로 `q=비타민`(또는 임의 KR 키워드) 1회 수집 실행 → `.generate-ads-img/runs/<runId>/ad-creatives/<persona>/ad-creative.json` 생성. 확인:
+- `detail_captured:true` creative ≥1 이고 그 안에 `started_at`(ISO)·`advertiser_name`·`follower_count`(숫자)·`platforms`(비어있지 않음)가 실제로 채워짐. 0이면 셀렉터 회귀 → recon-notes로 되돌아가 수정(가짜완료 금지).
+- 비디오 광고가 결과에 있으면 `subtype:"video"` + `video_url` 레코드 ≥1.
+- 실행 중 사용자 활성 창 포커스/커서 탈취 없음(비침습).
+- `node --check flows/meta-ad-library/flow.mjs && node --test shared` 그린(기존 스위트 회귀 없음).
 
 - [ ] **Step 4: 커밋**
 
 ```bash
-git add flows/meta-ad-library/flow.mjs
-git commit -m "feat(meta): detail-modal expand loop + videoMatch + drop media_type=image"
+git add flows/meta-ad-library/flow.mjs flows/meta-ad-library/recon-notes.md
+git commit -m "feat(meta): detail-modal+accordion expand loop, platform offsets, videoMatch, drop media_type=image"
 ```
 
 ---
