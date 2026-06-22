@@ -232,9 +232,20 @@ const CLOSE_RECT = `(() => {
   return { x:Math.round(r.left+r.width/2), y:Math.round(r.top+r.height/2) };
 })()`;
 
-// true once the accordion is expanded (the follower/ID block is now in the dialog text) — the verify gate
-// that decides whether the accordion CDP-click must be retried.
-const HAS_FOLLOWER = `(() => { const d=${DLG}; if(!d) return false; return /팔로워\\s*[0-9]|[0-9][0-9.,]*[KMB]?\\s*followers?/i.test(d.innerText||''); })()`;
+// true once the accordion is expanded — the verify gate that decides whether the accordion CDP-click must be
+// retried. PREFER aria-expanded on the accordion button (works for follower-LESS advertisers, where the
+// follower regex would never fire → double-click collapse + ~8s wasted polling); fall back to the follower regex.
+const HAS_FOLLOWER = `(() => {
+  const d=${DLG}; if(!d) return false;
+  let btn=[...d.querySelectorAll('*')].find(e=>{
+    const t=(e.textContent||'').trim();
+    if(!/^(광고주 정보|About the advertiser|Advertiser info)$/i.test(t)) return false;
+    return ![...e.children].some(ch=>/광고주 정보|About the advertiser|Advertiser info/i.test(ch.textContent||''));
+  });
+  for(let i=0;i<4 && btn;i++){ if(btn.getAttribute('role')==='button'||btn.getAttribute('aria-expanded')!=null) break; btn=btn.parentElement; }
+  if(btn && btn.getAttribute('aria-expanded')==='true') return true;
+  return /팔로워\\s*[0-9]|[0-9][0-9.,]*[KMB]?\\s*followers?/i.test(d.innerText||'');
+})()`;
 
 // Fresh center coords for a real CDP click on the 광고주 정보 / About the advertiser accordion header.
 // recon §8b + live §9: the header must be CDP-clicked (el.click doesn't toggle). LOAD-BEARING:
