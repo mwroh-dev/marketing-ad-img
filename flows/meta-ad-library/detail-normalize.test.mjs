@@ -13,6 +13,9 @@ test("parseFollowerCount handles KR 명/천/만/억 and EN K/M, commas, junk", (
   assert.equal(parseFollowerCount(""), null);
   assert.equal(parseFollowerCount(null), null);
   assert.equal(parseFollowerCount("팔로워 없음"), null);
+  // EN anchor: bare number without K/M/B suffix and without "followers" must not parse as a count
+  assert.equal(parseFollowerCount("width: 2px"), null);
+  assert.equal(parseFollowerCount("-387px -766px"), null);
 });
 
 test("parseStartedAt handles KR and EN date formats", () => {

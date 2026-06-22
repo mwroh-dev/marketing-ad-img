@@ -15,9 +15,11 @@ export function parseFollowerCount(raw) {
     if (!isFinite(num)) return null;
     return Math.round(num * (m[2] ? KR_MULT[m[2]] : 1));
   }
-  // EN: number + optional K/M/B (+ optional "followers")
-  m = s.match(/([\d.,]+)\s*([KMBkmb])?\s*(?:followers?)?/i);
-  if (m && m[1] && /\d/.test(m[1])) {
+  // EN: number + K/M/B suffix (no "followers" needed), OR bare number only when "followers" is present.
+  // A bare digit with no suffix and no "followers" word (e.g. CSS lengths like "width: 2px") is NOT a count.
+  m = s.match(/([\d.,]+)\s*([KMBkmb])\b/i);
+  if (!m) m = s.match(/([\d.,]+)\s*(?=followers?)/i);
+  if (m && m[1]) {
     const num = parseFloat(m[1].replace(/,/g, ""));
     if (!isFinite(num)) return null;
     return Math.round(num * (m[2] ? EN_MULT[m[2].toLowerCase()] : 1));

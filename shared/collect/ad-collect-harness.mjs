@@ -13,7 +13,7 @@
 //   resetBuffer()            clear the seen-image buffer (call before each entry)
 //   sleep(ms)                bounded settle wait (e.g. after a modal-open click, before reading)
 //   esc()                    real ESC key (rawKeyDown+keyUp) — close an open modal/overlay
-//   drain(meta, metaByKey)   getResponseBody on buffered imgMatch responses → save + push.
+//   drain(meta, metaByKey)   getResponseBody on buffered image/video (classifyResponse) responses → save + push.
 //                            `meta` merges into EVERY saved record; `metaByKey` (optional
 //                            { [dedupKey(url)]: extraMeta }) merges per-creative — the
 //                            deterministic image-URL join used to attach detail-modal fields
@@ -174,14 +174,15 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
             }
           } catch (e) {
             // Video bytes often unavailable via getResponseBody (MSE/range). Keep the URL, skip the file.
-            if (kind === "video" && /evict|No resource|No data found/i.test(e?.message ?? "")) {
+            const isVideoEvict = kind === "video" && /evict|No resource|No data found/i.test(e?.message ?? "");
+            if (isVideoEvict) {
               if (!seen.has(key) && result.creatives.length < totalCap) {
                 seen.add(key);
                 const n = result.creatives.length;
                 result.creatives.push(buildCreativeRecord({ kind: "video", key, n, meta: fullMeta, saved: false }));
                 result.coverage_flags.push("video bytes unavailable — url only");
               }
-            } else if (!/evict|No resource|No data found/i.test(e?.message ?? "")) {
+            } else {
               console.error("drain skip:", key, e?.message);
             }
           }
