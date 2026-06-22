@@ -22,3 +22,8 @@ IMPLEMENTATION_NOTES.md
 
 # local test sandboxes (copied consumer state for live subsession tests) — never released
 samples/
+
+# superpowers internal artifacts (brainstorming / plans / specs) — internal dev aid, NEVER shipped to service
+docs/superpowers/
+**/superpowers/
+.superpowers/
