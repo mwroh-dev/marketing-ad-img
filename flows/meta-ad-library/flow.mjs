@@ -141,10 +141,13 @@ export default defineFlow({
     for (let attempt = 0; attempt < 3; attempt++) {
       if (!(await ctx.evalJs(`!!${DLG}`))) return true;      // already closed
       const closeRect = await ctx.evalJs(CLOSE_RECT);
-      if (closeRect && typeof closeRect.x === "number") await ctx.clickAt(closeRect.x, closeRect.y, 500);  // short wait — close is verified by !!DLG below; the 7s default wastes ~7s/card
+      if (closeRect && typeof closeRect.x === "number") await ctx.clickAt(closeRect.x, closeRect.y, 100);
       else await ctx.esc();
-      if (!(await ctx.evalJs(`!!${DLG}`))) return true;
+      // event-driven close wait (not a fixed sleep): proceed the moment the dialog is gone (the 7s clickAt
+      // default wasted ~7s/card; a fixed short sleep could nudge ESC too early).
+      if (await ctx.pollUntil(`!${DLG}`, { timeoutMs: 1500, intervalMs: 150 })) return true;
       await ctx.esc();                                        // fallback / second nudge
+      if (await ctx.pollUntil(`!${DLG}`, { timeoutMs: 1000, intervalMs: 150 })) return true;
     }
     return !(await ctx.evalJs(`!!${DLG}`));
   },

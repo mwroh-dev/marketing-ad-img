@@ -36,11 +36,17 @@ export function parseStartedAt(raw) {
   // KR: "2026. 2. 26.에 게재 시작함" → extract "2026. 2. 26"
   let m = s.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})/);
   if (m) return `${m[1]}-${pad(+m[2])}-${pad(+m[3])}`;
-  // EN: "...26 Feb 2026"
+  // EN "D Mon YYYY": "...26 Feb 2026"
   m = s.match(/(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})/);
   if (m) {
     const mo = MONTHS[m[2].toLowerCase()];
     if (mo) return `${m[3]}-${pad(mo)}-${pad(+m[1])}`;
+  }
+  // EN "Mon D, YYYY": "Feb 26, 2026" (locale-dependent Meta rendering)
+  m = s.match(/([A-Za-z]{3})[a-z]*\s+(\d{1,2}),?\s+(\d{4})/);
+  if (m) {
+    const mo = MONTHS[m[1].toLowerCase()];
+    if (mo) return `${m[3]}-${pad(mo)}-${pad(+m[2])}`;
   }
   return null;
 }

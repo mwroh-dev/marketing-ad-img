@@ -28,6 +28,8 @@ test("parseStartedAt handles KR and EN date formats", () => {
   assert.equal(parseStartedAt("2026. 2. 26.에 게재 시작함"), "2026-02-26");
   assert.equal(parseStartedAt("Started running on 26 Feb 2026"), "2026-02-26");
   assert.equal(parseStartedAt("26 Feb 2026"), "2026-02-26");
+  assert.equal(parseStartedAt("Feb 26, 2026"), "2026-02-26");        // Mon D, YYYY (locale variant)
+  assert.equal(parseStartedAt("Started running on Feb 1, 2026"), "2026-02-01");
   assert.equal(parseStartedAt(""), null);
   assert.equal(parseStartedAt("게재 시작 정보 없음"), null);
 });

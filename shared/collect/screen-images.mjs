@@ -68,13 +68,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (existsSync(out)) {
     try {
       const prev = JSON.parse(readFileSync(out, "utf8"));
-      if (Array.isArray(prev.kept)) whitelist = new Set(prev.kept);
+      if (Array.isArray(prev.kept)) whitelist = new Set(prev.kept.map((p) => basename(p)));   // basename → robust to path-prefix drift
       if (Array.isArray(prev.dropped)) priorDropped = prev.dropped;
     } catch { /* unreadable → treat as a fresh screen */ }
   }
 
   let metas = gatherImageMetas(imagesDir);
-  if (whitelist) metas = metas.filter((m) => whitelist.has(m.image_file));
+  if (whitelist) metas = metas.filter((m) => whitelist.has(basename(m.image_file)));
   const { kept, dropped } = screenImages(metas);
   const mergedDropped = [...priorDropped, ...dropped];               // human drops (user_removed) + deterministic drops
   const result = { run_id: runId, persona_id: personaId, total: kept.length + mergedDropped.length, kept, dropped: mergedDropped };
