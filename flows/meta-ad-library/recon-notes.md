@@ -167,25 +167,138 @@ through the network tab because *image bytes* can't be pulled from a non-paintin
 *text DOM reads* don't need painting and work fine. So: **detail fields = DOM read; image bytes =
 network getResponseBody; video bytes = neither (URL only).**
 
-Two fields are genuinely NOT extractable here and should be **dropped from the schema** (or marked
-optional/null) with this rationale:
+> **⚠️ §7 SUPERSEDED by §8 (follow-up recon).** The two bullets below were the FIRST-PASS
+> conclusion and are **partly WRONG** — `follower_raw` IS extractable in-modal (expand the
+> 광고주 정보 accordion), and `platforms` ARE extractable as a deterministic mask-position count.
+> See §8 for the corrected, verified findings. Kept here for the record.
 
-- **`platforms` (FB/IG/Messenger/Audience Network)** — rendered under the `Platforms` label as CSS
-  **`mask-image` sprite icons** (`mask: url(https://static.xx.fbcdn.net/rsrc.php/yx/r/l5lyqjmrz5p.webp)`),
-  **no `aria-label` / `alt` / `title` / text**. Identifying which platform each icon is would require
-  sprite-offset / pixel analysis — out of scope and brittle. **Recommend: omit `platforms` from the
-  normalized schema** (or store `platforms: []` with a note). Not a headless limitation per se — the
-  data simply isn't in any text/attribute node.
-- **`follower_raw` (follower count)** — **not present in the Ad details modal at all** (`followers`/
-  `팔로워` word absent). It may live behind the modal's `About the advertiser` link (a further click /
-  navigation), which is out of scope for this spike. **Recommend: omit `follower_raw`** unless a later
-  task explicitly drills into "About the advertiser".
+Two fields were thought NOT extractable (CORRECTED in §8):
+
+- ~~**`platforms`**~~ — rendered under the `Platforms` label as CSS `mask-image` sprite icons
+  (`mask: url(https://static.xx.fbcdn.net/rsrc.php/yx/r/l5lyqjmrz5p.webp)`), no
+  `aria-label`/`alt`/`title`/text. **CORRECTED (§8):** each icon's **`mask-position` Y-offset is a
+  deterministic per-platform key** — the platform COUNT and identity-keys ARE extractable; only the
+  human name needs a maintained offset→name table.
+- ~~**`follower_raw`**~~ — absent from the *collapsed* modal. **CORRECTED (§8):** the modal has a
+  collapsed **광고주 정보 / About the advertiser** accordion; expanding it (real CDP click) reveals
+  `팔로워 N명` (follower count) + page category + page ID **in-modal — no separate navigation.**
+
+---
+
+## 8. FOLLOW-UP RECON (corrects §2/§6/§7) — accordion expand, KR locale, platform re-map
+
+Re-run in **KR locale** (Accept-Language `ko-KR` via `Network.setExtraHTTPHeaders` +
+`setUserAgentOverride{acceptLanguage}` — a language pref, NOT stealth). The user's real modal is
+Korean, so KR is the primary target; English appears with an EN profile. Both must be handled.
+
+### 8a. KR ⊥ EN labels (both verified / best-known)
+
+| Field | EN (run 1) | KR (run 2, verified) |
+|---|---|---|
+| detail trigger button text | `See ad details` | **`광고 상세 정보 보기`** (summary variant: `요약 세부 사항 보기`) |
+| modal title | `Ad details` | `광고 상세 정보` |
+| status | `Active` | `활성` (inactive: `비활성`) |
+| library id label | `Library ID:` | `라이브러리 ID:` |
+| started date | `Started running on 26 Feb 2026` | **`2026. 2. 26.에 게재 시작함`** |
+| platforms label | `Platforms` | `플랫폼` |
+| advertiser-info accordion | `About the advertiser` | **`광고주 정보`** |
+| advertiser-vs-domain marker | `Sponsored` | `광고` |
+| close | `Close` | `닫기` |
+
+**Two date formats to parse** (both seen): EN `"26 Feb 2026"` (`D Mon YYYY`) and
+KR `"2026. 2. 26.에 게재 시작함"` (`YYYY. M. D.에 게재 시작함` — extract the `YYYY. M. D.`). The detail
+trigger locator must accept BOTH labels:
+```js
+[...document.querySelectorAll('div[role="button"]')]
+  .filter(e => /^(See ad details|광고 상세 정보 보기|상세정보)$/.test((e.innerText||'').trim()))
+```
+
+### 8b. 광고주 정보 / About the advertiser accordion — FOLLOWER COUNT **IS** in-modal
+
+The modal contains a **collapsed accordion** whose header text is `광고주 정보` (`About the advertiser`).
+Expanding it reveals advertiser detail **inside the same dialog — no navigation**.
+
+- **Expand trigger**: the leaf element whose exact text is `광고주 정보` / `About the advertiser`.
+  Locator:
+  ```js
+  [...dialog.querySelectorAll('*')].filter(e => {
+    const t=(e.textContent||'').trim();
+    return /^(광고주 정보|About the advertiser|Advertiser info)$/i.test(t)
+        && ![...e.children].some(ch=>/광고주 정보|About the advertiser/i.test(ch.textContent||''));
+  })[0]
+  ```
+- **GOTCHA (load-bearing):** an in-page `el.click()` on the header (or its wrapper) **does NOT toggle**
+  the accordion. A **real CDP `Input.dispatchMouseEvent` at the header's fresh center coords DID** open
+  it (dialog innerText grew 188→261 chars). So the coding task must `scrollIntoView` the header, re-read
+  its `getBoundingClientRect` center, then CDP-click — not `el.click()`.
+- **Revealed content (verbatim, ad `진시황의 비밀`):**
+  ```
+  광고주 정보
+  진시황의 비밀          ← page/advertiser name
+  ID: 275345032325614   ← page ID (≠ library_id)
+  팔로워 35명 •          ← FOLLOWER COUNT
+  건강/뷰티              ← page category
+  추가 정보
+  진시황의 건강 비밀.. 나는 알고 있지   ← page bio
+  ```
+- **follower extraction**: regex on dialog innerText `팔로워\s*([0-9][0-9.,]*\s*(?:천|만|억)?\s*명?)`
+  → raw `"팔로워 35명"` / `"팔로워 192명"`. EN variant: `([0-9][0-9.,]*[KMB]?)\s*followers`.
+  Normalizer must handle KR magnitude suffixes (`천`=×1e3, `만`=×1e4, `억`=×1e8) and the `명` counter,
+  alongside EN `K/M/B`. Note: small advertisers show plain counts (35, 192) — no suffix.
+- page **category** (`건강/뷰티`) and page **ID** are also revealed — available if wanted.
+
+### 8c. Platforms — extractable as deterministic mask-position offsets (count is solid; name needs a table)
+
+Icons under `플랫폼` are a single sprite (`l5lyqjmrz5p.webp`) with **no aria-label/title/alt**, BUT each
+icon has a distinct **`mask-position`** — a deterministic per-platform key. Two live ads:
+
+| Ad | platform count | mask-position Y-offsets (in render order) |
+|---|---|---|
+| `진시황의 비밀` | 2 | `-766px`, `-805px` |
+| `올록담` | 4 | `-766px`, `-805px`, `-818px`, `-831px` |
+
+(all share `x = -387px`; only Y varies.) The **count and identity-keys are reliable**. The
+offset→name mapping (derived from render order + the user's screenshot of a 4-platform ad showing
+Facebook / Instagram / Messenger / Threads, ascending) is **🟡 best-inference, NOT DOM-confirmed**:
+
+| Y-offset | inferred platform |
+|---|---|
+| `-766px` | Facebook |
+| `-805px` | Instagram |
+| `-818px` | Messenger |
+| `-831px` | Threads / Audience Network |
+
+**Recommended extraction for the coding task**: read each platform icon's computed `mask-position`
+(via `getComputedStyle`), collect the Y-offsets in order, and resolve names through a **small maintained
+lookup table** seeded with the values above. The table is the only brittle part (sprite offsets shift
+if Meta re-bakes the sheet) — so store the raw offset too and treat unknown offsets as
+`platform:"unknown(<offset>)"` rather than dropping. **Platforms are NO LONGER recommended for
+omission** — extract them; just keep the offset→name table maintainable.
+
+### 8d. Corrected fixture samples (KR locale, accordion expanded)
+
+```json
+[
+  { "status":"활성", "library_id":"1972922693648310",
+    "started_at":"2026. 2. 26.에 게재 시작함", "advertiser":"진시황의 비밀",
+    "follower_raw":"팔로워 35명", "category":"건강/뷰티", "page_id":"275345032325614",
+    "platform_offsets":["-387px -766px","-387px -805px"], "video_duration":"0:00 / 0:43" },
+  { "status":"활성", "library_id":"1912634476109702",
+    "started_at":"...에 게재 시작함", "advertiser":"올록담",
+    "follower_raw":"팔로워 192명", "category":"건강/뷰티",
+    "platform_offsets":["-387px -766px","-387px -805px","-387px -818px","-387px -831px"],
+    "video_duration":"0:00 / 0:43" }
+]
+```
+(EN-locale equivalents from §6 remain valid: `started_at:"26 Feb 2026"`, `status:"Active"`.)
 
 ---
 
 ### How recon was run
-Throwaway scripts `flows/meta-ad-library/_recon*.mjs` (kept as documentation of method): pass 1 video
-sniff + initial modal attempt; pass 3 DOM-diff that located the real `role=dialog`; pass 4 full modal
-text; pass 5 structured-field extraction + 2 fixture samples + platform-sprite/follower probing.
-Each CDP step is timeout-bounded (`Promise.race` + `sleep`) per the headless-hang gotcha; scrolling is
-in-page `window.scrollBy` (never `Input.mouseWheel`, which never acks in headless).
+Throwaway scripts `flows/meta-ad-library/_recon.mjs` (run-1, EN) and
+`flows/meta-ad-library/_recon_followup.mjs` (run-2, KR locale: accordion expand + platform re-map),
+kept as documentation of method. Method iterated through DOM-diff to locate the real `role=dialog`,
+full-text dump, structured-field extraction, then KR-locale accordion expansion + sprite-offset
+mapping. Each CDP step is timeout-bounded (`Promise.race` + `sleep`) per the headless-hang gotcha;
+scrolling is in-page `window.scrollBy` (never `Input.mouseWheel`, which never acks in headless). The
+accordion required a **real CDP click** (not `el.click()`) to toggle.
