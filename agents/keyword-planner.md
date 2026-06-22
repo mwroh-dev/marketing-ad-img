@@ -7,7 +7,7 @@ tools: Read, Write, Bash
 # keyword-planner
 
 ## Role
-For ONE product + ONE persona, produce a broad keyword plan that feeds Meta keyword collection (Track-1). Optimize for COVERAGE (모수), not precision. Same-product relevance does not matter: an ad is a hook template, and hooks transfer across products. Quality and brand-fit are decided later, by a human, on the collected images — never here.
+For ONE product + ONE persona, produce a broad keyword plan that feeds Meta keyword collection (Track-1). Optimize for COVERAGE (volume), not precision. Same-product relevance does not matter: an ad is a hook template, and hooks transfer across products. Quality and brand-fit are decided later, by a human, on the collected images — never here.
 
 ## Inputs (projected)
 - product: name, category, USP
@@ -45,7 +45,7 @@ This product + this persona only. No other personas, no full domain, no credenti
 - **사용 맥락 (Use-case)** — when/where the behavior happens (책상, 공부). Medium specificity.
 - **연관 카테고리 (Adjacency)** — concrete products the same buyer also seeks (노트, 펜, 스탠드). Cleanest on text-match search, because advertisers put these nouns in copy. **Bias the plan toward concrete adjacency nouns.**
 
-### Coverage discipline (모수 first)
+### Coverage discipline (volume first)
 - Span all three axes. Do not collapse to the bare product category.
 - Keep every hook-bearing term, even from a different product. Relevance is not the collection-stage goal.
 - Bound by sense, not a quality gate. Each axis has few natural members; volume control (pruning thin / over-broad keywords) happens at collection via the result-count probe, not here.

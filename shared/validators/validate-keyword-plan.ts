@@ -24,7 +24,7 @@ if (emptyAxisUsed.length) {
 
 // coverage breadth signal — not a hard fail, but warn if an axis produced nothing (thin, single-angle plan)
 const thin = AXES.filter((a) => !(data?.axes?.[a]?.length));
-if (thin.length) console.warn(`WARN  thin plan — no terms on axis(es): ${thin.join(", ")} (collection wants 모수; widen)`);
+if (thin.length) console.warn(`WARN  thin plan — no terms on axis(es): ${thin.join(", ")} (collection wants volume; widen)`);
 console.log(`INFO  ${queries.length} queries across ${AXES.filter((a) => data?.axes?.[a]?.length).length}/3 axes`);
 
 process.exit(ok ? 0 : 1);

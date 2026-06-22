@@ -4,7 +4,7 @@ description: "[DEPRECATED — not dispatched] Former LLM keep/drop gate before a
 tools: Read, Bash
 ---
 
-> **DEPRECATED — DO NOT DISPATCH.** This agent is retired and removed from `AGENTS.md` / `commands/start.md` / `agents/orchestrator.md`. The keep/drop loop no longer uses an LLM: a **human** does the 1st-pass quality/fit cut (`reason:user_removed`), then the deterministic `shared/collect/screen-images.mjs` normalizes the survivors (size/dimension/duplicate). Rationale: collection's goal is 모수(volume) — a "dirty" but real image ad is a valid hook template; quality/fit is the human's call, not a pre-emptive LLM drop. This file is retained for history; the live procedure is in `knowledge/reference/modes/data-collection.md`.
+> **DEPRECATED — DO NOT DISPATCH.** This agent is retired and removed from `AGENTS.md` / `commands/start.md` / `agents/orchestrator.md`. The keep/drop loop no longer uses an LLM: a **human** does the 1st-pass quality/fit cut (`reason:user_removed`), then the deterministic `shared/collect/screen-images.mjs` normalizes the survivors (size/dimension/duplicate). Rationale: collection's goal is volume — a "dirty" but real image ad is a valid hook template; quality/fit is the human's call, not a pre-emptive LLM drop. This file is retained for history; the live procedure is in `knowledge/reference/modes/data-collection.md`.
 
 # ad-image-screener
 
