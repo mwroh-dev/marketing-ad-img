@@ -123,8 +123,8 @@ export default defineFlow({
       // attach the modal <video> url so the record becomes subtype:"video".
       const assets = (Array.isArray(modalAssets) && modalAssets.length) ? modalAssets : cardAssets;
       const meta = detail ? { ...detail } : {};
-      // For a video ad: attach the video urls to the record's detail. (buildCreativeRecord drops the signed
-      // *_full before persisting; the harness fetches the mp4 from video_url_full inside collectCreative.)
+      // For a video ad: pass the video urls to collectCreative, which fetches the mp4 from the `videoFull`
+      // PARAM (the signed url) and persists only the stripped `videoKey` (buildCreativeRecord drops *_full).
       let videoKey = null, videoFull = null;
       if (video && video.key) { videoKey = video.key; videoFull = video.full; }
       // carousel: one record per image asset, all sharing this ad's detail (recon §2 note). The video url is
@@ -222,7 +222,7 @@ const MODAL_IMG_ASSETS = `(() => {
   const d=${DLG}; if(!d) return [];
   const imgEls=[...d.querySelectorAll('img')];
   let imgs=imgEls.filter(isCreative).map(im=>im.currentSrc||im.src);
-  if(!imgs.length) imgs=imgEls.map(im=>im.currentSrc||im.src).filter(s=>/t39\\.35426/.test(s));  // fallback: don't drop all
+  if(!imgs.length) imgs=imgEls.map(im=>im.currentSrc||im.src).filter(s=>/t39\\.35426/.test(s) && !/s60x60/.test(s));  // fallback: don't drop all, but still exclude the s60x60 advertiser avatar
   const posters=[...d.querySelectorAll('video')].map(v=>v.poster||'').filter(Boolean).filter(s=>/t39\\.35426/.test(s));
   const srcs=imgs.concat(posters).filter(Boolean);
   const seen=new Set(); const out=[];

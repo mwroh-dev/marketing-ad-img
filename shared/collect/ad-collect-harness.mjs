@@ -270,18 +270,9 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
               result.creatives.push(buildCreativeRecord({ kind: "video", key, n, meta: fullMeta, saved: true }));
             } else {
               writeFileSync(`${imgDir}/ad-${n}.jpg`, bytes);
-              // Meta video-via-poster (recon §11): the saved bytes are the POSTER thumbnail; if this card's
-              // detail carried the modal <video>'s signed url, fetch the actual .mp4 NOW (signature still
-              // valid) and write videos/ad-N.mp4. On any failure keep url-only (no fabricated file).
-              let videoSaved = false;
-              if (fullMeta.video_url_full) {
-                const dl = await downloadVideoFile(fullMeta.video_url_full, `${vidDir}/ad-${n}.mp4`, { writeFile: (p, b) => writeFileSync(p, b) });
-                videoSaved = dl.saved;
-                result.coverage_flags.push(dl.saved
-                  ? `video file downloaded (${(dl.bytes / 1024).toFixed(0)}KB) → videos/ad-${n}.mp4`
-                  : `video file not downloaded (${dl.reason}) — url only`);
-              }
-              result.creatives.push(buildCreativeRecord({ kind: "image", key, n, meta: fullMeta, saved: true, videoSaved }));
+              // drain is the buffer→getResponseBody path (Google). Meta no longer uses it (modal-driven
+              // collectCreative replaced it), so there is no per-card detail/video here — a plain image record.
+              result.creatives.push(buildCreativeRecord({ kind: "image", key, n, meta: fullMeta, saved: true }));
             }
           } catch (e) {
             // Video bytes often unavailable via getResponseBody (MSE/range). Keep the URL, skip the file.
