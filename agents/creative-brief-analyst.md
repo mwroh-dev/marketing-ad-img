@@ -57,7 +57,7 @@ claim AND that the category is NOT already saturating.
 One sentence, in the persona's own register (mine `language_cues`). It states the one promise that
 matters most to this persona. Rules:
 - It must trace to ≥1 product claim evidence_ref AND resonate with ≥1 persona pain/desire.
-- Prefer **specificity over adjectives** — replace "빠른" with the measured number when a claim supplies it.
+- Prefer **specificity over adjectives** — replace "fast" with the measured number when a claim supplies it.
 - Set the message and direction, not the headline string. Final render-ready copy is the
   *copy-layout-planner's* job — do not pre-write the headline.
 
@@ -145,13 +145,13 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 ## Every angle is EVIDENCE-grounded (no invention)
 - [ ] Each angle's `evidence_refs` point at a **real** atom in the projected inputs — a specific persona `pain`/`objection`/`language_cue`, a product `claim_id`/`evidence_ref`, an `ad_pattern` field, or a review evidence cluster. An angle with empty or hand-waved `evidence_refs` is a FAIL, not a placeholder.
 - [ ] The evidence actually **supports** the direction it is attached to (the `product_usp` ref names the claim it leads with; the `visual_hierarchy` ref names the `composition_top_k`/`comfort` it reacts to) — not a decorative ref bolted on to pass shape.
-- [ ] `differentiation` names a **concrete contrast point** drawn from `ad_pattern` (e.g. "category leads with `guarantee_pass_claim` hooks; we lead with verifiable 효율") — a differentiation with no named category gap is a slogan, reject it.
+- [ ] `differentiation` names a **concrete contrast point** drawn from `ad_pattern` (e.g. "category leads with `guarantee_pass_claim` hooks; we lead with verifiable efficiency") — a differentiation with no named category gap is a slogan, reject it.
 - [ ] No competitor creative is reproduced — `ad_pattern` is abstracted, never copied.
 
 ## Forbidden-claims guard (CRITICAL — the discriminating logic)
 - [ ] `forbidden_claims` = the brand's list **verbatim** ∪ the **derived-implicit** ones (any persona desire the product CANNOT back with a claim/review evidence becomes a "do not promise" line). Neither half may be empty or partial.
-- [ ] **No forbidden claim appears anywhere** in `core_message`, `differentiation`, or **any** angle `direction` — including paraphrases and *derived-implicit* promises (e.g. brand 금지어 `합격 보장`/`100% 합격` AND any "guaranteed pass / guaranteed speed-to-result" phrasing, even when never literally written).
-- [ ] **The category default does not override the guard**: when `ad_pattern.hook_top_k` / `copy_keywords_top_k` is dominated by a forbidden hook (e.g. `guarantee_pass_claim`, `합격`), that winning hook is **rejected**, not copied into `compelling_claim` just because it has the highest freq/score. `compelling_claim` is re-grounded on a provable atom instead.
+- [ ] **No forbidden claim appears anywhere** in `core_message`, `differentiation`, or **any** angle `direction` — including paraphrases and *derived-implicit* promises (e.g. brand-forbidden terms like "guaranteed pass" / "100% pass" AND any "guaranteed pass / guaranteed speed-to-result" phrasing, even when never literally written).
+- [ ] **The category default does not override the guard**: when `ad_pattern.hook_top_k` / `copy_keywords_top_k` is dominated by a forbidden hook (e.g. `guarantee_pass_claim`, a "guaranteed pass" hook), that winning hook is **rejected**, not copied into `compelling_claim` just because it has the highest freq/score. `compelling_claim` is re-grounded on a provable atom instead.
 - [ ] No unprovable-but-attractive desire survives as a promise — the provable message beats the attractive one.
 
 ## Blocks on missing inputs (does not invent)

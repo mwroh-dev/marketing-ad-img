@@ -3,11 +3,11 @@
 The goal is **the AD DATA ITSELF** — we build an ad for the seller's product by learning from the ads that exist
 in the product's space (layout, copy, hooks, structure), NOT by fixating on a competitor set. So the PRIMARY
 track collects a **broad category/keyword ad corpus** from the public ad-transparency libraries; a confirmed
-competitor frame is an **optional enrichment**, not a prerequisite. Detail cuts (상세컷) are analyzed from the
+competitor frame is an **optional enrichment**, not a prerequisite. Detail cuts are analyzed from the
 seller's **own / user-provided images** via the image refiner — never collected from third-party stores.
 Everything below is governed procedure, scoped to the brand's `target_market` (KR-domestic → Korean ads/sources).
 
-**Steps (for progress reporting, ~5):** 1) `keyword-planner` 3-axis keyword plan + announce → 2) Track 1 keyword corpus collect (dated run, stage=collected) → 3) **human keep/delete review** (HARD GATE, stage=human_reviewed) → 4) deterministic screen (size/dup, stage=screened) → 5) (optional) Track 2 competitor enrichment. Report `[수집 · 단계 k/5]` at each.
+**Steps (for progress reporting, ~5):** 1) `keyword-planner` 3-axis keyword plan + announce → 2) Track 1 keyword corpus collect (dated run, stage=collected) → 3) **human keep/delete review** (HARD GATE, stage=human_reviewed) → 4) deterministic screen (size/dup, stage=screened) → 5) (optional) Track 2 competitor enrichment. Report `[collection · step k/5]` at each.
 
 ## Collection tracks
 
@@ -24,7 +24,7 @@ TRACK 2 — competitor/advertiser ads   (OPTIONAL enrichment · gated by curator
 
 INPUT (not a collected source) — own detail cuts
    The seller's OWN / user-provided detail-page images → image refiner separates the persuasion
-   detail cut (상세컷 = ad) from plain catalog/spec/review/lifestyle cuts → analysis. Not crawled.
+   detail cut (detail-cut = ad) from plain catalog/spec/review/lifestyle cuts → analysis. Not crawled.
 ```
 
 There is no "own→competitor→category" store-scraping order: ad creatives are public-library only (Meta/Google),
@@ -32,15 +32,15 @@ own detail cuts are user-provided. **A run does not need a competitor set to pro
 
 ## Before collecting — seeds (ask first) + source options (let the user pick)
 
-1. **Seed pre-interview** — ask the user FIRST: *"이미 아는 참고 경쟁사·광고·브랜드가 있나요? (있으면 알려주세요)"*. People who
+1. **Seed pre-interview** — ask the user FIRST: *"Do you already know any reference competitors, ads, or brands? (Let us know if so)"*. People who
    know the space can hand us references the search would miss — this is the synergy: user seeds + our search, not
    our search alone. Carry seeds with `is_seed: true`; never block on them (empty is fine).
-2. **Source options** — when announcing *"이제 병렬로 찾아볼게요"*, present WHERE you'll search as **selectable options**,
+2. **Source options** — when announcing *"I'll now search in parallel"*, present WHERE you'll search as **selectable options**,
    labelled by what each yields + access mode, and let the user choose/adjust:
-   - `Meta 광고 라이브러리` — ad creatives (keyword + advertiser), public/no-login.
-   - `Google 광고 투명성` — ad creatives (advertiser only), public/no-login.
-   - `웹검색 / 공개 리뷰` — research signal (who-buys, pains, positioning) from public web + public review pages
-     (네이버·쿠팡·스마트스토어 등 검색에 뜨는 **공개 페이지 읽기**) — NOT ad-creative scraping of those stores, NOT bulk
+   - `Meta Ad Library` — ad creatives (keyword + advertiser), public/no-login.
+   - `Google Ads Transparency` — ad creatives (advertiser only), public/no-login.
+   - `Web search / public reviews` — research signal (who-buys, pains, positioning) from public web + public review pages
+     (public store/product pages that appear in search results — **reading only**) — NOT ad-creative scraping of those stores, NOT bulk
      pagination. Reading what a person sees, STOP-on-block.
    Default to Meta-keyword (Track 1) + the user's chosen extras. Each option's access boundary is the legal line —
    ad creatives only from the public ad-transparency libraries; commerce stores are research/review reading only.
@@ -64,7 +64,7 @@ Submodes the orchestrator may route into: `discovery` (explore a new public-libr
 ## Track 1 — category/keyword ad corpus (PRIMARY, no gate)
 
 This is the default and runs immediately — it does NOT wait on a competitor set:
-1. **Dispatch `keyword-planner`** to expand (product, persona) into a broad **3-axis** keyword plan — 핵심 니즈(Needs) / 사용 맥락(Use-case) / 연관 카테고리(Adjacency) — in the `target_market` language(s). It writes `runs/{run_id}/keyword-plan/keyword-plan-{persona_id}.json` (`keyword-plan.schema.json`) and **announces the keywords per axis** to the user ("핵심 니즈: … / 사용 맥락: … / 연관 카테고리: … — 이 키워드들로 수집하겠습니다"). Goal is coverage (volume), not precision — same-product relevance does not matter (hooks transfer). _(No keyword-plan yet, or a quick run: the deterministic `deriveQueries` cold-start in `scout-rank.mjs` remains as a fallback via the positional query / `--from-model`.)_
+1. **Dispatch `keyword-planner`** to expand (product, persona) into a broad **3-axis** keyword plan — Needs / Use-case / Adjacency — in the `target_market` language(s). It writes `runs/{run_id}/keyword-plan/keyword-plan-{persona_id}.json` (`keyword-plan.schema.json`) and **announces the keywords per axis** to the user (e.g. "Needs: … / Use-case: … / Adjacency: … — I'll collect with these keywords" — phrased in the consumer's `target_market` language). Goal is coverage (volume), not precision — same-product relevance does not matter (hooks transfer). _(No keyword-plan yet, or a quick run: the deterministic `deriveQueries` cold-start in `scout-rank.mjs` remains as a fallback via the positional query / `--from-model`.)_
 2. **Collect** with `${CLAUDE_PLUGIN_ROOT}/shared/collect/run-flow.mjs meta <persona> keyword "" <run> --from-keyword-plan <plan.json>` — Meta Ad Library keyword search returns real ads broadly (not advertiser-bound). Union/dedup across queries. Writes the dated run + `run.json` (stage=collected).
 3. Honestly record per-query result counts + coverage in provenance (which keyword, how many ads, what was thin).
    A thin pool → widen keywords / add a source, and SAY SO; never pad or claim a frame you don't have. **Use the platform result-count as a volume signal**: a keyword returning a rich count → expand adjacent terms around it; a 0-result or absurdly-broad keyword → drop it (this is the collection-stage volume control, not a quality filter).
@@ -112,7 +112,7 @@ Every collection run owns its browser through code — no manual Chrome launch:
 ### Meta: MODAL-DRIVEN per-ad collection (every collected ad gets its detail)
 
 Meta collection is **driven from the modal pass** so that EVERY collected creative is 1:1 with its
-detail by construction (target ≈100% detail coverage; live `다이어트`: **24/24**). The OLD two-pass
+detail by construction (target ≈100% detail coverage; live `diet` product example: **24/24**). The OLD two-pass
 design (grid scroll buffered creative *network* responses; a separate modal pass built a `metaByKey`
 and `drain()` joined them by image-URL key) left ~3/24 creatives detail-less because the
 buffered-creative set and the opened-modal set did not perfectly overlap (CDN size-variant url
@@ -163,7 +163,7 @@ dedupKey-collision drop is no longer needed and is retired). Live verification: 
 is the signed `.mp4` url (a pure DOM read; recon §10). The actual `.mp4` is fetched DIRECTLY by that
 full signed url (recon §11a — bare GET returns the complete file) and written to `videos/ad-N.mp4`; the
 record is `subtype:"video"` with `video_url` (stripped) + `video_file`, and the poster jpg as
-`image_file`. The transient signed url is never persisted (it expires). Live `다이어트`: 4/4 video
+`image_file`. The transient signed url is never persisted (it expires). Live `diet` product example: 4/4 video
 records had a saved `video_file` (valid `ftyp` mp4). `getResponseBody` on the 206 video stream is NOT
 used (it evicts) — the direct-fetch path replaces it.
 
@@ -181,16 +181,16 @@ A proven collection run can be promoted to a repeatable browser-flow so it can b
 
 ## Detail-cut analysis (own / user-provided images)
 
-The seller's own product detail-page images are provided by the user (not crawled). The image refiner separates the persuasion detail cut (상세컷 = ad) from plain catalog/spec/review/lifestyle cuts, then ad analysis runs on the separated cuts. This is an analysis input, not a collected source.
+The seller's own product detail-page images are provided by the user (not crawled). The image refiner separates the persuasion detail-cut (= ad) from plain catalog/spec/review/lifestyle cuts, then ad analysis runs on the separated cuts. This is an analysis input, not a collected source.
 
 ## Human keep/delete review, THEN a deterministic screen (no LLM in the keep/drop loop)
 
 Collection's job is **volume, not quality** — it over-collects on purpose (a "dirty" but real image ad is a valid hook template; same-product relevance does NOT matter, because hooks transfer across products). Quality/fit is decided **after** collection, by a HUMAN — fast, cheap visual cognition beats an LLM relevance pass here, and it keeps the choices the user actually wants instead of letting a model pre-drop them.
 
 Order (both tracks, after collection):
-1. **Human 1st-pass review (HARD GATE).** The orchestrator renders the collected images inline — read `ad-creatives/{persona_id}/ad-creative.json` and present each `images/ad-N.jpg` (in batches) via the Read tool. Tell the user **"○일자 ○건 수집했습니다. 삭제할 것과 남길 것을 골라주세요."** Record the result to `runs/{run_id}/screening/screen-{persona_id}.json` (`image-screening.schema.json`; kept image_files in `kept[]`, user drops in `dropped[]` with `reason: "user_removed"`), then `node ${CLAUDE_PLUGIN_ROOT}/shared/collect/advance-stage.mjs {run_id} human_reviewed --kept M`. Analysis MUST NOT start before the run reaches `human_reviewed`.
+1. **Human 1st-pass review (HARD GATE).** The orchestrator renders the collected images inline — read `ad-creatives/{persona_id}/ad-creative.json` and present each `images/ad-N.jpg` (in batches) via the Read tool. Tell the user **"Collected N items on [date]. Please choose what to keep and what to delete."** (shown in the consumer's `target_market` language). Record the result to `runs/{run_id}/screening/screen-{persona_id}.json` (`image-screening.schema.json`; kept image_files in `kept[]`, user drops in `dropped[]` with `reason: "user_removed"`), then `node ${CLAUDE_PLUGIN_ROOT}/shared/collect/advance-stage.mjs {run_id} human_reviewed --kept M`. Analysis MUST NOT start before the run reaches `human_reviewed`.
 2. **Deterministic screen on the survivors.** `node ${CLAUDE_PLUGIN_ROOT}/shared/collect/screen-images.mjs {run_id} {persona_id} {imagesDir}` — drops only the mechanically-useless (size/dimension/exact duplicate), advances the run to `screened`. **No LLM screener.**
-3. Report "N장 수집 → 사람 검수 M장 남김 → 규격 정리 K장 → 분석" — every drop with its reason is provenance, never silent.
+3. Report "N collected → M kept (human) → K normalized (dedup/size) → analysis" — every drop with its reason is provenance, never silent.
 
 The run ledger `run.json.stage` is the real gate (resumable): `collected → human_reviewed → screened → analyzed` (see `check-state.mjs`, which surfaces any run stuck mid-pipeline).
 

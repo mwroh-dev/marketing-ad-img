@@ -15,8 +15,8 @@ Read ONE detail-cut image (the seller's own / user-provided) and classify its TY
 ## TYPE (pick exactly one)
 - `ad_creative` — **persuasion copy (headline/benefit/value) combined with a designed visual** (the detail-page hook section). THIS is the ad.
 - `catalog` — bare product on white / thumbnail, no marketing copy.
-- `spec` — informational table: 스펙·치수·성분·usage·옵션표 (specs, dimensions, ingredients, usage, option table).
-- `review` — review/UI capture: 별점·후기 인용·고객사진 캡처 (star ratings, review quotes, customer-photo captures).
+- `spec` — informational table: specs, dimensions, ingredients, usage, option table.
+- `review` — review/UI capture: star ratings, review quotes, customer-photo captures.
 - `lifestyle` — product-in-scene photo with little/no marketing copy.
 - `unknown` — genuinely ambiguous / unreadable.
 
@@ -46,8 +46,8 @@ The classification JSON. No prose reasoning log (decision artifact only).
 |---|---|---|
 | `ad_creative` | **Persuasion copy + designed visual** — the detail-page hook section | Headline/benefit claim laid out *with* a styled image |
 | `catalog` | Bare product on white, thumbnail | Product only, no marketing copy |
-| `spec` | Informational table | 스펙·치수·성분·usage·옵션표 (specs/dimensions/ingredients/usage/option table — data, not persuasion) |
-| `review` | Review / rating UI capture | 별점·후기 인용·고객사진 캡처 (star ratings, review quotes, customer-photo captures) |
+| `spec` | Informational table | Specs, dimensions, ingredients, usage, option table — data, not persuasion |
+| `review` | Review / rating UI capture | Star ratings, review quotes, customer-photo captures |
 | `lifestyle` | Product-in-scene photo | Scene with little/no real copy |
 | `unknown` | Genuinely ambiguous / unreadable | Can't read or can't decide |
 
@@ -79,7 +79,7 @@ positive poisons ad analysis with non-ad noise. So when in doubt, do NOT promote
 
 Decision order (stop at the first match):
 1. Is it a **data table** (rows/cells of spec/size/ingredient/option)? → `spec`. STOP.
-2. Is it a **review/rating UI** (별점 / star rating, 후기 카드 / review card, 캡처 / capture)? → `review`. STOP.
+2. Is it a **review/rating UI** (star rating, review card, screenshot capture)? → `review`. STOP.
 3. Is there **persuasion copy fused with a designed visual**? → `ad_creative`.
 4. Is it a **scene/lifestyle photo** with little/no copy? → `lifestyle`.
 5. Is it a **bare product/thumbnail**? → `catalog`.
@@ -98,7 +98,7 @@ classic false-positive traps (they have text), so they are excluded first.
   proof copy is not the seller's hook design. NOT an ad.
 - **Lifestyle photo with a tiny logo or watermark** → `lifestyle`, not `ad_creative`.
   A logo is not persuasion copy.
-- **Catalog shot with a price sticker / "무료배송" (free shipping) badge** → `catalog`. A badge is
+- **Catalog shot with a price sticker / free-shipping badge** → `catalog`. A badge is
   not a hook headline.
 - **Hook section that also contains a small spec line** → `ad_creative` if the
   dominant intent is persuasion + design; the spec line is incidental.
@@ -149,7 +149,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 ## CRITICAL — false_positive = 0 on non-ads
 - [ ] A **spec / ingredient / usage data table** is NEVER `ad_creative` — even with bold/tinted/brand-color header styling. Styling a data grid does not make it persuasion.
 - [ ] A **review / rating UI capture** (★ badge, customer quote cards, buyer-uploaded photos) is NEVER `ad_creative` — social proof is not the seller's hook design.
-- [ ] A **bare catalog shot** (product on white) is NEVER `ad_creative` — a `무료배송` / price / badge is not a hook headline.
+- [ ] A **bare catalog shot** (product on white) is NEVER `ad_creative` — a free-shipping label / price / badge is not a hook headline.
 - [ ] Across all non-ad inputs, the count of `ad_creative` labels is **0**. One non-ad promoted to `ad_creative` poisons downstream ad analysis with noise; this is the single most important metric — it beats recall.
 
 ## Conservative decision order (exclusion before promotion)

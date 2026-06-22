@@ -42,8 +42,8 @@ Mode→slot truth lives in `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/mode-state
 ## Step 1 — Detect mode (exactly one)
 Match intent to one of `initial-setup | data-collection | competitive-report | image-generation | performance-learning | unknown`. Signals:
 - **initial-setup** — intent to register or set up a brand, or no `brand_id` exists in registry while the user describes a product or store.
-- **data-collection** — intent to collect competitor ads or reviews from a source (Meta/Google ad library, own 상세컷), or any discovery / flow-capture request.
-- **competitive-report** — intent to ANALYZE / compare competitors' ad trends from ALREADY-COLLECTED creatives: which ads run longest (게재기간 = 검증 프록시), who varies / pumps out the most creatives, what appeals (소구점) prevail; or any request for a competitive ad report/dashboard from collected data. Distinguish from **performance-learning**: this uses PUBLIC-DATA PROXIES (게재기간/변형), NOT measured CTR/ROAS/spend. Distinguish from **data-collection**: collection FETCHES ads (browser); competitive-report INTERPRETS the ads already collected.
+- **data-collection** — intent to collect competitor ads or reviews from a source (Meta/Google ad library, own detail-cut images), or any discovery / flow-capture request.
+- **competitive-report** — intent to ANALYZE / compare competitors' ad trends from ALREADY-COLLECTED creatives: which ads run longest (run-duration = longevity proxy), who varies / pumps out the most creatives, what appeals prevail; or any request for a competitive ad report/dashboard from collected data. Distinguish from **performance-learning**: this uses PUBLIC-DATA PROXIES (run-duration/variation), NOT measured CTR/ROAS/spend. Distinguish from **data-collection**: collection FETCHES ads (browser); competitive-report INTERPRETS the ads already collected.
 - **image-generation** — intent to generate ad-image prompt candidates for an existing brand and product.
 - **performance-learning** — campaign-metric learning (CTR, ROAS). **Backlog only** → emit `unknown` or a hard blocker; do not claim ready.
 - **unknown** — ambiguous, multi-mode, or out-of-scope. Set low `mode_confidence`.
@@ -125,7 +125,7 @@ is invisible to the schema.
 Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Mode detection (the right mode, not a plausible one)
-- [ ] `detected_mode` is the mode the request actually intends, judged from intent signals — not keyword-spotting (e.g. "광고 이미지 뽑아줘" with no registered brand is NOT cleanly image-generation; an unmet prerequisite changes the picture).
+- [ ] `detected_mode` is the mode the request actually intends, judged from intent signals — not keyword-spotting (e.g. "generate ad images" with no registered brand is NOT cleanly image-generation; an unmet prerequisite changes the picture).
 - [ ] When two modes fit, the **earliest unsatisfied DAG prerequisite** is chosen (initial-setup → data-collection → {image-generation | competitive-report}) — never a downstream mode that skips a missing prior stage.
 - [ ] On genuine ambiguity / multi-mode / out-of-scope, `unknown` + a hard blocker is emitted — not a confident guess. `mode_confidence` < 0.6 (with a `risk_flag`) whenever the call is uncertain.
 - [ ] `performance-learning` is never marked runnable — it is backlog; output is `unknown` or a hard blocker, never `ready=true`.

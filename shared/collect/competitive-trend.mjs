@@ -74,7 +74,7 @@ export function aggregateTrend({ snapshots = [], today } = {}, k = 10) {
   }
   if (noId) flags.push(`${noId} creative(s) lack library_id — excluded from cross-time ad tracking`);
 
-  // 3. finalize each ad. running_days = today − started_at (the longevity / "검증된 광고" proxy; date-independent,
+  // 3. finalize each ad. running_days = today − started_at (the longevity / "verified ad" proxy; date-independent,
   //    works from a SINGLE snapshot — even an undated one). Temporal fields (still_present, observed_span_days)
   //    are set ONLY when the ad was seen in ≥1 / ≥2 DATED snapshots — omitted (never faked) otherwise.
   const adRecs = [];
@@ -92,7 +92,7 @@ export function aggregateTrend({ snapshots = [], today } = {}, k = 10) {
     adRecs.push(rec);
   }
 
-  // 4. longevity ranking — ads WITH running_days, descending (장수 광고 = 검증된 광고 프록시). Ads lacking
+  // 4. longevity ranking — ads WITH running_days, descending (long-running ads = performance proxy). Ads lacking
   //    started_at are excluded (not zero-ranked) + flagged.
   const withRunning = adRecs.filter((a) => typeof a.running_days === "number");
   const longevity_top_k = withRunning
@@ -108,7 +108,7 @@ export function aggregateTrend({ snapshots = [], today } = {}, k = 10) {
   const missingStart = adRecs.length - withRunning.length;
   if (missingStart > 0) flags.push(`${missingStart} tracked ad(s) lack started_at — excluded from longevity ranking`);
 
-  // 5. per-advertiser variation: distinct ads (available from ONE snapshot — "얼마나 많이 찍어내나") + platform mix.
+  // 5. per-advertiser variation: distinct ads (available from ONE snapshot — "how many creatives they produce") + platform mix.
   const advMap = new Map();
   for (const a of adRecs) {
     if (!a.advertiser_name) continue;

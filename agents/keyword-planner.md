@@ -17,7 +17,7 @@ For ONE product + ONE persona, produce a broad keyword plan that feeds Meta keyw
 
 ## Outputs
 - `.generate-ads-img/runs/{run_id}/keyword-plan/keyword-plan-{persona_id}.json` — conforms to `${CLAUDE_PLUGIN_ROOT}/schemas/collection/keyword-plan.schema.json`
-- a per-axis announce to the user: the selected keywords grouped by 핵심 니즈 / 사용 맥락 / 연관 카테고리
+- a per-axis announce to the user: the selected keywords grouped by Needs / Use-case / Adjacency
 
 ## Allowed Skills
 None requiring a browser. Reasoning + Write (the plan) + Bash (run the validator).
@@ -41,9 +41,9 @@ This product + this persona only. No other personas, no full domain, no credenti
 ## Guidelines — method
 
 ### The three axes (a generation frame, not a filter)
-- **핵심 니즈 (Needs)** — the job/desire the buyer solves (a diary → 기록, 회고). Abstract; broadest reach, weakest precision on a text-match platform.
-- **사용 맥락 (Use-case)** — when/where the behavior happens (책상, 공부). Medium specificity.
-- **연관 카테고리 (Adjacency)** — concrete products the same buyer also seeks (노트, 펜, 스탠드). Cleanest on text-match search, because advertisers put these nouns in copy. **Bias the plan toward concrete adjacency nouns.**
+- **Needs** — the job/desire the buyer solves (e.g. for a diary: journaling, reflection). Abstract; broadest reach, weakest precision on a text-match platform.
+- **Use-case** — when/where the behavior happens (e.g. desk, studying). Medium specificity.
+- **Adjacency** — concrete products the same buyer also seeks (e.g. notebook, pen, desk lamp). Cleanest on text-match search, because advertisers put these nouns in copy. **Bias the plan toward concrete adjacency nouns.**
 
 ### Coverage discipline (volume first)
 - Span all three axes. Do not collapse to the bare product category.
@@ -51,7 +51,7 @@ This product + this persona only. No other personas, no full domain, no credenti
 - Bound by sense, not a quality gate. Each axis has few natural members; volume control (pruning thin / over-broad keywords) happens at collection via the result-count probe, not here.
 
 ### Announce, then hand off
-Show the user the plan grouped by axis (e.g. "핵심 니즈: 기록·회고 / 사용 맥락: 책상·공부 / 연관 카테고리: 노트·펜·스탠드"). Informational, not a gate; collection proceeds after.
+Show the user the plan grouped by axis in the consumer's target_market language (e.g. "Needs: journaling·reflection / Use-case: desk·studying / Adjacency: notebook·pen·desk lamp"). Informational, not a gate; collection proceeds after.
 
 ## Verification checklist — output
 The schema validator checks SHAPE only (fields, `keyword` enum, axis keys). This is the LOGICAL gate: judge whether the plan maximizes 3-axis coverage for THIS (product, persona), in-market, without pre-filtering for quality/fit. Schema-valid ≠ correct.

@@ -26,13 +26,13 @@ active blocker, there is nothing to structure — stop and report back.
 
 2. **Read intent against the blocker, not in a vacuum.** You already know what
    was asked (`active_blocker.{slot, type, question}`). Read the answer *as a
-   response to that question*. "메타랑 네이버 둘 다" against "어떤 광고 소스를
-   쓸까요?" clearly resolves the source slot — even though it names no schema
+   response to that question*. "Both Meta and Google" against "Which ad source
+   would you like to use?" clearly resolves the source slot — even though it names no schema
    keyword. Map meaning, not surface strings.
 
 3. **Map to slot(s).** Most answers fill the one blocker slot. But a single
-   answer can legitimately resolve several — "여성 30대, 미백 기능성 화장품
-   셀러" answers persona-age, persona-gender, and product-category at once.
+   answer can legitimately resolve several — "Female, 30s, skin-brightening functional cosmetics
+   seller" answers persona-age, persona-gender, and product-category at once.
    Emit one `normalized_slot_updates` item per slot the text *clearly* covers.
    Do not stretch one phrase across slots it only vaguely implies.
 
@@ -43,9 +43,9 @@ active blocker, there is nothing to structure — stop and report back.
    - `filled` — a clear value is present but a light confirmation is still
      reasonable.
    - `insufficient` — the answer gestures at the slot but the evidence is
-     partial ("화장품 쪽이요" with no sub-category). Keep the partial value,
+     partial ("cosmetics, roughly" with no sub-category). Keep the partial value,
      mark it insufficient — the interview will ask one more targeted question.
-   - `missing` — empty or non-answer ("몰라요", ""). Do not fabricate a value.
+   - `missing` — empty or non-answer ("I don't know", ""). Do not fabricate a value.
 
 5. **Write the artifact and validate.** Build the `user-answer` artifact
    (`answer_id`, `run_id`, verbatim `raw_answer`, `for_blocker.{slot,question}`,
@@ -78,7 +78,7 @@ active blocker, there is nothing to structure — stop and report back.
 ## Pitfalls and how to avoid them
 
 - **Over-interpretation / inventing values.** The cardinal sin. Never infer a
-  slot value the raw text does not explicitly support. "화장품 셀러예요" does
+  slot value the raw text does not explicitly support. "I'm a cosmetics seller" does
   not tell you the target age — leave persona-age `missing`, do not assume.
 - **Paraphrasing the raw answer.** Destroys the audit trail and lets drift creep
   in across turns. Store it byte-for-byte.
@@ -93,17 +93,17 @@ active blocker, there is nothing to structure — stop and report back.
 
 ## Worked illustration
 
-- `active_blocker`: `{ slot: "persona", question: "타깃 고객이 누구인가요?" }`
-- `raw_answer`: `"30대 직장인 여성인데 민감성 피부 화장품 찾는 사람들"`
+- `active_blocker`: `{ slot: "persona", question: "Who is your target customer?" }`
+- `raw_answer`: `"Women in their 30s who are office workers and looking for sensitive-skin cosmetics"`
 
 Read against the blocker, this clearly resolves several persona facets:
 
 ```
 normalized_slot_updates:
-  - { slot: persona.age,        value: "30대",        resulting_state: filled }
-  - { slot: persona.gender,     value: "여성",         resulting_state: confirmed }
-  - { slot: persona.occupation, value: "직장인",       resulting_state: filled }
-  - { slot: persona.need,       value: "민감성 피부용", resulting_state: filled }
+  - { slot: persona.age,        value: "30s",              resulting_state: filled }
+  - { slot: persona.gender,     value: "female",           resulting_state: confirmed }
+  - { slot: persona.occupation, value: "office worker",    resulting_state: filled }
+  - { slot: persona.need,       value: "sensitive skin",   resulting_state: filled }
 ```
 
 `gender` is unambiguous → `confirmed`. The others are clear but a light

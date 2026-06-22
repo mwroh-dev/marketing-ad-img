@@ -13,7 +13,7 @@ Given the deterministic ad-pattern aggregates (already computed by `${CLAUDE_PLU
 - the deterministic ad-pattern aggregate (composition_top_k, text_role_distribution, hook_top_k, comfort)
 
 ## Outputs
-- a `synthesis` string (Korean) to be inserted into `ad-pattern.json`. Does NOT recompute numbers.
+- a `synthesis` string (in the consumer's target_market language) to be inserted into `ad-pattern.json`. Does NOT recompute numbers.
 
 ## Forbidden Actions
 Re-ranking or changing any computed number (the script owns those). Inventing patterns not supported by the aggregates.
@@ -30,7 +30,7 @@ The synthesis string.
 
 ## Guidelines — method
 
-You write ONE Korean `synthesis` string that narrates a single persona's
+You write ONE `synthesis` string (in the consumer's target_market language) that narrates a single persona's
 ad-pattern. The numbers already exist — `${CLAUDE_PLUGIN_ROOT}/shared/collect/ad-pattern-rank.mjs`
 computed every aggregate deterministically (no LLM, no network). Your job is
 interpretation ON TOP OF those aggregates, never recomputation.
@@ -58,27 +58,26 @@ interpretation ON TOP OF those aggregates, never recomputation.
 A strong synthesis is 1–3 sentences and weaves together:
 1. **Dominant composition** — name the top `composition_top_k.value`(s). If a
    single entry clearly leads (high `freq`/`score`), call it dominant; if the
-   top two are close, say "주로 X, 일부 Y" rather than forcing one winner.
+   top two are close, say "mainly X, some Y" rather than forcing one winner.
 2. **Text technique** — describe `text_role_distribution` (which roles dominate:
    headline vs CTA vs review_quote …) and the leading `hook_top_k` (question/contrast/result/
    empathy/number). Optionally cite 1–2 `copy_keywords_top_k` as flavor.
 3. **Comfort verdict** — translate `comfort` into a plain reading:
    - low `avg_crowding` + high `avg_whitespace` + low `awkward_rate`
-     → "여백 충분, 답답함 X / 안 답답함".
-   - high `avg_crowding` and/or high `awkward_rate` → "정보 밀도 높아 다소
-     답답/빽빽", and say so honestly even if the composition story is clean.
+     → "generous whitespace, not cramped".
+   - high `avg_crowding` and/or high `awkward_rate` → "high information density, somewhat cramped/packed",
+     and say so honestly even if the composition story is clean.
 4. **Actionable lean** (optional) — one short cue the creative pipeline can use
-   ("CTA를 뱃지로 강조하는 경향" 등), only if directly supported by the numbers.
+   (e.g. "tendency to emphasize CTA as a badge"), only if directly supported by the numbers.
 
-Shape example (illustrative, not a template to paste):
-"이 페르소나는 lifestyle 컷이 주를 이루고(comparison_table 일부), 텍스트는 headline+
-number형 훅 중심이다. 여백이 넉넉해 답답하지 않다."
+Shape example (illustrative, not a template to paste; written in the consumer's target_market language):
+"This persona is dominated by lifestyle compositions (comparison_table in some), with text centered on headline + number-type hooks. Whitespace is generous — not cramped."
 
 ## Thin / conflicting aggregates (failure modes)
 - **Thin** (`image_count` small, sparse top-k): emit a SHORT synthesis and set
   `confidence_note` flagging low sample. Do not manufacture a confident pattern.
 - **No clear top** (top-k spread, near-equal freqs): describe the spread
-  honestly — "구성이 분산되어 뚜렷한 우세 패턴 없음" — rather than picking one.
+  honestly — "compositions are spread with no clear dominant pattern" — rather than picking one.
 - **Mixed comfort vs composition**: report both truthfully; a clean composition
   story does not let you soften a high crowding/awkward signal.
 - **Empty arrays**: say the dimension is unobserved; never backfill.
@@ -99,9 +98,9 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 
 ## Consistency with the aggregate (the discriminating logic)
 - [ ] The synthesis MATCHES the deterministic aggregates — it does NOT contradict the numbers. (e.g. it must NOT claim headlines/CTA dominate when `text_role_distribution` shows review_quote/lifestyle leading; it must NOT name a composition other than the top `composition_top_k.value` as the leader.)
-- [ ] "Dominant" wording tracks relative `freq`/`score`: a single clear leader → call it dominant; near-equal top two → "주로 X, 일부 Y", never a forced single winner.
+- [ ] "Dominant" wording tracks relative `freq`/`score`: a single clear leader → call it dominant; near-equal top two → "mainly X, some Y", never a forced single winner.
 - [ ] The named leading text role and hook match the highest entries in `text_role_distribution` / `hook_top_k` — not a marketing prior pasted over the data.
-- [ ] The comfort verdict is directionally consistent with `avg_crowding` / `avg_whitespace` / `awkward_rate` (low crowding + high whitespace + low awkward → "여백 충분 / 안 답답함"; high crowding/awkward → "다소 답답/빽빽"). A clean composition story does not let a high-crowding signal be softened.
+- [ ] The comfort verdict is directionally consistent with `avg_crowding` / `avg_whitespace` / `awkward_rate` (low crowding + high whitespace + low awkward → "generous whitespace, not cramped"; high crowding/awkward → "somewhat cramped/packed"). A clean composition story does not let a high-crowding signal be softened.
 
 ## Grounding (no invention, no recompute)
 - [ ] Every composition / hook / role / keyword named appears as a `value` in the aggregate arrays — none invented, paraphrased, or imported from world knowledge or other personas.
@@ -119,7 +118,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 
 ## Faithfulness
 - [ ] `product_id` / `persona_id` match the projected inputs; the synthesis is for THIS persona's aggregate only, not a blend or a global prior.
-- [ ] The `synthesis` output stays Korean and is concise, and validates against `${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-pattern.schema.json`.
+- [ ] The `synthesis` output is concise and written in the consumer's target_market language, and validates against `${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-pattern.schema.json`.
 
 > Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
 > on real data — at self-review and again at independent review. The "must NOT" criteria anchor

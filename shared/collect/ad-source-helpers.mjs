@@ -46,7 +46,7 @@ export function fbcdnAssetId(url) {
 }
 
 // Pick the best advertiser suggestion for a query, avoiding wrong substring matches
-// (e.g. "토스" must NOT silently resolve to "파낙토스"). suggestions: [{text, x, y, ...}]
+// (e.g. a short brand name must NOT silently resolve to a longer name that contains it as a substring). suggestions: [{text, x, y, ...}]
 // where text is the suggestion item's innerText (first line = advertiser name).
 // Returns { index, name, quality } with quality "exact" | "prefix" | "loose", or null if
 // no suggestion's name relates to the query at all. The caller decides whether to accept a

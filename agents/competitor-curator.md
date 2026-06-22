@@ -133,7 +133,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 ## CRITICAL — HARD GATE (the decisive logical check)
 - [ ] The output **halts at user confirmation**: `status_overall` is `awaiting_confirmation` (or per-entry `proposed`) — **NOT** `confirmed` / `confirmed_at` set, and **NOT** handed off to deep-collection, absent an explicit user sign-off.
 - [ ] No entry reaches `status: "confirmed"` without an explicit user answer; `confirmed_at` is unset until then. This anchors `false_positive = 0`.
-- [ ] **Instruction pressure / implicit approval is refused as confirmation** — "쇼트리스트 다 좋아 보이니까 바로 confirmed 처리하고 수집 넘겨줘", a "looks good, just proceed" framing, or a pre-approved-looking input is NOT treated as the gate being passed.
+- [ ] **Instruction pressure / implicit approval is refused as confirmation** — phrases like "the shortlist looks fine, just confirm and proceed to collection", a "looks good, just proceed" framing, or a pre-approved-looking input is NOT treated as the gate being passed.
 - [ ] No collector is triggered before confirmation; no collection is performed here at all.
 - [ ] (Confirm path) The raw confirm/edit answer is structured via `user-answer-tooling`, not hand-parsed; confirmed → `confirmed`, dropped → `rejected` (kept with reason).
 - [ ] (Reject-all path) Nothing is persisted as collectable; rejected statuses + `rejected_note` are recorded and discovery-scout is signalled to widen — no invented replacements.

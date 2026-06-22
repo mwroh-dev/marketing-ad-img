@@ -73,8 +73,8 @@ Decision order (stop at first match):
 1. Is it a **quoted customer voice / rating**? → review_quote.
 2. Is it a **price/discount figure**? → price.
 3. Is it an **imperative to act**? → cta.
-4. Is it a **short status sticker** (배송/혜택/순위/수량)? → badge.
-5. Is it a **data/attribute label** (수치·성분·옵션, no persuasion)? → spec_label.
+4. Is it a **short status sticker** (shipping / benefit / ranking / quantity)? → badge.
+5. Is it a **data/attribute label** (numeric value, ingredient, option — no persuasion)? → spec_label.
 6. Is it the **primary hook/promise**? → headline.
 7. Does it **support/explain** the hook? → subcopy.
 8. Else → other.
@@ -89,10 +89,10 @@ prevents mis-labelling a price or badge as a headline.
 
 `other` degrades the downstream pattern model. Before emitting it, run one more pass:
 
-- A bare number with a unit (300ml, 24개월) → almost always **spec_label**, not other.
+- A bare number with a unit (300ml, 24 months) → almost always **spec_label**, not other.
 - A short benefit phrase → **subcopy**, not other.
 - A brand/product name alone → **spec_label** (an attribute label) before other.
-- "더보기 / 자세히" type nudges → **CTA**.
+- "See more / View details" type nudges → **CTA**.
 - Emit other only when the text is fragmentary, unreadable, or genuinely category-less.
 
 other must remain a rare exception, not a catch-all. If more than a small fraction of
@@ -107,11 +107,11 @@ subcopy). badge/price/spec_label/CTA usually carry no hook — leave `hook_type`
 
 | Hook | Definition | Signal |
 |---|---|---|
-| question | Surfaces a latent pain/desire as a question | "아직도 ~하세요?", "?" framing |
-| contrast | Counter-intuitive / before↔after / us-vs-them contrast | "~인데 ~", 반전·역설 |
-| result | Leads with the outcome, not the product | "30일 만에 ~", benefit-first |
-| empathy | Names the pain in the reader's own words first | "매일 ~때문에 힘드시죠" |
-| number | Quantified claim as the hook | "단 1개로", "3배 빠른", stat-led |
+| question | Surfaces a latent pain/desire as a question | "Still struggling with ~?", "?" framing |
+| contrast | Counter-intuitive / before↔after / us-vs-them contrast | "~yet ~", reversal/paradox |
+| result | Leads with the outcome, not the product | "In 30 days ~", benefit-first |
+| empathy | Names the pain in the reader's own words first | "Exhausted every day because of ~" |
+| number | Quantified claim as the hook | "With just 1", "3× faster", stat-led |
 | other | Has hook intent but fits none cleanly | Use sparingly |
 
 (Maps to copywriting-techniques README: question/contradiction/outcome/empathy hooks,
@@ -122,9 +122,9 @@ plus number as the quantified variant.)
 ## sentence_patterns (free text, structural)
 
 One short prose description of recurring sentence *structures* across the copy —
-NOT a restatement of content. Look for: imperative vs declarative mix, 명사형 종결
-("~끝", "~완성"), question framing, number+unit cadence, parallelism/repetition,
-2인칭("당신/여러분") usage, short punchy fragments vs full sentences. Example:
+NOT a restatement of content. Look for: imperative vs declarative mix, noun-ending sentence closure
+(e.g. "~done", "~complete"), question framing, number+unit cadence, parallelism/repetition,
+second-person ("you / everyone") usage, short punchy fragments vs full sentences. Example:
 "Mostly short noun-ending declarative sentences with number emphasis; headlines are interrogative, CTAs are imperative."
 
 ---
@@ -135,7 +135,7 @@ List the meaning-bearing terms in the copy — product-category, feature, target
 benefit, and technique words. These feed ad-analyst → keyword-model:
 
 - Extract **canonical surface forms** as they appear; downstream normalizes/ranks.
-- Preserve loanwords (영어 외래어) — do NOT drop them. The canonical Hangul ←→ english
+- Preserve loanwords (English loanwords written in the local script) — do NOT drop them. The canonical Hangul ←→ English
   map lives in `copywriting-techniques/loanword-seed.json` (canonical Hangul ← English + spelling variants).
 - Keep nouns/noun-phrases; drop pure function words and filler.
 - Do NOT rank, score, or dedup across images — that's the deterministic script.
@@ -146,7 +146,7 @@ benefit, and technique words. These feed ad-analyst → keyword-model:
 
 - **No text** (pure product shot) → `copy_elements: []`. Do not fabricate roles.
 - **Unreadable fragment** → classify content as given; other only if truly category-less.
-- **Tall 상세컷 split into sections** → you analyze the one extraction you were given;
+- **Tall detail-cut split into sections** → you analyze the one extraction you were given;
   do not stitch across sections.
 
 ---
@@ -169,27 +169,27 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 
 ## Grounding (no invention)
 - [ ] Every `copy_elements[].content` traces verbatim to a `text_elements[].content` in the read extraction — none invented, paraphrased, re-OCR'd, or corrected.
-- [ ] No text was stitched across sections; the analysis covers only the one extraction projected (a tall 상세컷 slice is analyzed alone).
+- [ ] No text was stitched across sections; the analysis covers only the one extraction projected (a tall detail-cut slice is analyzed alone).
 - [ ] Pure product shot (no text) → `copy_elements: []`, not fabricated roles.
 
 ## text_role from CONTENT/function (judgment, not keyword-spotting, not geometry)
-- [ ] Each `text_role` is judged from what the sentence **does** — the hook/promise it makes, the action it commands, the label it carries — not from a surface keyword match. (e.g. "아직도 ~세요?" → `headline` because it hooks; "지금 구매하기" → `cta` because it commands an action.)
+- [ ] Each `text_role` is judged from what the sentence **does** — the hook/promise it makes, the action it commands, the label it carries — not from a surface keyword match. (e.g. "Still ~?" → `headline` because it hooks; "Buy now" → `cta` because it commands an action.)
 - [ ] No role decision is justified by `font_size_scale`, `bbox`, `bold`, `color_hex`, or `align` — those are decoys for layout-analyst (the ⊥ split). A headline is what the sentence does, never that it's big/top/bold.
 - [ ] The concrete-first exclusion order held: review_quote · price · cta · badge · spec_label were each ruled out **before** headline/subcopy (a price/badge/rating is never mislabelled as a headline because it happened to be prominent).
 - [ ] `hook_type` is judged from **rhetorical function**, not vocabulary: question = surfaces a latent pain as a question; contrast = reversal/before-after; result = outcome-first; empathy = names the pain in the reader's words; number = the quantified claim *is* the hook. Applied to hook-bearing lines (headline / strong subcopy); off or `other` on badge/price/spec_label/cta.
 
 ## Avoid `other` as a lazy default (the discriminating logic)
 - [ ] `other` is used only where the text genuinely has no role — never as a catch-all. Each candidate was pushed back through the decision order before defaulting.
-- [ ] A bare number+unit ("300ml", "24개월", "유산균 100억 CFU") → `spec_label`, **not** `other`.
-- [ ] A short benefit/empathy phrase ("까다로운 우리 아이도 잘 먹어요") → `subcopy`, **not** `other`.
-- [ ] A "더 알아보기 / 자세히" nudge → `cta`, **not** `other`; a bare brand/product name → `spec_label` before `other`.
+- [ ] A bare number+unit ("300ml", "24 months", "100 billion CFU") → `spec_label`, **not** `other`.
+- [ ] A short benefit/empathy phrase (e.g. "Even our picky kid eats it") → `subcopy`, **not** `other`.
+- [ ] A "See more / View details" nudge → `cta`, **not** `other`; a bare brand/product name → `spec_label` before `other`.
 - [ ] A high `other` rate means under-classification (re-run the decision order). Small/bottom/faint geometry is **never** a reason to demote a classifiable text to `other` — that's a geometry leak.
 
 ## sentence_patterns describes structure (not content)
-- [ ] `sentence_patterns` describes recurring sentence **structure** (imperative vs declarative mix, 명사형 종결, question framing, number+unit cadence, parallelism, 2인칭 usage, fragments vs full sentences) — **not** a paraphrase or restatement of the copy's content.
+- [ ] `sentence_patterns` describes recurring sentence **structure** (imperative vs declarative mix, noun-ending closure, question framing, number+unit cadence, parallelism, second-person usage, fragments vs full sentences) — **not** a paraphrase or restatement of the copy's content.
 
 ## keywords feed the model faithfully (no ranking)
-- [ ] `keywords` are the meaning-bearing surface forms as they appear (product-category, feature, target, benefit, technique) — Korean preserved verbatim, loanwords (외래어) kept, not dropped or anglicized.
+- [ ] `keywords` are the meaning-bearing surface forms as they appear (product-category, feature, target, benefit, technique) — copy text preserved verbatim in the source language, loanwords kept, not dropped or anglicized.
 - [ ] `keywords` carry **no** score/tf/df/rank/order field and are not deduped across images — ranking/normalization is the deterministic script's job (ad-analyst → keyword-model), not the agent's.
 
 ## Faithfulness
@@ -219,7 +219,7 @@ Canonical sources for this agent. Paths are repo-root relative and verified.
   `font_size_scale`, `color_hex`, `bold`, `shadow`, `align`, `line_breaks` — those
   are geometry/typography for layout-analyst.
 - @../ocr-extractor/AGENT.md — the upstream extractor's contract (mechanical, no
-  interpretation; tall 상세컷 may be split into multiple extractions).
+  interpretation; tall detail-cuts may be split into multiple extractions).
 
 ## Sibling (the ⊥ split — geometry, not yours)
 - @../layout-analyst/AGENT.md — analyzes the SAME ocr-extraction's GEOMETRY only

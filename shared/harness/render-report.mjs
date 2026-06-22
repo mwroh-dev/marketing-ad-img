@@ -2,7 +2,7 @@
 // Reads the authored-once template (competitive-report.template.html) and replaces its <!--TOKEN--> markers
 // with HTML-escaped fragments built from the trend aggregate. An LLM never regenerates the HTML per run.
 //
-// Honesty: absent data renders an explicit "아직 관측 불가 / 누적 필요" note — never fabricated rows. Every
+// Honesty: absent data renders an explicit "not yet observable / more snapshots needed" note — never fabricated rows. Every
 // coverage_flag is surfaced (the provenance/gap trail required by completion-verification-policy).
 //
 // Usage: node shared/harness/render-report.mjs <competitive-trend.json> [out.html]

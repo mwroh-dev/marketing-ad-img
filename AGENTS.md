@@ -13,16 +13,16 @@ Agents are contracts, not code. Each agent definition must contain: Role, Inputs
 | `request-evaluator` | evaluation | mode/slot/blocker decision (+ source-planner mode-detection) |
 | `interview-controller` | evaluation | blocker-resolution interview loop |
 | `brand-researcher` | setup | initial-setup brand self-research from PUBLIC sources (page/reviews/positioning, one angle per dispatch, parallel) → evidence-grounded category/persona candidates |
-| `keyword-planner` | collection | Track-1 ad-search keyword plan: expands (product, persona) across 3 axes (핵심 니즈 / 사용 맥락 / 연관 카테고리) into keyword queries — generation only, no CDP. Feeds run-flow.mjs --from-keyword-plan |
+| `keyword-planner` | collection | Track-1 ad-search keyword plan: expands (product, persona) across 3 axes (Needs / Use-case / Adjacency) into keyword queries — generation only, no CDP. Feeds run-flow.mjs --from-keyword-plan |
 | `discovery-scout` | collection | advertiser discovery via public ad-library search (Meta/Google) + user-provided competitor seeds (search/list only, recall) |
 | `competitor-curator` | collection | competitor-selection HARD GATE |
-| `ad-creative-refiner` | collection | detail-cut (상세컷) TYPE classification on the seller's own / user-provided images (persuasive detail-cut = ad separation) |
+| `ad-creative-refiner` | collection | detail-cut TYPE classification on the seller's own / user-provided images (persuasive detail-cut = ad separation) |
 | `ocr-extractor` | analysis | mechanical image→OCR geometry+text |
 | `copy-analyst` | analysis | text-role/hook/keyword (text meaning only) |
 | `layout-analyst` | analysis | composition + comfort (geometry only) |
 | `ad-analyst` | analysis | keyword extraction/normalization/slot-labeling |
 | `pattern-synthesizer` | analysis | per-persona ad-pattern description |
-| `competitive-analyst` | analysis | per-persona competitive-trend narrative (longevity/variation/change + 소구점) ON TOP of the deterministic trend aggregate |
+| `competitive-analyst` | analysis | per-persona competitive-trend narrative (longevity/variation/change + appeals) ON TOP of the deterministic trend aggregate |
 | `creative-brief-analyst` | generation | creative brief synthesis (brand/product/persona/review/pattern projection) |
 | `copy-layout-planner` | generation | per-candidate copy + layout |
 | `image-prompt-adapter` | generation | provider-neutral spec → ChatGPT/Gemini prompt (+ image-adapter-* skills) |

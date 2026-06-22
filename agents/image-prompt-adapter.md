@@ -182,7 +182,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 ## Forbidden claims: encoded as negatives, never promoted
 - [ ] Every `style.avoid[]` entry AND the brief's `forbidden_claims` are encoded into `negative_prompt` in **both** outputs — none silently dropped (a legally-sensitive health/wellness avoid list must be fully present). For a non-premium brand, wrong-register negatives (e.g. "no luxury/premium styling") are present too.
 - [ ] For ChatGPT, each avoid entry is **also** mirrored into the prompt-body "Do NOT include: …" clause (gpt-image ignores a separate negative field).
-- [ ] No forbidden/unauthorized claim is **promoted** into either prompt — the adapter adds visual framing only; it never invents an unauthorized certification badge (`식약처 인증`, `KC 인증`), an efficacy line (a supplement `다이어트 효과`, a gadget `군사규격 방수`), before/after imagery, or any claim the spec did not authorize. (Certification/efficacy claim *types* are domain-general; the domain wrapper is just an example — never assume a domain.)
+- [ ] No forbidden/unauthorized claim is **promoted** into either prompt — the adapter adds visual framing only; it never invents an unauthorized certification badge (e.g. a regulatory-agency approval badge), an efficacy line (e.g. a supplement "weight-loss effect", a gadget "military-grade waterproof"), before/after imagery, or any claim the spec did not authorize. (Certification/efficacy claim *types* are domain-general; the domain wrapper is just an example — never assume a domain.)
 
 ## Prompt-only & faithful references (hard boundary)
 - [ ] No ChatGPT / Gemini / image-provider API was called, invoked, or simulated — JSON artifacts only.

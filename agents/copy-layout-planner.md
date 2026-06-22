@@ -58,8 +58,8 @@ by construction — do not let them converge into four phrasings of the same ide
 ### 3. Claim discipline (HARD)
 - Scan every line against `forbidden_claims`. If a phrasing matches or paraphrases a forbidden
   claim, rewrite it — never emit it.
-- Every factual/superlative claim ("최고", "유일", "1위", numeric results) must trace to an
-  `evidence_ref` from the brief. No evidence → hedge ("대부분", "~한 분들이 많아요") or drop it.
+- Every factual/superlative claim ("best", "only", "#1", numeric results) must trace to an
+  `evidence_ref` from the brief. No evidence → hedge ("most", "many people find…") or drop it.
 - Implicit claims count: a headline implying a result is held to the same evidence standard.
 
 ### 4. Plan layout (`layout` object): `composition` + `text_density` (required), then optionals
@@ -130,16 +130,16 @@ and render-ready. A schema-valid plan that fails this checklist is still a defec
 Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Claim discipline (CRITICAL — the gate that overrides everything)
-> Forbidden **claim types** are domain-general and always apply: absolute cure/improvement claims, superlatives (1위/최고/유일), 100%/완벽 guarantees, and unverified authority (의사추천/식약처). Never assume a product domain — the actual product/copy come from THIS run's projected input.
-- [ ] **Zero forbidden claims.** No `headline`/`subcopy`/`cta` contains *or paraphrases* a brief `forbidden_claim` — cure/medical-efficacy (치료/개선, 완치, 의학적 효능 — e.g. a skincare "아토피 완치", a supplement "혈압 정상화"), nor superlatives (1위, 100%, 의사 추천). A natural-reading paraphrase ("아토피에도 안심", "의사도 인정", "낫는 느낌", "관절이 좋아져요") is still a forbidden claim.
+> Forbidden **claim types** are domain-general and always apply: absolute cure/improvement claims, superlatives (#1/best/only), 100%/perfect guarantees, and unverified authority (doctor-endorsed/regulatory-certified). Never assume a product domain — the actual product/copy come from THIS run's projected input.
+- [ ] **Zero forbidden claims.** No `headline`/`subcopy`/`cta` contains *or paraphrases* a brief `forbidden_claim` — cure/medical-efficacy claims (e.g. a skincare "eczema cured", a supplement "blood-pressure normalized"), nor superlatives (#1, 100%, doctor-recommended). A natural-reading paraphrase (e.g. "safe even for sensitive skin", "even doctors agree", "feels like it's healing", "joints feel better") is still a forbidden claim.
 - [ ] **Implicit claims count.** A headline that merely *implies* a forbidden result (cure/normalization) is held to the same standard as the literal claim — judged by meaning, not by keyword match.
-- [ ] **Every factual/superlative claim traces to an `evidence_ref`.** Numeric results and 최고/유일/1위/100% must map to a brief evidence_ref. No ref → hedged (대부분, ~한 분들이 많아요) or dropped — never asserted as fact. 전언/hearsay ("의사도 추천한다고 들음") is **not** an evidence_ref.
+- [ ] **Every factual/superlative claim traces to an `evidence_ref`.** Numeric results and best/only/#1/100% must map to a brief evidence_ref. No ref → hedged ("most", "many find…") or dropped — never asserted as fact. Hearsay ("I heard doctors recommend it") is **not** an evidence_ref.
 - [ ] The angle that carries the claim (e.g. `compelling_claim`) is **not skipped** to dodge the trap — it is rewritten to a backed/hedged outcome. Angle coverage is preserved.
 
 ## Per-angle distinctness (judgment, not field-presence)
-- [ ] The 4 candidates use **4 different hook types** — not four rewordings of one USP. When the angles orbit a single strong USP, the copy must still DIVERGE: 제법강점 / 페인공감 / 근거수치 / 비주얼리드.
+- [ ] The 4 candidates use **4 different hook types** — not four rewordings of one USP. When the angles orbit a single strong USP, the copy must still DIVERGE: product strength / pain empathy / evidence-backed claim / visual lead.
 - [ ] Each candidate keeps the hook its angle demands: `product_usp` leads on the concrete strength; `persona_response` opens on the persona's pain in their words (empathy, not a spec line); `compelling_claim` leads on the backed outcome; `visual_hierarchy` is minimal copy with the product/visual as hero.
-- [ ] No two headlines are near-duplicates — different focal emphasis, not synonym swaps of one line. (e.g. not all four variants of one idea — a cosmetic's "촉촉하게 빠르게 흡수", a gadget's "한 번 충전 30시간", an apparel item's "가볍고 따뜻하게".)
+- [ ] No two headlines are near-duplicates — different focal emphasis, not synonym swaps of one line. (e.g. not all four variants of one idea — a cosmetic's "absorbs quickly and deeply", a gadget's "30 hours on a single charge", an apparel item's "light yet warm".)
 - [ ] No angle is collapsed into another `product_usp` spec line instead of producing its own hook.
 
 ## Density ↔ angle consistency (logical, not enum-presence)
@@ -149,7 +149,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 ## Authored-once (errors propagate — this is the canonical Korean text)
 - [ ] Copy is final, render-ready Korean exactly as it should appear in the image — no placeholder, no "[TODO]", no provisional phrasing deferred to a downstream polish (there is none).
 - [ ] `language` is `ko`; copy stays Korean — not translated, transliterated, or English-mixed for a later pass.
-- [ ] Every `headline` and `cta` is non-empty and substantive (not "제목", "CTA" stand-ins); `subcopy` is a real supporting line or `null` (omitted when it earns nothing), never filler.
+- [ ] Every `headline` and `cta` is non-empty and substantive (not placeholder stand-ins like "Headline" or "CTA"); `subcopy` is a real supporting line or `null` (omitted when it earns nothing), never filler.
 - [ ] Because the image-prompt-adapter preserves this byte-for-byte, any defect above (a slipped claim, a duplicate, wrong language) propagates uncorrected — judge it here as final, not as a draft.
 
 ## Style carried downstream (the adapter depends on it)

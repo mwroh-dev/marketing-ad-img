@@ -35,14 +35,14 @@ Putting only summary numbers in the verification result is **invalid (fake)**. T
 
 ## Provenance / search-trail reporting (collection + research)
 
-When a collection or research step reports to the user, a **thin conclusion is not acceptable** ("경쟁사는 1개입니다").
+When a collection or research step reports to the user, a **thin conclusion is not acceptable** (e.g., "There is 1 competitor.").
 The user paid LLM tokens to search — show the **trail** so the result is trustworthy and can be built on:
 - **WHERE**: each source actually used (Meta Ad Library / Google Ads Transparency / web search / a public review page) + access mode.
 - **WHAT QUERY**: the exact keywords/advertiser names searched, per source.
 - **WHAT WAS FOUND**: counts (N ads, M reviews), the locations (image file paths / URLs), what kind (ad image / detail page / review).
-- **WHAT WAS MISSING**: every gap honestly — "Meta surface 미구현", "no_advertiser_match: X", "검색했으나 부족" — as coverage flags, never silent.
+- **WHAT WAS MISSING**: every gap honestly — "Meta surface not yet implemented", "no_advertiser_match: X", "searched but insufficient" — as coverage flags, never silent.
 The artifacts already carry this (source / search / queries / coverage_flags / image_url / sources_consulted); the
-report must SURFACE it, not hide it behind a summary. "A·B를 검색해 여기서 N개, 저기서는 부족" is the shape — a
+report must SURFACE it, not hide it behind a summary. "Searched A and B — found N here, insufficient there" is the shape — a
 defensible trail the user can extend, vs an unsourced verdict they cannot trust.
 
 ## How to run it again (without lanes)

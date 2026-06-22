@@ -37,7 +37,7 @@ tools: Read, Bash
 `.generate-ads-img/runs/{run_id}/screening/screen-{persona_id}.json` conforming to
 `${CLAUDE_PLUGIN_ROOT}/schemas/collection/image-screening.schema.json`:
 `{ run_id, persona_id, total, kept: [image_file...], dropped: [{ image_file, reason }] }`.
-Only `kept` images proceed to analysis. Report to the user: **"N장 수집 → M장 유효(분석 대상), K장 제외(사유별 카운트)"**
+Only `kept` images proceed to analysis. Report to the user the keep/drop tally in the consumer's target_market language: **"N collected → M kept (analysis targets), K dropped (count by reason)"**
 — never silently drop; the dropped list with reasons is part of the provenance trail.
 
 ## Forbidden

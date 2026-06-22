@@ -45,7 +45,7 @@ export async function gotoRoot(client, url) {
   // /search), or any querystring/hash — is HACKY deep-linking: it is stripped to the origin.
   // Deep content (a specific product, a search result) must be reached FROM here by real
   // search + click, never by navigating an assembled URL. Direct deep-links trip bot-walls
-  // ("서비스 접속 불가") and violate the no-URL-assembly rule.
+  // ("service unavailable") and violate the no-URL-assembly rule.
   let u;
   try { u = new URL(url); } catch { throw new Error(`gotoRoot: invalid url ${url}`); }
   const segs = u.pathname.split("/").filter(Boolean);
@@ -145,7 +145,7 @@ export async function realScroll(client, dy = 800) {
   // Genuine page scroll. headless=new never acks Input.dispatchMouseEvent{mouseWheel}
   // (the call hangs forever), so we scroll the document directly — a real scroll of the
   // page, NOT DOM value injection / synthetic submit. (lib already scrolls via JS in
-  // scrollIntoView; cdp-non-intrusive.md lists "실제 스크롤" as allowed.)
+  // scrollIntoView; cdp-non-intrusive.md lists "real scroll" as allowed.)
   await client.Runtime.evaluate({ expression: `window.scrollBy(0, ${Number(dy) || 800});`, returnByValue: true });
   await sleep(700);
 }

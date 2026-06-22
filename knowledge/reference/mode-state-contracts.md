@@ -161,7 +161,7 @@ Purpose:
 
 ```txt
 Interpret ALREADY-COLLECTED ad creatives (across dated snapshots) into a per-persona competitive report:
-longevity ranking (게재기간 = 검증 프록시), per-advertiser variation/cadence, new/disappeared, 소구점. Consumer HTML.
+longevity ranking (run-duration = longevity proxy), per-advertiser variation/cadence, new/disappeared, appeals. Consumer HTML.
 Uses PUBLIC-DATA PROXIES only — never measured CTR/ROAS/spend (that is performance-learning, backlog).
 ```
 

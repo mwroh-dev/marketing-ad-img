@@ -1,9 +1,8 @@
 # competitive-report — runbook
 
 A reporting mode: turn the ad creatives already collected (across one or more dated collection runs) into a
-**per-persona competitive intelligence report** for the human consumer (seller/advertiser) — longevity (게재
-기간 = 검증 프록시), per-advertiser creative variation/cadence (얼마나 많이 찍어내나), what is being tested vs
-dropped, and the prevailing copy appeals (소구점). The orchestrator reads this runbook when
+**per-persona competitive intelligence report** for the human consumer (seller/advertiser) — longevity (run-duration = longevity proxy), per-advertiser creative variation/cadence (how much variation they produce), what is being tested vs
+dropped, and the prevailing copy appeals. The orchestrator reads this runbook when
 request-evaluation reports `ready` with `detected_mode = competitive-report`, then dispatches the steps below.
 
 > **Not performance-learning.** This mode does NOT feed measured ad-performance metrics into candidate
@@ -26,17 +25,17 @@ request-evaluation reports `ready` with `detected_mode = competitive-report`, th
    validated in-script). The script OMITS any unsupported field and surfaces every gap as a `coverage_flag`
    (single-snapshot, missing started_at, missing library_id, undated snapshot) — never zero-fills.
 2. **Narrate (agent `competitive-analyst`).** Project the freshly written `competitive-trend.json` (+ the
-   persona's `ad-pattern.json` if it exists, for 소구점) to `competitive-analyst`. It adds ONLY `synthesis`
+   persona's `ad-pattern.json` if it exists, for appeals) to `competitive-analyst`. It adds ONLY `synthesis`
    (+ optional `confidence_note`) to the trend file, narrating the numbers — it recomputes nothing and invents
    no per-ad link the data lacks.
 3. **Render (deterministic, no agent).** Run `${CLAUDE_PLUGIN_ROOT}/shared/harness/render-report.mjs <competitive-trend.json> [out.html]`.
    It fills the authored-once template (`competitive-report.template.html`) → `competitive-report.html`. No LLM
-   regenerates HTML per run (token-cheap by design). Absent data renders an explicit "아직 관측 불가/누적 필요"
+   regenerates HTML per run (token-cheap by design). Absent data renders an explicit "not yet observable / more snapshots needed"
    note; every coverage_flag is shown (provenance/gap trail).
 4. **Report to the user** with the provenance trail (per `completion-verification-policy.md`): which snapshots
    (paths + captured_at), how many ads tracked, the longevity top + variation leaders, and — honestly — every
    gap (single snapshot, ads without started_at, etc.). Hand over the `competitive-report.html` path. A thin
-   verdict ("경쟁사 N개") is not acceptable.
+   verdict ("N competitors") is not acceptable.
 
 ## Gates the orchestrator enforces
 - Do not run with 0 snapshots — route to data-collection instead.
@@ -51,7 +50,7 @@ request-evaluation reports `ready` with `detected_mode = competitive-report`, th
 |---|---|
 | 0 snapshots for the persona | not runnable; route to data-collection; do not emit an empty report |
 | single snapshot only | proceed, but the report covers longevity + variation only; new/disappeared/cadence are absent + flagged (honest degrade) |
-| no `started_at` captured on any ad | longevity ranking empty; report says so via coverage_flag; do not fabricate a "검증된 광고" claim |
+| no `started_at` captured on any ad | longevity ranking empty; report says so via coverage_flag; do not fabricate a "validated ad" claim |
 | trend artifact fails schema | reject; fix the aggregator/inputs before dispatching the analyst |
 | analyst synthesis contradicts the numbers | fails the checklist (logic gate); send back for repair — the numbers win |
 

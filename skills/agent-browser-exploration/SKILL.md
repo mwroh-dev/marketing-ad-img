@@ -113,7 +113,7 @@ Goal: "map product listing pages" for a public store source.
    title, thumbnail, price, rating. Pagination is a numbered footer (not infinite
    scroll). No login required to view listings.
 4. Click page 2 (real click) — confirm the pagination flow works without auth.
-5. Open a product detail — hit a "로그인 후 리뷰 확인" gate. STOP that path,
+5. Open a product detail — hit a "login required to view reviews" gate. STOP that path,
    write it to `blocker-report.json` (reviews are auth-gated), do not attempt to
    log in.
 6. Emit `discovery-report.json` (listings fully reachable, structure above),

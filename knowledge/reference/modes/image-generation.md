@@ -1,9 +1,9 @@
 # image-generation — runbook
 
-> **USER-FACING NAME = "이미지 프롬프트 생성" (image-PROMPT generation). NEVER call it "이미지 생성".**
+> **USER-FACING NAME = "image prompt generation" (image-PROMPT generation). NEVER call it "image generation".**
 > This system is **prompt-only** — it never produces an image and never calls an image provider. The internal mode
-> id is `image-generation` (kept for code/schema stability) but every word to the user must be "프롬프트 후보를
-> 만든다", not "이미지를 만든다". Drifting to "이미지 생성" on a repeat run is a known failure — guard against it.
+> id is `image-generation` (kept for code/schema stability) but every word to the user must be "generate prompt candidates",
+> not "generate images". Drifting to "image generation" on a repeat run is a known failure — guard against it.
 > The deliverable is **image-prompt candidates the user feeds to ChatGPT/Gemini WITH their own product photo.**
 
 When this mode is active, the orchestrator runs the creative pipeline that synthesizes brand, product, persona, the user request, collected signals, and global principles into image-prompt **candidates** (mode F·G). Prompt-only: no real image provider is called.

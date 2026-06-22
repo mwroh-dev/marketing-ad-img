@@ -2,7 +2,7 @@
 
 > **Status: BACKLOG.** Not wired in the MVP. The MVP sources stay `{Meta Ad Library, Google Ads Transparency}`. The candidates below are **activated per consumer**, only when the configured market/persona warrants — never pre-wired. This file exists so the analysis is not lost to context compaction.
 >
-> Scope note: this document is about **global / vertical-market source expansion only**. Korea-domestic surfaces (Naver, Kakao) are deliberately out of scope here.
+> Scope note: this document is about **global / vertical-market source expansion only**. Korea-domestic store/search surfaces are deliberately out of scope here.
 
 ## Governing principle — source set is market/persona-driven, not a fixed global list
 
@@ -45,6 +45,6 @@ For a Korean **consumer-goods** seller these candidates carry little value; thei
 
 ## Sources (analysis basis)
 
-- Ad-library inventory across platforms: [draph.ai 매체별 광고 라이브러리 총정리](https://draph.ai/best_ad_library_sites/), [Exploring Ad Libraries Across Platforms (Hamid Pasha)](https://www.hamidpasha.ca/post/exploring-ad-libraries-across-major-advertising-platforms), [LinkedIn Ad Library (LinkedIn Engineering)](https://www.linkedin.com/blog/engineering/trust-and-safety/enhancing-transparency-with-linkedins-ad-library)
+- Ad-library inventory across platforms: [draph.ai — Ad Library Overview by Platform](https://draph.ai/best_ad_library_sites/), [Exploring Ad Libraries Across Platforms (Hamid Pasha)](https://www.hamidpasha.ca/post/exploring-ad-libraries-across-major-advertising-platforms), [LinkedIn Ad Library (LinkedIn Engineering)](https://www.linkedin.com/blog/engineering/trust-and-safety/enhancing-transparency-with-linkedins-ad-library)
 - KR platform penetration: [Digital 2025: South Korea (DataReportal)](https://datareportal.com/reports/digital-2025-south-korea), [Social Media in South Korea 2026 (InterAd)](https://www.interad.com/en/insights/social-media-korea)
 - Google Display global reach: [Google Display Ads reach (Google Blog)](https://blog.google/products/ads-commerce/boosting-your-reach-and-performance-with-google-display-ads/)

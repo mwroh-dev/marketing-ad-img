@@ -43,7 +43,7 @@ clears every check. **Read-only**: emit a verdict; never rewrite a candidate.
 
 ## Per-candidate checks (run ALL; one miss → FAIL that candidate)
 
-> The forbidden-claim / superlative tokens below (최고, 1위, 100%, 유일, 완치, medical/efficacy) are **domain-general claim types** and apply to every domain. They are NOT a domain assumption — the actual product/persona/copy come from THIS run's projected input; never assume a domain or carry an example value into a verdict.
+> The forbidden-claim / superlative tokens below (best, #1, 100%, only, cure/complete-recovery, medical/efficacy) are **domain-general claim types** and apply to every domain. They are NOT a domain assumption — the actual product/persona/copy come from THIS run's projected input; never assume a domain or carry an example value into a verdict.
 
 Run every check on the candidate. Each row is a FAIL condition; if the condition holds, the
 candidate's `pass` is `false` and the listed `risk_flag` (if any) is attached. A candidate's
@@ -51,7 +51,7 @@ verdict is `pass: true` **only if NONE** of these conditions fire.
 
 | # | Check | FAIL condition (candidate fails if true) | risk_flag |
 |---|---|---|---|
-| 1 | Overclaim / forbidden-claim scan | A factual/benefit claim in headline/subcopy/CTA/prompt does not trace to an `evidence_ref` (no ref → overclaim); OR a `forbidden_claims` entry (see brand.schema.json) appears anywhere, even paraphrased; OR a smuggled superlative ("최고", "1위", "100%", "유일", "완치", medical/efficacy) has no backing ref even if not on the explicit list | `forbidden_claim` (for forbidden-list hit); else `overclaim` |
+| 1 | Overclaim / forbidden-claim scan | A factual/benefit claim in headline/subcopy/CTA/prompt does not trace to an `evidence_ref` (no ref → overclaim); OR a `forbidden_claims` entry (see brand.schema.json) appears anywhere, even paraphrased; OR a smuggled superlative ("best", "#1", "100%", "only", "cure/complete-recovery", medical/efficacy) has no backing ref even if not on the explicit list | `forbidden_claim` (for forbidden-list hit); else `overclaim` |
 | 2 | Evidence strength | A claim's ref does not actually support the specific claim (mismatched ref — exists but says something else); OR evidence is empty/placeholder (`""`, `"TODO"`, `"ref"`) | — |
 | 3 | Dedup / distinctness | This candidate does not differ meaningfully on **angle ∧ copy ∧ layout** from an earlier one (same hook + near-identical copy + same layout skeleton → FAIL the later one(s); a trivial word swap is NOT distinctness — compare intent, not surface tokens) | `near_duplicate` (`issue: "near-duplicate of candidate_NNN"`) |
 | 4 | Brand mismatch | Copy tone does not match brand `tone`, OR prompt color/mood does not align with brand positioning (e.g. slangy when brand is premium-formal) | `brand_mismatch` |
@@ -112,9 +112,9 @@ Schema validity ≠ logical correctness. The verifier's whole value is the logic
 
 ## Catch-rate (the planted defects — must be 100%)
 - [ ] **Forbidden claim** caught: any `forbidden_claims` entry appearing anywhere — headline, subcopy, CTA, **or the embedded adapter `prompt`** — is FAILed with `risk_flag: forbidden_claim`, even when paraphrased or only present in the prompt surface (not just the spec).
-- [ ] **Overclaim** caught: a factual/benefit claim with no tracing `evidence_ref` (empty/`""`/`"TODO"`/placeholder, or a smuggled superlative like 최고/1위/100%/유일/완치 with no backing ref) is FAILed with `overclaim`.
+- [ ] **Overclaim** caught: a factual/benefit claim with no tracing `evidence_ref` (empty/`""`/`"TODO"`/placeholder, or a smuggled superlative like best/#1/100%/only/cure with no backing ref) is FAILed with `overclaim`.
 - [ ] **Empty verification_checklist** caught: an adapter output whose `verification_checklist` is `[]` or missing is FAILed with `empty_verification` — even when copy/evidence/brand are otherwise clean (completeness is an independent check, the planted-defect magnet).
-- [ ] **Near-duplicate** caught: a later candidate sharing hook ∧ layout ∧ near-identical copy (a trivial word swap such as 손쉽게→간편하게 is **not** distinctness — intent compared, not surface tokens) is FAILed with `near_duplicate`, and the issue names the duplicated original.
+- [ ] **Near-duplicate** caught: a later candidate sharing hook ∧ layout ∧ near-identical copy (a trivial word swap such as "easily → conveniently" is **not** distinctness — intent compared, not surface tokens) is FAILed with `near_duplicate`, and the issue names the duplicated original.
 - [ ] **Brand mismatch** caught: copy voice off-brand for the brand `tone` (slangy/hype against premium-formal-restrained) is FAILed with `brand_mismatch`.
 - [ ] **Altered Korean** caught: any headline/subcopy/CTA embedded in an adapter `prompt` that differs **byte-for-byte** from the candidate spec (a removed space, a ?→! swap, an auto-"correction") is FAILed with `altered_korean` — diffed, not eyeballed, "close enough" not tolerated.
 - [ ] A missed planted defect (false-approve) is the single worst outcome; catch-rate below 100% is a hard FAIL of the verifier.
