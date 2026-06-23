@@ -88,11 +88,13 @@ export function moveUnselected(imagesDir, keptImageFiles) {
   let files;
   try { files = readdirSync(imagesDir).filter((f) => IMG_RE.test(f)); }
   catch { return []; }
+  const toMove = files.filter((f) => !keptBase.has(f));
+  if (toMove.length === 0) return [];
   const removedDir = resolve(imagesDir, "_removed");
+  try { if (!existsSync(removedDir)) mkdirSync(removedDir, { recursive: true }); }   // create once, not per file
+  catch (e) { console.warn(`  (could not create _removed/: ${e.message})`); return []; }
   const moved = [];
-  for (const f of files) {
-    if (keptBase.has(f)) continue;
-    if (!existsSync(removedDir)) mkdirSync(removedDir, { recursive: true });
+  for (const f of toMove) {
     // One file failing (lock / permission / vanished) must not abort the rest.
     try { renameSync(resolve(imagesDir, f), resolve(removedDir, f)); moved.push(f); }
     catch (e) { console.warn(`  (could not move ${f} to _removed/: ${e.message})`); }
@@ -148,9 +150,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     }
     if (req.method === "GET" && req.url.startsWith("/images/")) {
       let name;
-      // decodeURIComponent throws URIError on malformed % escapes — would crash the request listener.
-      try { name = basename(decodeURIComponent(req.url.slice("/images/".length))); } // basename → no path traversal
-      catch { res.writeHead(400); return res.end("bad request"); }
+      // Drop any ?query/#hash (cache-busting params etc.), then decode. decodeURIComponent throws URIError on
+      // malformed % escapes — that would crash the request listener, so guard it.
+      try {
+        const pathname = req.url.split(/[?#]/)[0];
+        name = basename(decodeURIComponent(pathname.slice("/images/".length)));   // basename → no path traversal
+      } catch { res.writeHead(400); return res.end("bad request"); }
       const abs = resolve(imagesDir, name);
       if (!IMG_RE.test(name) || !abs.startsWith(imagesDir)) { res.writeHead(403); return res.end("forbidden"); }
       return serveStatic(res, abs, MIME[extname(name).toLowerCase()] || "application/octet-stream");
@@ -184,7 +189,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
         console.log(`SELECTED ${runId}/${personaId} → kept ${screen.kept.length}, moved ${moved.length} to images/_removed/${staged ? ", stage → human_reviewed" : ""}`);
         console.log(`  screen: ${screenOut}`);
-        shutdown(0);   // 2) then terminate — never leave a stray server. harness re-invokes the orchestrator on exit
+        // 2) let the response fully flush to the browser before tearing down the socket — shutdown()'s
+        //    closeAllConnections() would otherwise RST the in-flight response (ECONNRESET / false "save failed").
+        setTimeout(() => shutdown(0), 100);   // harness re-invokes the orchestrator on exit
       });
       return;
     }
