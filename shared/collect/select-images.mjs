@@ -60,10 +60,12 @@ export function renderSelectHtml({ runId, personaId, track, queries, creatives }
   const cards = imgs.length
     ? imgs.map(cardHtml).join("")
     : `<p class="empty">이 런/페르소나에 표시할 이미지가 없습니다.</p>`;
+  // Function replacements — a string value containing $&, $$, $`, $' would be parsed as a special replacement
+  // pattern (advertiser names / queries are arbitrary text). A function disables that parsing entirely.
   return template
-    .replace("<!--META-->", metaLine({ runId, personaId, track, queries }))
-    .replace("<!--CARDS-->", cards)
-    .replace("<!--TOTAL-->", String(imgs.length));
+    .replace("<!--META-->", () => metaLine({ runId, personaId, track, queries }))
+    .replace("<!--CARDS-->", () => cards)
+    .replace("<!--TOTAL-->", () => String(imgs.length));
 }
 
 // ---- pure: build the screening JSON (image-screening.schema shape) ----------------------------------------
@@ -133,8 +135,14 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.error(`FAIL  no ad-creative.json at ${creativePath} — collect first`);
     process.exit(1);
   }
-  const creative = JSON.parse(readFileSync(creativePath, "utf8"));
-  const run = existsSync(runJsonPath) ? JSON.parse(readFileSync(runJsonPath, "utf8")) : {};
+  let creative;
+  try { creative = JSON.parse(readFileSync(creativePath, "utf8")); }
+  catch (e) { console.error(`FAIL  malformed ad-creative.json at ${creativePath}: ${e.message}`); process.exit(1); }
+  let run = {};
+  if (existsSync(runJsonPath)) {
+    try { run = JSON.parse(readFileSync(runJsonPath, "utf8")); }
+    catch (e) { console.warn(`  (ignoring malformed run.json at ${runJsonPath}: ${e.message})`); }   // header-only; non-fatal
+  }
   const imgs = imageCreatives(creative.creatives);
   const allImageFiles = imgs.map((c) => c.image_file);
   const template = readFileSync(TEMPLATE, "utf8");
@@ -161,6 +169,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       return serveStatic(res, abs, MIME[extname(name).toLowerCase()] || "application/octet-stream");
     }
     if (req.method === "POST" && req.url === "/select") {
+      req.setEncoding("utf8");   // decode as utf8 so a multi-byte char split across TCP chunks isn't corrupted
       let body = "";
       req.on("data", (c) => { body += c; if (body.length > 1e6) req.destroy(); });
       req.on("end", () => {

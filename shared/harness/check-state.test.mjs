@@ -1,10 +1,11 @@
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
-import { resolve } from "node:path";
+import { resolve, join } from "node:path";
+import { tmpdir } from "node:os";
 import { checkState } from "./check-state.mjs";
 
-const TMP = "/tmp/gai-checkstate-test";
+const TMP = join(tmpdir(), "gai-checkstate-test");   // os.tmpdir() — cross-platform (Windows has no /tmp)
 const reset = () => rmSync(TMP, { recursive: true, force: true });
 after(reset);   // guaranteed cleanup at suite end, even if the last test throws (no stray temp dir)
 
