@@ -93,8 +93,9 @@ export function moveUnselected(imagesDir, keptImageFiles) {
   for (const f of files) {
     if (keptBase.has(f)) continue;
     if (!existsSync(removedDir)) mkdirSync(removedDir, { recursive: true });
-    renameSync(resolve(imagesDir, f), resolve(removedDir, f));
-    moved.push(f);
+    // One file failing (lock / permission / vanished) must not abort the rest.
+    try { renameSync(resolve(imagesDir, f), resolve(removedDir, f)); moved.push(f); }
+    catch (e) { console.warn(`  (could not move ${f} to _removed/: ${e.message})`); }
   }
   return moved;
 }
@@ -146,7 +147,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       return res.end(html);
     }
     if (req.method === "GET" && req.url.startsWith("/images/")) {
-      const name = basename(decodeURIComponent(req.url.slice("/images/".length))); // basename → no path traversal
+      let name;
+      // decodeURIComponent throws URIError on malformed % escapes — would crash the request listener.
+      try { name = basename(decodeURIComponent(req.url.slice("/images/".length))); } // basename → no path traversal
+      catch { res.writeHead(400); return res.end("bad request"); }
       const abs = resolve(imagesDir, name);
       if (!IMG_RE.test(name) || !abs.startsWith(imagesDir)) { res.writeHead(403); return res.end("forbidden"); }
       return serveStatic(res, abs, MIME[extname(name).toLowerCase()] || "application/octet-stream");
@@ -159,13 +163,21 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         try { kept = JSON.parse(body).kept; } catch { res.writeHead(400); return res.end("bad json"); }
         if (!Array.isArray(kept)) { res.writeHead(400); return res.end("kept must be an array"); }
 
-        const screen = buildScreenJson(runId, personaId, allImageFiles, kept);
-        mkdirSync(dirname(screenOut), { recursive: true });
-        writeFileSync(screenOut, JSON.stringify(screen, null, 2) + "\n", "utf8");
-        const moved = moveUnselected(imagesDir, kept);
-        let staged = false;
-        try { advanceStage(runId, "human_reviewed", { kept_by_human: screen.kept.length }); staged = true; }
-        catch (e) { console.warn(`  (stage not advanced: ${e.message})`); }
+        // Wrap the disk commit: a failure (permission/disk-full/missing dir) must not crash the listener or
+        // leave the client hanging. On error, respond 500 and KEEP the server alive so the user can retry.
+        let screen, moved, staged = false;
+        try {
+          screen = buildScreenJson(runId, personaId, allImageFiles, kept);
+          mkdirSync(dirname(screenOut), { recursive: true });
+          writeFileSync(screenOut, JSON.stringify(screen, null, 2) + "\n", "utf8");
+          moved = moveUnselected(imagesDir, kept);
+          try { advanceStage(runId, "human_reviewed", { kept_by_human: screen.kept.length }); staged = true; }
+          catch (e) { console.warn(`  (stage not advanced: ${e.message})`); }
+        } catch (err) {
+          console.error(`FAIL  could not save selection: ${err.message}`);
+          res.writeHead(500, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ ok: false, error: "could not save selection" }));
+        }
 
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ ok: true, kept: screen.kept.length, moved: moved.length }));  // 1) ACK the browser first

@@ -1,4 +1,4 @@
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
@@ -6,6 +6,7 @@ import { checkState } from "./check-state.mjs";
 
 const TMP = "/tmp/gai-checkstate-test";
 const reset = () => rmSync(TMP, { recursive: true, force: true });
+after(reset);   // guaranteed cleanup at suite end, even if the last test throws (no stray temp dir)
 
 test("no state → setup_complete false → routes to initial-setup", () => {
   reset();
@@ -44,5 +45,4 @@ test("persona with competitors → clean ready route", () => {
   const p0 = s.brands[0].products[0].personas[0];
   assert.equal(p0.has_competitors, true);
   assert.equal(s.next, "ready — request-evaluation");
-  reset();
 });

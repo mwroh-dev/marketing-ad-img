@@ -72,19 +72,21 @@ test("buildScreenJson: empty selection drops everything (none silently kept)", (
 
 test("moveUnselected relocates only the non-kept images to _removed/, kept stays put", () => {
   const tmp = resolve(HERE, "__test_imgs__");
-  rmSync(tmp, { recursive: true, force: true });
-  mkdirSync(tmp, { recursive: true });
-  for (const f of ["ad-0.jpg", "ad-1.jpg", "ad-2.png"]) writeFileSync(resolve(tmp, f), "x");
+  try {
+    rmSync(tmp, { recursive: true, force: true });
+    mkdirSync(tmp, { recursive: true });
+    for (const f of ["ad-0.jpg", "ad-1.jpg", "ad-2.png"]) writeFileSync(resolve(tmp, f), "x");
 
-  const moved = moveUnselected(tmp, ["images/ad-0.jpg"]);    // keep ad-0 only
-  assert.deepEqual(moved.sort(), ["ad-1.jpg", "ad-2.png"]);
-  assert.ok(existsSync(resolve(tmp, "ad-0.jpg")));            // kept in place
-  assert.ok(!existsSync(resolve(tmp, "ad-1.jpg")));           // moved out
-  assert.ok(existsSync(resolve(tmp, "_removed", "ad-1.jpg")));
-  assert.ok(existsSync(resolve(tmp, "_removed", "ad-2.png")));
-  assert.deepEqual(readdirSync(tmp).filter((f) => /\.(jpe?g|png)$/i.test(f)), ["ad-0.jpg"]);
-
-  rmSync(tmp, { recursive: true, force: true });
+    const moved = moveUnselected(tmp, ["images/ad-0.jpg"]);    // keep ad-0 only
+    assert.deepEqual(moved.sort(), ["ad-1.jpg", "ad-2.png"]);
+    assert.ok(existsSync(resolve(tmp, "ad-0.jpg")));            // kept in place
+    assert.ok(!existsSync(resolve(tmp, "ad-1.jpg")));           // moved out
+    assert.ok(existsSync(resolve(tmp, "_removed", "ad-1.jpg")));
+    assert.ok(existsSync(resolve(tmp, "_removed", "ad-2.png")));
+    assert.deepEqual(readdirSync(tmp).filter((f) => /\.(jpe?g|png)$/i.test(f)), ["ad-0.jpg"]);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });   // guaranteed cleanup even if an assertion throws
+  }
 });
 
 test("moveUnselected on a missing dir is a no-op (returns [])", () => {
