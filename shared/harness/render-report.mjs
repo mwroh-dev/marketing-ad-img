@@ -70,14 +70,16 @@ export function renderReport(trend, template) {
     ? esc(trend.synthesis) + (trend.confidence_note ? `\n\n<span class="note">${esc(trend.confidence_note)}</span>` : "")
     : `<span class="empty">서술(synthesis)이 아직 작성되지 않았습니다 — competitive-analyst 실행 후 채워집니다.</span>`;
   const footer = `생성: ${esc(trend.generated_at ?? "—")}${trend.today ? ` · 기준일 ${esc(trend.today)}` : ""}. 게재기간은 성과의 대리 신호이며 메타가 제공하는 실제 성과 지표가 아닙니다.`;
+  // Function replacements — a string value with $&, $$, $`, $' would be parsed as a special replacement pattern
+  // (advertiser names / synthesis are arbitrary text; esc() does not neutralize `$`). A function disables that.
   return template
-    .replace("<!--META-->", metaLine(trend))
-    .replace("<!--SYNTHESIS-->", synthesis)
-    .replace("<!--LONGEVITY-->", longevitySection(trend))
-    .replace("<!--ADVERTISERS-->", advertisersSection(trend))
-    .replace("<!--CHANGE-->", changeSection(trend))
-    .replace("<!--FLAGS-->", flagsSection(trend))
-    .replace("<!--FOOTER-->", footer);
+    .replace("<!--META-->", () => metaLine(trend))
+    .replace("<!--SYNTHESIS-->", () => synthesis)
+    .replace("<!--LONGEVITY-->", () => longevitySection(trend))
+    .replace("<!--ADVERTISERS-->", () => advertisersSection(trend))
+    .replace("<!--CHANGE-->", () => changeSection(trend))
+    .replace("<!--FLAGS-->", () => flagsSection(trend))
+    .replace("<!--FOOTER-->", () => footer);
 }
 
 // CLI

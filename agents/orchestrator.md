@@ -49,13 +49,15 @@ Never execute a mode while a hard blocker remains. Never ask a fixed number of q
 
 Each mode's full procedure is its **runbook** in `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/modes/<mode>.md` — read it when that mode is active, then dispatch its agents/scripts. The table is the index; the runbook is the detail.
 
-| Mode | What you do |
-|---|---|
-| `initial-setup` | (runbook `modes/initial-setup.md`) Create/maintain `.generate-ads-img/brands/{brand_id}/…` (Brand 1→Product N→Persona N) + registry entries. Domain knowledge only. |
-| `data-collection` | (runbook `modes/data-collection.md`) **Collection from public ad-transparency libraries (Meta Ad Library, Google Ads Transparency) — public, no login.** • **How:** drive real CDP interaction (real search → click → scroll, `getResponseBody` for creatives) via `${CLAUDE_PLUGIN_ROOT}/flows/<source>/` + shared `ad-collect-harness`; STOP on any block/verification (`lib.isBlocked`), never bypass; navigate only whitelisted public front doors (`matchToolEntry`). • **Track 1 (PRIMARY, ungated):** a broad category/keyword ad corpus (Meta keyword search, scoped to target_market) — the main signal. • **Track 2 (OPTIONAL):** competitor enrichment — `discovery-scout` (search-only candidate pool + user seeds) → `competitor-curator` (rank + user-confirm, HARD GATE for the competitor set only) → collect the confirmed advertisers' public creatives. Track 1 does NOT wait on a competitor set. • **After collection (both tracks):** ① **HUMAN keep/delete review (HARD GATE)** — render the collected `images/ad-N.jpg` inline, user selects what to keep and what to delete (in the consumer's target_market language), record `screening/screen-{persona}.json` (`reason:user_removed`) + `advance-stage … human_reviewed`; ② deterministic `screen-images.mjs` (size/dup only, no LLM) → `screened`; then analysis. Collection = volume; quality/fit is the human's. • **Detail-cut:** analysis runs on the **seller's own / user-provided** images via the refiner. |
-| `competitive-report` | (runbook `modes/competitive-report.md`) Turn already-collected creatives into a per-persona competitive report: `run-competitive-trend.ts` (deterministic longevity/variation/change aggregate) → `competitive-analyst` (synthesis + appeals) → `render-report.mjs` (consumer HTML). Needs ≥1 collection snapshot (0 → route to data-collection); single snapshot degrades to longevity+variation only. Longevity is a PUBLIC-DATA PROXY, never measured performance. |
-| `image-generation` | (runbook `modes/image-generation.md`) Run the creative pipeline below. |
-| `performance-learning` | Backlog only — do not implement. |
+Each row is an index entry: **enter when** (start condition) · **what it does** (one line + its runbook — read the runbook for the procedure) · **done when** (end condition / the gate that lets the next mode start). Hard constraints are NOT restated here — they live in `non-negotiable-rules.md` and the "guardrails" section below.
+
+| Mode | Enter when | What it does (→ runbook) | Done when |
+|---|---|---|---|
+| `initial-setup` | the request targets a brand/product/persona not yet in `.generate-ads-img/` state | create/maintain `brands/{brand_id}/…` (Brand 1→Product N→Persona N) + registry entries — domain knowledge only (`modes/initial-setup.md`) | the brand→product→persona node + registry entries exist |
+| `data-collection` | setup is ready and the request needs ad creatives, and no usable run for the persona has reached `screened` | collect public ad creatives (Meta/Google) on two tracks (category/keyword + optional competitor) → **HUMAN keep/delete gate** → deterministic screen → analysis (`modes/data-collection.md`) | `run.json` stage reaches `screened`, then `analyzed` (ad-pattern/keyword signal on the persona node) |
+| `competitive-report` | ≥1 collection snapshot exists for the persona (0 → route to `data-collection` first) | aggregate longevity/variation/change → analyst synthesis → consumer HTML (`modes/competitive-report.md`) | `competitive-report.html` is written for the persona |
+| `image-generation` | the persona has the brief inputs it needs (signal/pattern available) | run the creative pipeline below (`modes/image-generation.md`) | 4 verified prompt candidates are finalized |
+| `performance-learning` | — | backlog only — do not implement | — |
 
 ## Image-prompt generation pipeline
 
