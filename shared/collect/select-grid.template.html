@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<!--
+  select-grid template — authored ONCE, filled by shared/collect/select-images.mjs (deterministic, no LLM).
+  The renderer replaces the HTML comment markers (META / CARDS / TOTAL) with HTML-escaped fragments built from
+  ad-creative.json. (Do NOT write a literal token sample here — an inner comment-close sequence would terminate
+  this comment early and leak the rest as visible text.)
+  An LLM never regenerates this HTML per run. Edit the design here; edit the data wiring in select-images.mjs.
+
+  Flow: the user clicks images to KEEP (default = none selected) → clicks 확인 → the page POSTs the kept set
+  to the one-shot local server, which writes screening/screen-{persona}.json, moves the rest to images/_removed/,
+  advances the run stage, then self-exits. Truth lives in that JSON, never in the browser.
+-->
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>광고 이미지 선택</title>
+  <style>
+    :root { --ink:#1a1a1a; --muted:#6b7280; --line:#e5e7eb; --accent:#2563eb; --bg:#f9fafb; --ok:#16a34a; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif; color:var(--ink); background:var(--bg); line-height:1.5; }
+    header { position:sticky; top:0; z-index:5; background:rgba(249,250,251,.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:16px 24px; }
+    header h1 { font-size:18px; margin:0 0 4px; }
+    .meta { color:var(--muted); font-size:13px; }
+    .hint { color:var(--muted); font-size:13px; margin-top:6px; }
+    /* Masonry (Pinterest-style) via CSS columns — preserves each ad's native aspect ratio (square / portrait / landscape) with no cropping. */
+    .grid { column-width:240px; column-gap:16px; padding:24px; padding-bottom:96px; }
+    .card { position:relative; display:block; width:100%; margin:0 0 16px; break-inside:avoid; -webkit-column-break-inside:avoid; background:#fff; border:2px solid var(--line); border-radius:12px; overflow:hidden; cursor:pointer; transition:border-color .12s, box-shadow .12s, transform .06s; user-select:none; }
+    .card:hover { box-shadow:0 2px 10px rgba(0,0,0,.08); }
+    .card:active { transform:scale(.99); }
+    .card.selected { border-color:var(--accent); border-radius:16px; box-shadow:0 0 0 3px rgba(37,99,235,.18); }
+    .card img { display:block; width:100%; height:auto; background:#f1f5f9; }
+    .check { position:absolute; top:10px; right:10px; width:26px; height:26px; border-radius:999px; border:2px solid #fff; background:rgba(0,0,0,.28); box-shadow:0 1px 3px rgba(0,0,0,.3); display:flex; align-items:center; justify-content:center; }
+    .check::after { content:"✓"; color:#fff; font-size:15px; font-weight:700; opacity:0; transform:scale(.5); transition:opacity .12s, transform .12s; }
+    .card.selected .check { background:var(--accent); }
+    .card.selected .check::after { opacity:1; transform:scale(1); }
+    .cap { display:block; padding:8px 10px; font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .empty { color:var(--muted); font-style:italic; padding:24px; }
+    footer { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--line); padding:12px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    .count { font-size:14px; } .count b { color:var(--accent); }
+    .btns { display:flex; gap:10px; }
+    button { font:inherit; border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:8px; padding:9px 16px; cursor:pointer; }
+    button.primary { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    #overlay { position:fixed; inset:0; background:rgba(255,255,255,.96); display:none; align-items:center; justify-content:center; flex-direction:column; gap:8px; z-index:20; text-align:center; padding:24px; }
+    #overlay.show { display:flex; }
+    #overlay .big { font-size:20px; font-weight:700; color:var(--ok); }
+    #overlay .sub { color:var(--muted); font-size:14px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>광고 이미지 선택</h1>
+    <div class="meta"><!--META--></div>
+    <div class="hint">광고로서 가장 잘 만들어졌다고 생각하는 이미지를 클릭해 선택하세요. 선택한 것만 남고 나머지는 보관 폴더로 이동됩니다.</div>
+    <div class="hint" style="opacity:.8">※ 폴더를 직접 열어 파일을 찾는 수고를 덜기 위한 로컬 편의 화면입니다(내 컴퓨터에서만 실행, 확인 시 자동 종료).</div>
+  </header>
+
+  <main class="grid"><!--CARDS--></main>
+
+  <footer>
+    <div class="count">선택됨 <b id="sel">0</b> / 총 <!--TOTAL-->개</div>
+    <div class="btns">
+      <button id="none" type="button">전체 해제</button>
+      <button id="confirm" class="primary" type="button" disabled>확인 (선택 0개)</button>
+    </div>
+  </footer>
+
+  <div id="overlay">
+    <div class="big">저장 완료</div>
+    <div class="sub">선택이 터미널에 전달되었습니다. 이 창은 닫으셔도 됩니다.</div>
+  </div>
+
+  <script>
+    (function () {
+      var cards = Array.prototype.slice.call(document.querySelectorAll(".card"));
+      var selEl = document.getElementById("sel");
+      var confirmBtn = document.getElementById("confirm");
+      var noneBtn = document.getElementById("none");
+
+      function selected() { return cards.filter(function (c) { return c.classList.contains("selected"); }); }
+      function refresh() {
+        var n = selected().length;
+        selEl.textContent = n;
+        confirmBtn.disabled = n === 0;
+        confirmBtn.textContent = "확인 (선택 " + n + "개)";
+      }
+      cards.forEach(function (c) {
+        c.addEventListener("click", function () { c.classList.toggle("selected"); refresh(); });
+      });
+      noneBtn.addEventListener("click", function () {
+        cards.forEach(function (c) { c.classList.remove("selected"); });
+        refresh();
+      });
+      confirmBtn.addEventListener("click", function () {
+        var kept = selected().map(function (c) { return c.getAttribute("data-file"); });
+        confirmBtn.disabled = true;
+        fetch("/select", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kept: kept })
+        }).then(function (r) { return r.json(); }).then(function () {
+          document.getElementById("overlay").classList.add("show");
+        }).catch(function () {
+          confirmBtn.disabled = false;
+          alert("저장 실패 — 터미널 서버가 종료되었을 수 있습니다.");
+        });
+      });
+      refresh();
+    })();
+  </script>
+</body>
+</html>
