@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marketing-img/schemas/perception.schema.json",
+  "title": "Perception",
+  "description": "DRAFT v0 — L1 perception: literal observation of ONE ad image. Geometry+text (axes 1-2) + scene+look (axes 3-4), observe-only. Records WHAT IS THERE / WHERE / HOW IT LOOKS — never what it MEANS. NO impression-naming (premium/honest/hero) and NO register/mood: that is the downstream visual-analyst (ring 2). Enum BUCKETING of scene/look is also downstream — here, literal facts only. Supersedes ocr-extraction.schema.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["image_ref", "persona_id", "medium", "canvas", "text_elements", "graphic_elements", "scene", "look"],
+  "properties": {
+    "image_ref": { "type": "string", "minLength": 1 },
+    "persona_id": { "type": "string", "minLength": 1 },
+    "competitor_id": { "type": "string" },
+
+    "medium": {
+      "description": "Axis 3 GATE — the rendering medium of the image. Most-observable, always determinable. GATES the photo-only fields: scene.shot_scale/angle and look.lighting/finish are meaningful ONLY when medium=photo (or the photo part of a composite); OMIT them otherwise (omission is the signal, not 'other'). A flat promo / illustration has no camera and no light source.",
+      "type": "string",
+      "enum": ["photo", "illustration", "render_3d", "flat_graphic", "composite", "other"]
+    },
+
+    "canvas": {
+      "type": "object", "additionalProperties": false,
+      "required": ["aspect_ratio"],
+      "properties": {
+        "aspect_ratio": { "type": "string" },
+        "dominant_colors": { "type": "array", "items": { "type": "string" } },
+        "background_desc": { "type": "string" }
+      }
+    },
+
+    "text_elements": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["content", "bbox", "font_size_scale"],
+        "properties": {
+          "id": { "type": "string" },
+          "content": { "type": "string" },
+          "bbox": {
+            "type": "object", "additionalProperties": false,
+            "required": ["x", "y", "w", "h"],
+            "properties": { "x": { "type": "number" }, "y": { "type": "number" }, "w": { "type": "number" }, "h": { "type": "number" } }
+          },
+          "font_size_scale": { "type": "string", "enum": ["xs", "s", "m", "l", "xl"] },
+          "color_hex": { "type": "string" },
+          "bold": { "type": "boolean" },
+          "shadow": { "type": "boolean" },
+          "align": { "type": "string", "enum": ["left", "center", "right"] },
+          "line_breaks": { "type": "number" }
+        }
+      }
+    },
+
+    "graphic_elements": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["kind", "bbox"],
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "type": "string", "enum": ["product", "lifestyle", "icon", "badge", "chart", "screenshot", "illustration", "other"] },
+          "bbox": {
+            "type": "object", "additionalProperties": false,
+            "required": ["x", "y", "w", "h"],
+            "properties": { "x": { "type": "number" }, "y": { "type": "number" }, "w": { "type": "number" }, "h": { "type": "number" } }
+          },
+          "border": { "type": "string", "enum": ["none", "line", "rounded", "shadow", "frame"] },
+          "placement": { "type": "string" }
+        }
+      }
+    },
+
+    "scene": {
+      "description": "Axis 3 — what is depicted, as LITERAL observation. subjects = presence facts; depicted = literal scene sentence; shot_scale/angle = literal framing geometry (photo-only). The in_use-vs-standalone distinction is NOT bucketed here — it is DERIVED downstream by visual-analyst from the presence of product + human_part. No setting/register bucketing here.",
+      "type": "object", "additionalProperties": false,
+      "required": ["subjects", "depicted"],
+      "properties": {
+        "subjects": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["type"],
+            "properties": {
+              "type": { "type": "string", "enum": ["human", "human_part", "animal_or_character", "product", "packaging", "container_or_contents", "environment", "text_graphic", "other"] },
+              "note": { "type": "string", "description": "literal detail only (e.g. 'hand holding the box'); never an impression or staged/real judgement" }
+            }
+          }
+        },
+        "depicted": { "type": "string", "description": "LITERAL scene description any second viewer would transcribe identically, e.g. 'a hand pouring liquid from a bottle into a glass on a wooden table'. NEVER the impression (no premium/honest/playful) and NEVER a real/fake/staged judgement (a chat-app screenshot is 'a messaging-app chat screenshot', never 'a fake chat') — those are downstream." },
+        "space": { "type": "string", "description": "PHOTO-ONLY literal background-space cue that disambiguates studio vs real environment downstream — added after the two-worker pilot found 'plain wall' was ambiguous between studio and room. seamless_backdrop = no corner/floor visible (studio sweep); real_room = a corner/floor/furniture is visible; outdoor = sky/ground/foliage; surface_top = shot down onto a tabletop; none = no spatial scene (graphic).", "enum": ["seamless_backdrop", "real_room", "outdoor", "surface_top", "none", "other"] },
+        "shot_scale": { "type": "string", "description": "PHOTO-ONLY (medium=photo). Omit on illustration/flat_graphic.", "enum": ["extreme_closeup", "closeup", "medium", "wide", "other"] },
+        "angle": { "type": "string", "description": "PHOTO-ONLY (medium=photo). Omit on illustration/flat_graphic.", "enum": ["eye_level", "high_angle", "low_angle", "top_down", "other"] }
+      }
+    },
+
+    "look": {
+      "description": "Axis 4 — literal light/finish facts, observable by any viewer. NOT register/mood (premium/honest is named downstream by visual-analyst).",
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "lighting": { "type": "string", "description": "PHOTO-ONLY (medium=photo). Omit when there is no light source (illustration/flat_graphic).", "enum": ["soft_diffused", "hard_directional", "natural_daylight", "studio_even", "dramatic_contrast", "other"] },
+        "brightness": { "type": "string", "description": "Applies to any medium (perceivable on graphics and photos alike).", "enum": ["dark", "low_key", "balanced", "high_key"] },
+        "finish": { "type": "string", "description": "PRODUCT-SURFACE fact — the finish of the dominant product surface if one is present. Omit on lifestyle/illustration/graphic frames with no dominant product surface.", "enum": ["matte", "glossy", "textured", "flat_graphic", "other"] },
+        "look_desc": { "type": "string", "description": "free-text LITERAL light/surface description if no enum fits — same observe-only guardrail: no impression, no register, no real/fake judgement" }
+      }
+    },
+
+    "not_present": {
+      "description": "Absence as signal — salient things a viewer would expect that are NOT shown.",
+      "type": "array",
+      "items": { "type": "string", "enum": ["no_price", "no_human", "no_logo", "no_cta_text", "no_background_scene", "no_product_shot", "other"] }
+    },
+
+    "observation_confidence": {
+      "description": "Per-axis confidence in the observation. Travels downstream so a low-confidence read is never silently promoted to fact.",
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string", "enum": ["high", "medium", "low"] },
+        "geometry": { "type": "string", "enum": ["high", "medium", "low"] },
+        "scene": { "type": "string", "enum": ["high", "medium", "low"] },
+        "look": { "type": "string", "enum": ["high", "medium", "low"] }
+      }
+    },
+
+    "notes": { "type": "array", "items": { "type": "string" } }
+  }
+}

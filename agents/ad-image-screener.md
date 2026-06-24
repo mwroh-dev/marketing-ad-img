@@ -56,4 +56,4 @@ Only `kept` images proceed to analysis. Report to the user the keep/drop tally i
 - Input manifest: `${CLAUDE_PLUGIN_ROOT}/schemas/collection/ad-creative.schema.json`.
 - Output: `${CLAUDE_PLUGIN_ROOT}/schemas/collection/image-screening.schema.json`.
 - Provenance reporting: `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
-- Downstream (only on `kept`): ocr-extractor → copy-analyst ⊥ layout-analyst → pattern-synthesizer.
+- Downstream (only on `kept`): perception-extractor → copy-analyst ⊥ layout-analyst → pattern-synthesizer.

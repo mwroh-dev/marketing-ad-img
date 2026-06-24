@@ -10,7 +10,7 @@ tools: Read, Write
 Given the deterministic ad-pattern aggregates (already computed by `${CLAUDE_PLUGIN_ROOT}/shared/collect/ad-pattern-rank.mjs`), write a concise synthesis narrative describing the persona's dominant ad composition + text technique + comfort level, for use by the creative pipeline.
 
 ## Inputs (projected)
-- the deterministic ad-pattern aggregate (composition_top_k, text_role_distribution, hook_top_k, comfort)
+- the deterministic ad-pattern aggregate (composition_top_k, text_role_distribution, hook_top_k, comfort, and — when visual/intent analyses were run — medium_top_k, setting_top_k, register_top_k, appeal_top_k, funnel_stage_top_k)
 
 ## Outputs
 - a `synthesis` string (in the consumer's target_market language) to be inserted into `ad-pattern.json`. Does NOT recompute numbers.
@@ -37,7 +37,9 @@ interpretation ON TOP OF those aggregates, never recomputation.
 
 ## The one rule: narrate the numbers, never overwrite them
 - The aggregate is ground truth. `composition_top_k`, `text_role_distribution`,
-  `hook_top_k`, `copy_keywords_top_k`, and `comfort` are owned by the script.
+  `hook_top_k`, `copy_keywords_top_k`, `comfort`, and the visual/intent axes
+  (`medium_top_k`, `setting_top_k`, `register_top_k`, `appeal_top_k`, `funnel_stage_top_k`,
+  present only when those analyses ran) are owned by the script.
 - You add exactly two fields to `ad-pattern.json`: `synthesis` (required string)
   and optionally `confidence_note`. You touch nothing else.
 - If your sentence and the numbers disagree, the numbers win — rewrite the
@@ -67,7 +69,13 @@ A strong synthesis is 1–3 sentences and weaves together:
      → "generous whitespace, not cramped".
    - high `avg_crowding` and/or high `awkward_rate` → "high information density, somewhat cramped/packed",
      and say so honestly even if the composition story is clean.
-4. **Actionable lean** (optional) — one short cue the creative pipeline can use
+4. **Visual register & strategy** (when the visual/intent axes are present) — name the
+   leading `medium_top_k` / `setting_top_k` / `register_top_k` (e.g. "mostly flat-graphic
+   promos, clean-minimal register") and the dominant `appeal_top_k` / `funnel_stage_top_k`
+   (e.g. "social-proof appeals at the consideration stage"). The appeal axis is the
+   transferable strategy signal — surface it. Omit this sentence entirely if those arrays
+   are absent (the analyses didn't run); never invent a register/appeal.
+5. **Actionable lean** (optional) — one short cue the creative pipeline can use
    (e.g. "tendency to emphasize CTA as a badge"), only if directly supported by the numbers.
 
 Shape example (illustrative, not a template to paste; written in the consumer's target_market language):
@@ -101,6 +109,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - [ ] "Dominant" wording tracks relative `freq`/`score`: a single clear leader → call it dominant; near-equal top two → "mainly X, some Y", never a forced single winner.
 - [ ] The named leading text role and hook match the highest entries in `text_role_distribution` / `hook_top_k` — not a marketing prior pasted over the data.
 - [ ] The comfort verdict is directionally consistent with `avg_crowding` / `avg_whitespace` / `awkward_rate` (low crowding + high whitespace + low awkward → "generous whitespace, not cramped"; high crowding/awkward → "somewhat cramped/packed"). A clean composition story does not let a high-crowding signal be softened.
+- [ ] When the visual/intent axes are present, the named leading `medium`/`setting`/`register`/`appeal`/`funnel_stage` match the highest entries in their top-k arrays — and when those arrays are ABSENT, no register/appeal sentence is invented (the dimension is simply unmentioned, never backfilled).
 
 ## Grounding (no invention, no recompute)
 - [ ] Every composition / hook / role / keyword named appears as a `value` in the aggregate arrays — none invented, paraphrased, or imported from world knowledge or other personas.
@@ -141,10 +150,11 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 
 ## Upstream aggregator (source of the numbers — do not recompute)
 - @${CLAUDE_PLUGIN_ROOT}/shared/collect/ad-pattern-rank.mjs — pure, deterministic (no LLM, no
-  network). `aggregatePattern({ layoutAnalyses, copyAnalyses })` builds
+  network). `aggregatePattern({ layoutAnalyses, copyAnalyses, visualAnalyses?, intentAnalyses? })` builds
   `image_count`, `composition_top_k`/`hook_top_k`/`copy_keywords_top_k`
-  (via `rankByFreq`), `text_role_distribution` (via `roleDistribution`), and
-  `comfort` (via `comfortStats`: `avg_crowding`/`avg_whitespace`/`awkward_rate`).
+  (via `rankByFreq`), `text_role_distribution` (via `roleDistribution`),
+  `comfort` (via `comfortStats`: `avg_crowding`/`avg_whitespace`/`awkward_rate`), and — when visual/intent
+  analyses are supplied — `medium_top_k`/`setting_top_k`/`register_top_k` and `appeal_top_k`/`funnel_stage_top_k`.
   These are ground truth; narrate, never overwrite.
 
 ## Upstream analyses (what the aggregate is built from)
@@ -155,6 +165,10 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/copy-analysis.schema.json — `CopyAnalysis` (L2b):
   feeds `text_role_distribution` (`copy_elements[].text_role`), `hook_top_k`
   (`hook_type`), and `copy_keywords_top_k` (`keywords`).
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/visual-analysis.schema.json — `VisualAnalysis` (L2c):
+  feeds `medium_top_k` (`medium`), `setting_top_k` (`scene_class.setting`), `register_top_k` (`register`).
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/intent-analysis.schema.json — `IntentAnalysis` (L2d):
+  feeds `appeal_top_k` (`appeal`) and `funnel_stage_top_k` (`funnel_stage`) — the transferable strategy axis.
 
 ## Knowledge (vocabulary + framing only — not new facts)
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/ad-format-principles/README.md — ad-format

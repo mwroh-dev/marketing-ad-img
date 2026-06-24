@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marketing-img/schemas/visual-analysis.schema.json",
+  "title": "VisualAnalysis",
+  "description": "DRAFT v0 — L2c visual semantics + register, DERIVED from a perception artifact (TEXT-ONLY: this agent reads perception.json and NEVER the image). Ring 2, brand-free: it buckets perception's literal scene/look into controlled vocab and NAMES the register (the impression layer). Re-runnable without spending vision tokens. Worker B in the perception(observe) ⊥ visual-analyst(label) split.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["image_ref", "persona_id", "medium", "scene_class", "register"],
+  "properties": {
+    "image_ref": { "type": "string", "minLength": 1 },
+    "persona_id": { "type": "string", "minLength": 1 },
+    "medium": {
+      "description": "carried from perception.medium (the gate).",
+      "type": "string",
+      "enum": ["photo", "illustration", "render_3d", "flat_graphic", "composite", "other"]
+    },
+    "scene_class": {
+      "type": "object", "additionalProperties": false,
+      "required": ["setting", "prop_density"],
+      "properties": {
+        "setting": { "type": "string", "enum": ["studio_plain", "lifestyle_indoor", "lifestyle_outdoor", "surface_flatlay", "in_situ_use", "abstract_graphic", "other"] },
+        "product_state": {
+          "description": "DERIVED from perception subjects: product + human/human_part present ⇒ in_use/held; product alone ⇒ standalone; only a carton ⇒ packaging_only; no product ⇒ none.",
+          "type": "string",
+          "enum": ["standalone", "in_use", "held", "packaging_only", "none", "other"]
+        },
+        "prop_density": { "type": "string", "enum": ["none", "minimal", "moderate", "busy"] }
+      }
+    },
+    "palette": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "temp": { "type": "string", "enum": ["warm", "cool", "neutral", "mixed"] },
+        "saturation": { "type": "string", "enum": ["muted", "moderate", "vivid"] }
+      }
+    },
+    "register": {
+      "description": "The impression layer (ring 2) — NAMED from perception's look facts. Brand-free: this is what the AD reads as on its own terms, NOT whether it fits our brand (that is the brief, ring 3).",
+      "type": "string",
+      "enum": ["clean_minimal", "warm_friendly", "energetic_bold", "premium_refined", "raw_authentic", "playful", "clinical", "nostalgic", "other"]
+    },
+    "register_basis": {
+      "description": "Anti-hallucination trace: which specific perception look/scene facts this register was derived from (e.g. 'soft_diffused light + neutral palette + minimal props'). A register with no basis in the perception facts is a defect.",
+      "type": "string"
+    },
+    "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+  }
+}

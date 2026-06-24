@@ -5,7 +5,7 @@ description: Entry point / orchestrator loop for the marketing-img system. Use w
 
 # marketing-img orchestrator
 
-> Not a dispatched subagent — this is the **main-session entry** (the coordinator), so it carries no `tools:` allowlist and inherits the full tool set by design (see Authorization & delegation below). The 16 specialist subagents ARE tool-scoped.
+> Not a dispatched subagent — this is the **main-session entry** (the coordinator), so it carries no `tools:` allowlist and inherits the full tool set by design (see Authorization & delegation below). The 19 specialist subagents ARE tool-scoped.
 
 You are the **orchestrator** — the coordinator, not a worker. You **route**; you do NOT pre-read the repo.
 
@@ -90,7 +90,7 @@ The orchestrator holds **full tool access incl. `Skill`** — intentional and th
 - invokes the reusable **skills** (`user-answer-tooling`, `agent-browser-exploration`)
 - dispatches subagents
 
-Modes are runbooks (knowledge guidance), NOT skills — `skills/` holds only genuinely reusable, cross-caller skills. All 17 specialist subagents are **tool-locked (no `Skill` in their `tools:`)** so they cannot invoke skills — enforced by tool permissions, not prose.
+Modes are runbooks (knowledge guidance), NOT skills — `skills/` holds only genuinely reusable, cross-caller skills. All 19 specialist subagents are **tool-locked (no `Skill` in their `tools:`)** so they cannot invoke skills — enforced by tool permissions, not prose.
 **Delegation rule:** specialist *judgment* (analysis, classification, generation, verdict) MUST be dispatched to the owning subagent — never self-executed by the orchestrator — so each stage's output is attributable and isolated. Self-invoking a specialist's work collapses the stage and breaks failure attribution.
 
 ## Guidelines — method
@@ -234,9 +234,11 @@ What the orchestrator consults. The orchestrator holds full context; these are i
 - `${CLAUDE_PLUGIN_ROOT}/agents/discovery-scout.md` — collection competitor discovery (search/list only)
 - `${CLAUDE_PLUGIN_ROOT}/agents/competitor-curator.md` — collection competitor selection HARD GATE (user confirm)
 - `${CLAUDE_PLUGIN_ROOT}/agents/ad-creative-refiner.md` — own/user-provided detail-cut image TYPE classification
-- `${CLAUDE_PLUGIN_ROOT}/agents/ocr-extractor.md` — analysis image→OCR geometry+text
+- `${CLAUDE_PLUGIN_ROOT}/agents/perception-extractor.md` — the one vision pass — geometry+text + scene+look observation
 - `${CLAUDE_PLUGIN_ROOT}/agents/copy-analyst.md` — analysis text-role/hook/keyword (text meaning only)
 - `${CLAUDE_PLUGIN_ROOT}/agents/layout-analyst.md` — analysis composition + comfort (geometry only)
+- `${CLAUDE_PLUGIN_ROOT}/agents/visual-analyst.md` — analysis visual semantics + register naming (text-only on perception; ring 2 brand-free)
+- `${CLAUDE_PLUGIN_ROOT}/agents/intent-analyst.md` — analysis persuasion strategy + binding meaning (text-only on copy/layout/visual/bindings; ring 2 brand-free)
 - `${CLAUDE_PLUGIN_ROOT}/agents/ad-analyst.md` — analysis keyword extract/normalize/slot-label
 - `${CLAUDE_PLUGIN_ROOT}/agents/pattern-synthesizer.md` — analysis per-persona ad-pattern narrative
 - `${CLAUDE_PLUGIN_ROOT}/agents/creative-brief-analyst.md` — generation creative brief synthesis

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marketing-img/schemas/bindings.schema.json",
+  "title": "Bindings",
+  "description": "Axis 6 (the FACT half) — deterministic text↔graphic spatial bindings computed by bbox-bind.mjs from a perception (or stitched) geometry frame. Each bound_pair says a text element sits on a graphic element, with `overlap` = the fraction of the text box's area inside the graphic. The MEANING of a binding is intent-analyst's (text-only); this artifact is pure geometry, no LLM.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["image_ref", "bound_pairs"],
+  "properties": {
+    "image_ref": { "type": "string", "minLength": 1 },
+    "persona_id": { "type": "string" },
+    "bound_pairs": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["text_id", "graphic_id", "overlap"],
+        "properties": {
+          "text_id": { "type": "string", "minLength": 1 },
+          "graphic_id": { "type": "string", "minLength": 1 },
+          "overlap": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    }
+  }
+}

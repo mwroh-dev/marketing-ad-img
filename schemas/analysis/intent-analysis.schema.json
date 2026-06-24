@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marketing-img/schemas/intent-analysis.schema.json",
+  "title": "IntentAnalysis",
+  "description": "L2d — the ad's persuasion intent/strategy (axis 5) + the MEANING of its copy×layout bindings (axis 6). Ring 2, brand-free: it classifies what persuasion mechanism the ad USES, never whether that mechanism fits OUR brand/persona (that is the brief, ring 3). TEXT-ONLY: derived from copy-analysis + layout-analysis + visual-analysis + bindings, never the image. appeal/funnel_stage are the aggregatable enums; the rest is free-text rationale.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["image_ref", "persona_id", "appeal", "funnel_stage"],
+  "properties": {
+    "image_ref": { "type": "string", "minLength": 1 },
+    "persona_id": { "type": "string", "minLength": 1 },
+    "appeal": {
+      "description": "The dominant persuasion mechanism the ad uses (brand-free).",
+      "type": "string",
+      "enum": ["price", "quality_proof", "social_proof", "fear_avoidance", "aspiration", "convenience", "novelty", "authority", "scarcity", "other"]
+    },
+    "secondary_appeals": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["price", "quality_proof", "social_proof", "fear_avoidance", "aspiration", "convenience", "novelty", "authority", "scarcity", "other"] }
+    },
+    "funnel_stage": {
+      "type": "string",
+      "enum": ["awareness", "consideration", "conversion", "retargeting", "other"]
+    },
+    "primary_objection_addressed": {
+      "description": "Free-text: the buyer objection this ad most works to neutralize (NOT aggregated).",
+      "type": "string"
+    },
+    "binding_reading": {
+      "description": "Axis 6 MEANING — what each spatial text↔graphic binding (from the bindings artifact) DOES, e.g. a price tag placed ON the product = value-anchored-to-product framing. References bound_pairs by id.",
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["text_id", "graphic_id", "meaning"],
+        "properties": {
+          "text_id": { "type": "string" },
+          "graphic_id": { "type": "string" },
+          "meaning": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "look_copy_tension": {
+      "description": "If visual-analyst flagged a look↔copy mismatch (e.g. clean look wearing a raw social-proof device), the STRATEGY that mismatch encodes — read here, never re-labeled as a register.",
+      "type": "string"
+    },
+    "evidence": {
+      "description": "Anti-hallucination trace: which analysis facts (copy hook/role, layout, visual register, binding) the appeal was derived from. An appeal with no basis is a defect.",
+      "type": "string"
+    },
+    "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+  }
+}

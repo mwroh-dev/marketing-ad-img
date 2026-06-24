@@ -29,6 +29,36 @@
       "items": { "type": "object", "additionalProperties": false, "required": ["value", "freq", "score"],
         "properties": { "value": { "type": "string" }, "freq": { "type": "number" }, "score": { "type": "number" } } }
     },
+    "medium_top_k": {
+      "description": "Axis 3 — rendering medium (photo/illustration/flat_graphic/…) distribution from visual analyses.",
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": false, "required": ["value", "freq", "score"],
+        "properties": { "value": { "type": "string" }, "freq": { "type": "number" }, "score": { "type": "number" } } }
+    },
+    "setting_top_k": {
+      "description": "Axis 3 — scene setting (studio/lifestyle/flatlay/…) distribution from visual analyses.",
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": false, "required": ["value", "freq", "score"],
+        "properties": { "value": { "type": "string" }, "freq": { "type": "number" }, "score": { "type": "number" } } }
+    },
+    "register_top_k": {
+      "description": "Axis 4 — named visual register/mood (clean_minimal/premium_refined/raw_authentic/…) distribution.",
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": false, "required": ["value", "freq", "score"],
+        "properties": { "value": { "type": "string" }, "freq": { "type": "number" }, "score": { "type": "number" } } }
+    },
+    "appeal_top_k": {
+      "description": "Axis 5 — persuasion appeal (price/social_proof/quality_proof/…) distribution from intent analyses (the transferable strategy layer).",
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": false, "required": ["value", "freq", "score"],
+        "properties": { "value": { "type": "string" }, "freq": { "type": "number" }, "score": { "type": "number" } } }
+    },
+    "funnel_stage_top_k": {
+      "description": "Axis 5 — funnel stage (awareness/consideration/conversion/retargeting) distribution from intent analyses.",
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": false, "required": ["value", "freq", "score"],
+        "properties": { "value": { "type": "string" }, "freq": { "type": "number" }, "score": { "type": "number" } } }
+    },
     "comfort": {
       "type": "object", "additionalProperties": false,
       "required": ["avg_crowding", "avg_whitespace", "awkward_rate"],
