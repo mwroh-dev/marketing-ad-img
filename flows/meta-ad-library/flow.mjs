@@ -207,21 +207,21 @@ const CARD_IMG_ASSETS = (i) => `(() => {
   return [];
 })()`;
 
-// the i-th card's advertiser PRIMARY TEXT (ad copy shown above the creative). ⚠️ LIVE-UNVERIFIED selector:
-// Meta renders user-authored text in [dir="auto"] blocks, so we scope to the card container (same walk-up as
-// CARD_IMG_ASSETS) and pick the longest dir=auto block that is NOT chrome (Library ID / dates / follower /
-// Sponsored / Platforms / status / numeric-only). Errs toward "" (honest absence) rather than capturing chrome.
-// MUST be confirmed/tuned against a real Meta modal — see tasks/IMPLEMENTATION_NOTES.md.
+// the i-th card's advertiser PRIMARY TEXT (the ad copy). VERIFIED against live Meta Ad Library (KR): Meta renders
+// the primary text in a `._7jyr` block — clean, separate from the "<advertiser> Sponsored" header (._8nsi) and
+// from all the detail chrome (Library ID / dates / platforms). We climb from the detail trigger to the nearest
+// ancestor that holds this ad's ._7jyr (text-length-bounded so we never swallow a neighbouring ad's copy) and
+// return it. No ._7jyr → "" (honest absence; e.g. image-only ads with no body text).
 const CARD_PRIMARY_TEXT = (i) => `(() => {
   const b=${TRIG}[${i}]; if(!b) return "";
-  let p=b, card=null;
-  for(let k=0;k<12 && p;k++){ if(p.querySelector('img,video')){ card=p; break; } p=p.parentElement; }
-  card=card||b.parentElement; if(!card) return "";
-  const CHROME=/Library ID|라이브러리 ID|게재 시작|Started running|^Sponsored$|^광고$|Platforms|플랫폼|팔로워|followers|See ad details|광고 상세|See summary|^(활성|비활성|Active|Inactive)$/i;
-  const blocks=[...card.querySelectorAll('[dir="auto"]')].map(e=>(e.innerText||'').replace(/\\s+/g,' ').trim())
-    .filter(t=>t && t.length>=20 && /\\s/.test(t) && !CHROME.test(t) && !/^[0-9.,:/\\s-]+$/.test(t));
-  if(!blocks.length) return "";
-  return blocks.sort((a,b)=>b.length-a.length)[0];
+  let p=b;
+  for(let k=0;k<16 && p;k++){
+    if((p.innerText||'').length>2600) break;                 // climbed past one ad → stop before grabbing a neighbour's copy
+    const t=p.querySelector && p.querySelector('._7jyr');     // Meta primary-text block (the ad copy)
+    if(t && (t.innerText||'').trim()) return (t.innerText||'').replace(/\\s+/g,' ').trim();
+    p=p.parentElement;
+  }
+  return "";
 })()`;
 
 // the OPEN modal's own creative image assets — { full, key } — the ad's actual creative as shown in the modal
