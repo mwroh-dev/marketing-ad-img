@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marketing-img/schemas/market-position-matrix.schema.json",
+  "title": "MarketPositionMatrix",
+  "description": "DRAFT v0 — per-persona aggregate crossing per-ad strategy-projections into a benefit × funnel positioning matrix (Ries & Trout perceptual map; Kim & Mauborgne whitespace). Deterministic, no LLM. NOT a performance report: counts are observed prevalence (longevity = proxy), never performance; whitespace = low observed frequency, NOT a guaranteed opportunity. by_benefit_and_funnel is a FULL grid (0 cells are the whitespace signal); derived lists omit-don't-zero-fill.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["persona_id", "total_ads", "by_benefit_and_funnel"],
+  "properties": {
+    "persona_id": { "type": "string", "minLength": 1 },
+    "total_ads": { "type": "integer", "minimum": 0 },
+    "by_benefit_and_funnel": {
+      "type": "object", "additionalProperties": false,
+      "required": ["function", "cost", "trust", "symbol", "unclear"],
+      "properties": {
+        "function": { "$ref": "#/$defs/funnelRow" },
+        "cost": { "$ref": "#/$defs/funnelRow" },
+        "trust": { "$ref": "#/$defs/funnelRow" },
+        "symbol": { "$ref": "#/$defs/funnelRow" },
+        "unclear": { "$ref": "#/$defs/funnelRow" }
+      }
+    },
+    "dominant_positions": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["position", "count", "share"],
+        "properties": {
+          "position": { "type": "string" },
+          "count": { "type": "integer", "minimum": 0 },
+          "share": { "type": "number" },
+          "common_ad_types": { "type": "array", "items": { "type": "string" } },
+          "common_execution_styles": { "type": "array", "items": { "type": "string" } },
+          "common_devices": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "crowded_positions": { "$ref": "#/$defs/positionNoteList" },
+    "whitespace_positions": { "$ref": "#/$defs/positionNoteList" },
+    "high_reusability_patterns": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["position"],
+        "properties": {
+          "position": { "type": "string" },
+          "devices": { "type": "array", "items": { "type": "string" } },
+          "why_reusable": { "type": "string" }
+        }
+      }
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["risk", "reason"],
+        "properties": { "risk": { "type": "string" }, "reason": { "type": "string" } }
+      }
+    },
+    "coverage_flags": { "type": "array", "items": { "type": "string" } },
+    "generated_at": { "type": "string" }
+  },
+  "$defs": {
+    "funnelRow": {
+      "type": "object", "additionalProperties": false,
+      "required": ["discovery", "comparison", "action", "retention", "unclear"],
+      "properties": {
+        "discovery": { "type": "integer", "minimum": 0 },
+        "comparison": { "type": "integer", "minimum": 0 },
+        "action": { "type": "integer", "minimum": 0 },
+        "retention": { "type": "integer", "minimum": 0 },
+        "unclear": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "positionNoteList": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["position", "reason"],
+        "properties": { "position": { "type": "string" }, "reason": { "type": "string" } }
+      }
+    }
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marketing-img/schemas/strategy-projection.schema.json",
+  "title": "StrategyProjection",
+  "description": "DRAFT v0 — per-ad marketing-strategy projection. TEXT-ONLY: derived from completed analysis artifacts (ad-type, copy, layout, visual, intent, bindings) + the ad's own advertiser/product context — NEVER the image. Ring 2, read on the AD'S OWN product selling-point (not ours). Projects (does not re-classify): funnel_intent⟵intent.funnel_stage, benefit_vector⟵intent.appeal coarsening. grounds_in cites knowledge/reference/ad-strategy-taxonomy.md (Sheth-Newman-Gross 1991 / Lavidge-Steiner 1961 / Petty-Cacioppo 1986 ELM / Griffin-Hauser 1993 VoC / Goldenberg-Mazursky-Solomon 1999).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["image_ref", "persona_id", "benefit_vector", "funnel_intent", "first_cognition", "grounds_in"],
+  "properties": {
+    "image_ref": { "type": "string", "minLength": 1 },
+    "persona_id": { "type": "string", "minLength": 1 },
+
+    "advertiser_context": {
+      "description": "The ad's OWN advertiser/product context (from collection metadata), so the projection reads 'company X's product Y ad creates purchase-reason Z' — NOT a judgement against our product.",
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "advertiser_name": { "type": "string" },
+        "page_id": { "type": "string" },
+        "product_hint": { "type": "string" }
+      }
+    },
+
+    "benefit_vector": {
+      "description": "The purchase reason the ad creates (Sheth-Newman-Gross 1991 + Park-Jaworski-MacInnis 1986; cost←Zeithaml 1988, trust←perceived-risk). `unclear` = insufficient evidence.",
+      "type": "object", "additionalProperties": false,
+      "required": ["primary", "evidence"],
+      "properties": {
+        "primary": { "type": "string", "enum": ["function", "cost", "trust", "symbol", "unclear"] },
+        "secondary": { "type": "array", "items": { "type": "string", "enum": ["function", "cost", "trust", "symbol"] } },
+        "evidence": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["source", "reason"],
+            "properties": {
+              "source": { "type": "string", "enum": ["headline", "subcopy", "visual", "review", "badge", "price", "layout", "cta", "other"] },
+              "reason": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+
+    "funnel_intent": {
+      "description": "The buyer-readiness stage the ad targets (Lavidge & Steiner 1961 Hierarchy of Effects; retention=loyalty-loop). Projection of intent.funnel_stage. `unclear` = insufficient evidence.",
+      "type": "object", "additionalProperties": false,
+      "required": ["stage", "evidence"],
+      "properties": {
+        "stage": { "type": "string", "enum": ["discovery", "comparison", "action", "retention", "unclear"] },
+        "evidence": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["source", "reason"],
+            "properties": {
+              "source": { "type": "string", "enum": ["headline", "cta", "offer", "layout", "proof", "visual", "other"] },
+              "reason": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+
+    "first_cognition": {
+      "description": "Does the ad communicate in the first glance (Petty & Cacioppo 1986 ELM low-elaboration / ad comprehension). total_score MUST equal the sum of the eight 0-2 sub-scores.",
+      "type": "object", "additionalProperties": false,
+      "required": ["target_clarity", "situation_clarity", "problem_clarity", "product_category_clarity", "benefit_clarity", "reading_load", "jargon_penalty", "visual_legibility", "total_score", "verdict"],
+      "properties": {
+        "target_clarity": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "situation_clarity": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "problem_clarity": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "product_category_clarity": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "benefit_clarity": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "reading_load": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "jargon_penalty": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "visual_legibility": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "total_score": { "type": "integer", "minimum": 0, "maximum": 16 },
+        "verdict": { "type": "string", "enum": ["strong", "acceptable", "weak", "unusable"] },
+        "blockers": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "customer_language": {
+      "description": "Whose words the copy uses (Griffin & Hauser 1993 Voice of the Customer + JTBD).",
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "detected_phrases": { "type": "array", "items": { "type": "string" } },
+        "brand_language_phrases": { "type": "array", "items": { "type": "string" } },
+        "review_like_phrases": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "generation_reusability": {
+      "description": "What can be reused vs must not be copied (Goldenberg-Mazursky-Solomon 1999 creativity templates: reuse the abstract device, never the competitor's specific content).",
+      "type": "object", "additionalProperties": false,
+      "required": ["usable", "reason"],
+      "properties": {
+        "usable": { "type": "boolean" },
+        "reason": { "type": "string", "minLength": 1 },
+        "reusable_devices": { "type": "array", "items": { "type": "string" } },
+        "avoid_copying": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "grounds_in": {
+      "description": "REQUIRED provenance — the ad-strategy-taxonomy.md source(s) this projection rests on (e.g. 'Sheth-Newman-Gross 1991 functional; Lavidge-Steiner 1961 comparison'). A projection with no basis is a defect.",
+      "type": "string", "minLength": 1
+    },
+    "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+  }
+}
