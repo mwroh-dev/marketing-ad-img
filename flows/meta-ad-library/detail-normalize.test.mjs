@@ -1,6 +1,19 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseFollowerCount, parseStartedAt, mapPlatforms, normalizeStatus, normalizeDetail, normalizeAdCopy } from "./detail-normalize.mjs";
+import { parseFollowerCount, parseStartedAt, mapPlatforms, normalizeStatus, normalizeDetail, normalizeAdCopy, normalizeAdvertiser } from "./detail-normalize.mjs";
+
+test("normalizeAdvertiser strips the collab wrapper, passes a normal name through", () => {
+  // live bug: branded-content ad → "{advertiser} 페이지는 {partner}과(와) 함께합니다"
+  assert.equal(normalizeAdvertiser("trend__mandu 페이지는 ChatGPT과(와) 함께합니다"), "trend__mandu");
+  assert.equal(normalizeAdvertiser("그녀의 다이어리"), "그녀의 다이어리");        // normal name unchanged
+  assert.equal(normalizeAdvertiser("스텐드랩 - STEND LAB"), "스텐드랩 - STEND LAB"); // hyphenated name unchanged
+  assert.equal(normalizeAdvertiser(""), "");
+  assert.equal(normalizeAdvertiser(null), "");
+});
+
+test("normalizeDetail uses the collab-stripped advertiser", () => {
+  assert.equal(normalizeDetail({ advertiser: "trend__mandu 페이지는 ChatGPT과(와) 함께합니다" }).advertiser_name, "trend__mandu");
+});
 
 test("normalizeAdCopy collapses whitespace, trims, caps length; empty → ''", () => {
   assert.equal(normalizeAdCopy("  촉촉한   보습\n크림  "), "촉촉한 보습 크림");
