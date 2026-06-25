@@ -70,6 +70,11 @@ Allowed = record it. Forbidden = omit it; it belongs downstream.
 - `bbox` — `{x, y, w, h}` as percent of canvas, 0–100 (relative, not pixels). x,y = top-left.
 - `font_size_scale` — relative bucket `xs|s|m|l|xl` within THIS image (biggest type → `xl`), not absolute pt.
 - `color_hex` best-effort; `bold`/`shadow`/`align`/`line_breaks` (as-laid-out wrap count, a 3-line block = 2).
+- `text_confidence` — per-element read confidence 0–1 (1 = crisp/certain; low = blurry, overlapping, decorative, or
+  partly occluded). This is the OCR-faithful signal: the schema is the image substitute, so a downstream consumer
+  trusts this text or escalates from `text_confidence` alone — without re-opening the image. Never hide a shaky read
+  behind a confident-looking value; lower the confidence. (byte-exact content rule still holds — record the best-effort
+  bytes AND mark the low confidence.)
 - `id` — stable handle (`t1`, `t2`, … / `g1`, `g2`, …) so downstream agents reference the element.
 - graphic `kind` ∈ `product|lifestyle|icon|badge|chart|screenshot|illustration|other` — a **shape/visual bucket**
   for the element's form, never its role. (`screenshot` = an embedded UI capture e.g. a chat/comment block;

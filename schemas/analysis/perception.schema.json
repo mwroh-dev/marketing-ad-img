@@ -41,6 +41,7 @@
             "properties": { "x": { "type": "number" }, "y": { "type": "number" }, "w": { "type": "number" }, "h": { "type": "number" } }
           },
           "font_size_scale": { "type": "string", "enum": ["xs", "s", "m", "l", "xl"] },
+          "text_confidence": { "type": "number", "minimum": 0, "maximum": 1, "description": "OCR-faithful per-element read confidence (1=crisp/certain, low=blurry/overlapping/decorative). Lets a downstream consumer trust this text or escalate WITHOUT the image. The schema is the image substitute." },
           "color_hex": { "type": "string" },
           "bold": { "type": "boolean" },
           "shadow": { "type": "boolean" },
