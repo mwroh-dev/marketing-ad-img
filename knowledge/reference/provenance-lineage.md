@@ -72,5 +72,7 @@ which commit, what it makes stale). This is the structured, global, first-class 
 3. **Live wiring** — the analysis runbook now persists each artifact to the store via `persistArtifact`
    (`modes/analysis.md` Outputs); the correction loop is `modes/validate-recipe.md` step 3. Exercised on real runs;
    the helpers are proven on pilot data.
-4. **Generation-side lineage + the dual (theirs+ours) comparison view** — the envelope already supports
-   `opportunity`/`brief`/`candidate` kinds; the viewer renders our generated items alongside theirs when present.
+4. **Generation-side lineage + the dual (theirs+ours) comparison view** ✅ — the envelope supports
+   `opportunity`/`brief`/`candidate` kinds + `generationPatternTag`; `validate-recipe` renders our generated items
+   (with their lineage) in a "우리 생성물" section alongside the competitor recipes. (Live generation persistence —
+   `finalize-candidates` writing candidates to the store — is wired the same way as analysis, exercised on real runs.)

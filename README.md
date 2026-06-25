@@ -60,7 +60,7 @@ commands/start.md                                 /marketing-img:start — the s
 agents/ (flat .md)                                orchestrator + 22 role-scoped subagents
 skills/ (2)                                       reusable skills (agent-browser-exploration, user-answer-tooling)
 knowledge/  guidelines ⊥ experience ⊥ reference   principles · learned patterns · mode runbooks + design refs
-schemas/ (37, JSON Schema 2020-12)                I/O contracts per stage
+schemas/ (39, JSON Schema 2020-12)                I/O contracts per stage
 shared/  collect · harness · validators · _lib    CDP collection, deterministic logic, schema validators
 flows/ (meta-ad-library, google-ads-transparency) per-source CDP collection adapters (defineFlow)
 config/ (cdp-ports, image-adapters, tool-entrypoints)

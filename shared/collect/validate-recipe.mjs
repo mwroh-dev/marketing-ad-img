@@ -85,6 +85,20 @@ export function loadRecipe(personaId, adBase, stateDir = STATE) {
   return out;
 }
 
+// OUR generated items (kind=candidate) live in the same store, keyed by candidate_id (not an ad slot). Scan the
+// persona index for slots that carry a candidate envelope → the dual "theirs (recipe) + ours (generated)" view.
+export function loadGenerated(personaId, stateDir = STATE) {
+  const idx = readJson(resolve(stateDir, "store", personaId, "index.json"));
+  if (!idx?.items) return [];
+  const out = [];
+  for (const [slot, item] of Object.entries(idx.items)) {
+    if (!item.kinds?.candidate) continue;
+    const env = readJson(resolve(stateDir, "store", personaId, slot, "candidate.json"));
+    if (env) out.push({ slot, pattern_tag: item.pattern_tag, derived_from: env.derived_from || [], payload: env.payload || {}, fullId: `store/${personaId}/${slot}/candidate.json` });
+  }
+  return out;
+}
+
 // NO quality verdict here — the system does NOT pre-grade the analysis. The whole reason a human does the recipe
 // check is that the agent's grounds can be wrong, INCLUDING when it was confident (a confidently-wrong analysis
 // would carry high confidence and so no "bad" flag — a badge would give false reassurance and make the human skip
@@ -117,6 +131,26 @@ function recipeRows(recipe) {
     + `</dl>`;
 }
 
+// OUR generated prompt candidate — no run image (it's a prompt); shows the spec + its lineage (← opportunity → matrix).
+export function generatedCardHtml(item) {
+  const p = item.payload || {};
+  const copy = p.provider_neutral_spec?.copy || p.copy || {};
+  const lineage = (item.derived_from || []).map((d) => d.kind).join(" ← ") || "—";
+  return `
+    <div class="card gen">
+      <div class="body">
+        <div class="info">생성 후보 · ${esc(p.angle || item.slot)}</div>
+        <button class="idbtn" type="button" data-id="${esc(item.fullId)}" title="${esc(item.fullId)}">${esc(item.slot)}</button>
+        <dl class="recipe">`
+        + `<dt>헤드라인</dt>${dd(copy.headline)}`
+        + `<dt>CTA</dt>${dd(copy.cta)}`
+        + `<dt>포지션</dt>${dd(item.pattern_tag)}`
+        + `<dt class="self">계보</dt>${dd(lineage)}`
+        + `</dl>
+      </div>
+    </div>`;
+}
+
 export function cardHtml(runId, personaId, creative, recipe) {
   const file = creative.image_file;                       // "images/ad-9.jpg"
   const adBase = basename(file).replace(IMG_RE, "");       // "ad-9"
@@ -139,7 +173,13 @@ export function cardHtml(runId, personaId, creative, recipe) {
 export function renderRecipeHtml({ personaId, groups, stateDir = STATE }, template) {
   const totalAds = groups.reduce((n, g) => n + g.runs.reduce((m, r) => m + r.creatives.length, 0), 0);
   const totalRuns = groups.reduce((n, g) => n + g.runs.length, 0);
-  const meta = `페르소나 <b>${esc(personaId)}</b> · 수집 ${totalRuns}회(${groups.length}개 날짜) · 광고 ${totalAds}개`;
+  const generated = loadGenerated(personaId, stateDir);
+  const meta = `페르소나 <b>${esc(personaId)}</b> · 수집 ${totalRuns}회(${groups.length}개 날짜) · 광고 ${totalAds}개 · 우리 생성물 ${generated.length}개`;
+  // OUR generated items first (theirs+ours dual view) — so the human compares what we made against the source ads.
+  const ourSection = generated.length
+    ? `<section class="day gen"><h2>우리 생성물 (generated)</h2><div class="daysub">우리가 이 recipe로 만든 프롬프트 후보 — 아래 남의 광고와 대조</div>`
+      + `<div class="grid">${generated.map(generatedCardHtml).join("")}</div></section>`
+    : "";
   const sections = groups.length
     ? groups.map((g) => {
         const runIds = g.runs.map((r) => r.runId);
@@ -148,7 +188,7 @@ export function renderRecipeHtml({ personaId, groups, stateDir = STATE }, templa
           + `<div class="grid">${cards || `<p class="empty">이미지 없음</p>`}</div></section>`;
       }).join("")
     : `<p class="empty">이 페르소나로 수집된 런이 없습니다.</p>`;
-  return template.replace("<!--META-->", () => meta).replace("<!--GROUPS-->", () => sections);
+  return template.replace("<!--META-->", () => meta).replace("<!--GROUPS-->", () => ourSection + sections);
 }
 
 // ---- CLI: render + serve (read-only) + self-exit -----------------------------------------------------------

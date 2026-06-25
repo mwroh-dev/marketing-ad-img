@@ -4,7 +4,8 @@ import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { readFileSync } from "node:fs";
-import { runDate, loadPersonaRuns, groupByDate, loadRecipe, cardHtml, renderRecipeHtml } from "./validate-recipe.mjs";
+import { runDate, loadPersonaRuns, groupByDate, loadRecipe, cardHtml, renderRecipeHtml, loadGenerated, generatedCardHtml } from "./validate-recipe.mjs";
+import { persistArtifact, generationPatternTag } from "../lineage/persist-artifact.mjs";
 
 const TEMPLATE = readFileSync(resolve(import.meta.dirname, "validate-recipe.template.html"), "utf8");
 
@@ -47,6 +48,31 @@ test("renderRecipeHtml groups by date, fills meta + id buttons; empty persona re
   assert.ok(!html.includes("<!--GROUPS-->") && !html.includes("<!--META-->"));   // markers filled
   const empty = renderRecipeHtml({ personaId: "p", groups: [] }, TEMPLATE);
   assert.match(empty, /수집된 런이 없습니다/);
+});
+
+test("dual view: OUR generated candidates render in a 'generated' section with their lineage", () => {
+  const stateDir = mkdtempSync(resolve(tmpdir(), "vrg-"));
+  const lv = () => ({ version: "v1", method: "content" });
+  persistArtifact({ kind: "candidate", key: { persona_id: "p", candidate_id: "candidate_001", run_id: "g1" },
+    payload: { angle: "product", provider_neutral_spec: { copy: { headline: "단 한 번의 케어", cta: "지금 보기" } } },
+    pattern_tag: generationPatternTag({ benefit: "function", funnel: "discovery" }), produced_by: "finalize-candidates",
+    derived_from: [{ kind: "opportunity", ref: "p/opp-1/opportunity.json" }] }, { stateDir, logicVersionFn: lv });
+
+  const gen = loadGenerated("p", stateDir);
+  assert.equal(gen.length, 1);
+  assert.equal(gen[0].slot, "candidate_001");
+  assert.equal(gen[0].payload.provider_neutral_spec.copy.headline, "단 한 번의 케어");
+
+  const card = generatedCardHtml(gen[0]);
+  assert.match(card, /class="card gen"/);
+  assert.match(card, /단 한 번의 케어/);
+  assert.match(card, /class="idbtn"[^>]*data-id="store\/p\/candidate_001\/candidate\.json"/);
+  assert.match(card, /gen:function×discovery/);          // position
+  assert.match(card, /opportunity/);                     // lineage
+
+  const html = renderRecipeHtml({ personaId: "p", groups: [], stateDir }, TEMPLATE);
+  assert.match(html, /우리 생성물 \(generated\)/);
+  assert.match(html, /단 한 번의 케어/);
 });
 
 test("loadPersonaRuns + loadRecipe discover a persona's runs on disk and read the per-ad analysis subdir", () => {

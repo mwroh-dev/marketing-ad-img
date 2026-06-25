@@ -34,6 +34,12 @@ export function analysisPatternTag(strategy, adType) {
   return `${t}:${b}×${f}`;
 }
 
+// pattern_tag — the shared pattern OUR generated item targets (→ its peers among our outputs). The opportunity
+// position it was generated for. "gen:{benefit}×{funnel}".
+export function generationPatternTag(position = {}) {
+  return `gen:${position.benefit || "unclear"}×${position.funnel || "unclear"}`;
+}
+
 // ref = the store-relative path of an envelope (used in derived_from and the index).
 export const refOf = (personaId, slot, kind) => `${personaId}/${slot}/${kind}.json`;
 
