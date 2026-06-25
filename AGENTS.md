@@ -6,7 +6,7 @@ Agents are contracts, not code. Each agent definition must contain: Role, Inputs
 
 ## Real subagents vs. blueprint agents
 
-**19 role-scoped subagents** are instantiated as real Claude Code subagents under `agents/` (flat `agents/<name>.md`, each with `name`/`description`/`tools` frontmatter), plus the `orchestrator` entry agent (20 total). **stage** = the pipeline stage that agent implements (gate→setup→collection→analysis→generation); matches the CLAUDE.md Modes map.
+**20 role-scoped subagents** are instantiated as real Claude Code subagents under `agents/` (flat `agents/<name>.md`, each with `name`/`description`/`tools` frontmatter), plus the `orchestrator` entry agent (21 total). **stage** = the pipeline stage that agent implements (gate→setup→collection→analysis→generation); matches the CLAUDE.md Modes map.
 
 | Real subagent (`agents/`) | stage | Role / Absorbs |
 |---|---|---|
@@ -18,6 +18,7 @@ Agents are contracts, not code. Each agent definition must contain: Role, Inputs
 | `competitor-curator` | collection | competitor-selection HARD GATE |
 | `ad-creative-refiner` | collection | detail-cut TYPE classification on the seller's own / user-provided images (persuasive detail-cut = ad separation) |
 | `perception-extractor` | analysis | the ONE vision pass: image→geometry+text + scene+look observation |
+| `ad-type-classifier` | analysis | grounded ad TYPE (message_basis/execution_style) + route to adapter (text-only on perception; cites ad-taxonomy.md) |
 | `copy-analyst` | analysis | text-role/hook/keyword (text meaning only) |
 | `layout-analyst` | analysis | composition + comfort (geometry only) |
 | `visual-analyst` | analysis | visual semantics + register/mood NAMING (text-only on perception scene/look; ring 2, brand-free) |
@@ -34,7 +35,7 @@ Data collection (D), the preprocessing slicer, pattern aggregation (deterministi
 
 ## Orchestrator
 
-The orchestrator is NOT a subagent. It is the main-session entry agent (`${CLAUDE_PLUGIN_ROOT}/agents/orchestrator.md`, auto-activated via `settings.json` `"agent": "orchestrator"`) — the shipped entry that works when the plugin is installed elsewhere (a plugin's root `CLAUDE.md` is NOT loaded for consumers). It holds the full artifact/knowledge set and dispatches the 19 subagents, projecting only role-scoped views to each.
+The orchestrator is NOT a subagent. It is the main-session entry agent (`${CLAUDE_PLUGIN_ROOT}/agents/orchestrator.md`, auto-activated via `settings.json` `"agent": "orchestrator"`) — the shipped entry that works when the plugin is installed elsewhere (a plugin's root `CLAUDE.md` is NOT loaded for consumers). It holds the full artifact/knowledge set and dispatches the 20 subagents, projecting only role-scoped views to each.
 
 ## Context Distribution Rule
 
@@ -52,6 +53,7 @@ The orchestrator is NOT a subagent. It is the main-session entry agent (`${CLAUD
 | competitor-curator | scout candidate pool, seeds, the one persona, product USP/claims | other personas' competitor sets, raw browser logs |
 | ad-analyst | one persona's competitor corpus (titles+detail), persona cues, slot taxonomy, loanword seed | other personas, raw browser logs, credentials |
 | perception-extractor | one ad image, persona_id | text meaning interpretation, other images |
+| ad-type-classifier | one perception artifact (text/medium/scene/look), persona_id | the image itself (text-only), the brand/persona positioning (ring 3), other images |
 | layout-analyst | one perception artifact (geometry), persona_id | text content meaning |
 | copy-analyst | one perception artifact (text content), persona_id | coordinates/fonts |
 | visual-analyst | one perception artifact (medium/scene/look), persona_id | the image itself (text-only), the brand/persona positioning (ring 3), other images |

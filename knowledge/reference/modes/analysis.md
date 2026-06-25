@@ -7,7 +7,7 @@ copy×layout binding). Analysis is the **tail of a collection run**: it begins o
 `screened` and ends at `analyzed`. Prompt-only system; no provider calls. Domain is never pre-fixed — the
 product/persona come only from the run's projected state (`non-negotiable-rules.md`).
 
-**Steps (for progress reporting, ~6):** 1) `perception-extractor` (vision ×1: geometry+text+scene+look per KEPT image) → 2) `stitch` + `bind` (deterministic: global-frame recombine + text↔graphic overlap pairs) → 3) `copy-analyst` ⊥ `layout-analyst` ⊥ `visual-analyst` (parallel: text-meaning / spatial-meaning / visual-semantics+register) → 4) `intent-analyst` (persuasion strategy + binding meaning) → 5) `ad-pattern-rank` (deterministic enum aggregation) + `keyword-rank` → 6) `pattern-synthesizer` (narrative on top of the aggregate). Report `[analysis · step k/6]` at each. Stage advances `screened → analyzed`.
+**Steps (for progress reporting, ~7):** 1) `perception-extractor` (vision ×1: geometry+text+scene+look per KEPT image) → 2) `stitch` + `bind` (deterministic: global-frame recombine + text↔graphic overlap pairs) → 3) `ad-type-classifier` (grounded ad TYPE + route to adapter — text-only on perception, vision 0) → 4) `copy-analyst` ⊥ `layout-analyst` ⊥ `visual-analyst` (parallel: text-meaning / spatial-meaning / visual-semantics+register; the routed adapter's `emphasizes` tunes priority) → 5) `intent-analyst` (persuasion strategy + binding meaning) → 6) `ad-pattern-rank` (deterministic enum aggregation) + `keyword-rank` → 7) `pattern-synthesizer` (narrative on top of the aggregate). Report `[analysis · step k/7]` at each. Stage advances `screened → analyzed`.
 
 ## The cost invariant (do not violate)
 **Vision tokens are spent ONCE**, in step 1 (`perception-extractor`). Steps 3–4 are **text-only** — every analyst
@@ -23,6 +23,11 @@ per KEPT image (stage ≥ screened):
   [code] slice-stitch   → global-frame perception (slice y0/y1 recombined; section bboxes offset)   ⎫ deterministic
   [code] bbox-bind      → bindings.json {bound_pairs[]: text_id↔graphic_id, overlap}                 ⎭ facts (axis 6)
         │
+        ▼
+  ad-type-classifier    → ad-type.json   (message_basis/execution_style/ad_type + grounds_in — TEXT-only, brand-free)
+        │  getAdType(ad_type) → the defineAdType adapter's `emphasizes` tunes which axes the analysts prioritize.
+        │  Grounded in knowledge/reference/ad-taxonomy.md (Puto&Wells 1984 / Belch&Belch / Kotler / Frazer 1983).
+        ▼
         ├─ copy-analyst   → copy-analysis.json    (text role / hook / keywords — TEXT meaning only)      ⎫ parallel
         ├─ layout-analyst → layout-analysis.json  (composition / comfort — GEOMETRY meaning only)        ⎬ ⊥ lanes,
         └─ visual-analyst → visual-analysis.json  (scene taxonomy + register/mood NAMED — VISUAL only)   ⎭ text-only

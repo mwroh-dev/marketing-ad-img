@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marketing-img/schemas/ad-type.schema.json",
+  "title": "AdType",
+  "description": "DRAFT v0 — the ad-type-classifier's output for ONE ad. TEXT-ONLY: derived from a perception artifact (never the image), ring 2 brand-free. Classifies the ad on established advertising theory and records the BASIS (grounds_in) so every classification is traceable to knowledge/reference/ad-taxonomy.md. message_basis = Puto & Wells (1984); execution_style = Belch & Belch / Kotler & Armstrong; ad_type = the routed seed adapter.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["image_ref", "persona_id", "message_basis", "execution_style", "ad_type", "grounds_in"],
+  "properties": {
+    "image_ref": { "type": "string", "minLength": 1 },
+    "persona_id": { "type": "string", "minLength": 1 },
+    "message_basis": {
+      "description": "Layer 1 — what carries the message (Puto & Wells, 1984).",
+      "type": "string",
+      "enum": ["informational", "transformational", "hybrid", "other"]
+    },
+    "execution_style": {
+      "description": "Layer 2 — the observable execution style (Belch & Belch; Kotler & Armstrong).",
+      "type": "string",
+      "enum": ["straight_sell", "scientific_evidence", "demonstration", "comparison", "testimonial", "slice_of_life", "lifestyle", "mood_image", "fantasy", "personality_symbol", "dramatization", "humor", "animation", "musical", "other"]
+    },
+    "secondary_execution_styles": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["straight_sell", "scientific_evidence", "demonstration", "comparison", "testimonial", "slice_of_life", "lifestyle", "mood_image", "fantasy", "personality_symbol", "dramatization", "humor", "animation", "musical", "other"] }
+    },
+    "ad_type": {
+      "description": "The routed seed adapter (knowledge/reference/ad-taxonomy.md routing table).",
+      "type": "string",
+      "enum": ["informational", "transformational", "social_proof", "default"]
+    },
+    "grounds_in": {
+      "description": "REQUIRED provenance — the citation(s) into ad-taxonomy.md this classification rests on (e.g. 'Puto & Wells (1984) informational; Belch & Belch demonstration'). A classification with no basis is a defect.",
+      "type": "string",
+      "minLength": 1
+    },
+    "reason": {
+      "description": "Which perception facts drove the call (text/scene/look evidence). Anti-hallucination trace.",
+      "type": "string"
+    },
+    "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+  }
+}

@@ -18,10 +18,11 @@ const copyPath = arg("--copy");
 const visualPath = arg("--visual");
 const intentPath = arg("--intent");
 const bindingsPath = arg("--bindings");
+const adtypePath = arg("--adtype");
 const patternPath = arg("--pattern");
 
-if (!perceptionPath && !layoutPath && !copyPath && !visualPath && !intentPath && !bindingsPath && !patternPath) {
-  console.error("Usage: tsx shared/validators/validate-ad-analysis.ts [--perception <path>] [--layout <path>] [--copy <path>] [--visual <path>] [--intent <path>] [--bindings <path>] [--pattern <path>] (at least one)");
+if (!perceptionPath && !layoutPath && !copyPath && !visualPath && !intentPath && !bindingsPath && !adtypePath && !patternPath) {
+  console.error("Usage: tsx shared/validators/validate-ad-analysis.ts [--perception <path>] [--layout <path>] [--copy <path>] [--visual <path>] [--intent <path>] [--bindings <path>] [--adtype <path>] [--pattern <path>] (at least one)");
   process.exit(2);
 }
 
@@ -45,6 +46,8 @@ if (visualPath) ok = report("visual-analysis", validateAgainst("visual-analysis.
 if (intentPath) ok = report("intent-analysis", validateAgainst("intent-analysis.schema.json", loadJson(intentPath))) && ok;
 
 if (bindingsPath) ok = report("bindings", validateAgainst("bindings.schema.json", loadJson(bindingsPath))) && ok;
+
+if (adtypePath) ok = report("ad-type", validateAgainst("ad-type.schema.json", loadJson(adtypePath))) && ok;
 
 if (patternPath) ok = report("ad-pattern", validateAgainst("ad-pattern.schema.json", loadJson(patternPath))) && ok;
 
