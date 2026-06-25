@@ -4,5 +4,4 @@ import { defineAdType } from "../define-ad-type.mjs";
 export default defineAdType({
   name: "default",
   grounds_in: "Puto & Wells (1984) 2x2 hybrid — uncertain/mixed, no dominant type",
-  emphasizes: ["copy", "layout", "visual", "intent"],
 });

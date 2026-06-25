@@ -1,15 +1,16 @@
 # Ad-type taxonomy — the grounded classification of advertisements
 
 System-design reference for how `marketing-img` classifies an ad creative into a **type**, so the analysis stage
-can route to a type-appropriate adapter (emphasize the axes that carry THIS kind of ad's message). It is
+can route to a type-appropriate adapter (a per-type quality gate-check). It is
 **domain-neutral**: every enum value is illustrative across product domains, never an assumed product/persona
 (per `non-negotiable-rules.md`).
 
 ## Why type ads (the problem this solves)
 Ads differ in **kind**, and the difference is *what carries the message*. A functional ad makes its case with
 facts/claims/specs (text and structure carry it); an emotional ad makes its case with scene/mood/identity (the
-image carries it). Analyzing both the same way under-reads each. So before the per-axis analysts run, we classify
-the ad's type and let an adapter emphasize the axes that matter for that type.
+image carries it). Analyzing both the same way under-reads each. So we classify the ad's type and route to a
+per-type adapter whose gate-check flags an ad that does not deliver what its type implies. (The analysis itself
+still runs all axes — see "Why `emphasizes` was removed" below for why per-type *extraction* shaping was dropped.)
 
 ## Provenance principle (this doc is the citable basis)
 The types below are **NOT invented here.** Advertising scholarship has classified ad types for decades, and this
@@ -73,12 +74,28 @@ decision, not an omission.
 The classifier routes to one adapter. Seed set (accretes over time); each `defineAdType` adapter's `grounds_in`
 cites the rows above.
 
-| `ad_type` | routes when | grounds_in | adapter emphasizes |
+| `ad_type` | routes when | grounds_in | adapter requires → gate |
 |---|---|---|---|
-| `informational` | message_basis=informational (demonstration/scientific/comparison/straight_sell) | Puto & Wells (1984) informational; Belch & Belch execution styles | copy(claims) · layout(structure) · binding |
-| `transformational` | message_basis=transformational (lifestyle/slice_of_life/mood_image/fantasy) | Puto & Wells (1984) transformational; Belch & Belch / Kotler | visual(scene/register/medium) · intent(aspiration) |
-| `social_proof` | testimonial / review-or-comment device dominant | Belch & Belch testimonial; appeal=social_proof (Kotler) | binding(screenshot/quote) · intent(social_proof) |
-| `default` | hybrid / uncertain / no dominant type | Puto & Wells (1984) 2×2 hybrid | all axes evenly |
+| `informational` | message_basis=informational (demonstration/scientific/comparison/straight_sell) | Puto & Wells (1984) informational; Belch & Belch execution styles | `claim_or_spec` → `informational_without_claim` |
+| `transformational` | message_basis=transformational (lifestyle/slice_of_life/mood_image/fantasy) | Puto & Wells (1984) transformational; Belch & Belch / Kotler | `register` → `transformational_without_register` |
+| `social_proof` | testimonial / review-or-comment device dominant | Belch & Belch testimonial; appeal=social_proof (Kotler) | `social_device` → `social_proof_without_device` |
+| `default` | hybrid / uncertain / no dominant type | Puto & Wells (1984) 2×2 hybrid | — (no requires) |
+
+The adapter is consumed deterministically by `shared/collect/ad-type-gate.mjs` (`requires` checked against the ad's
+analyses → `gates` flag when unmet). That is the live lever.
+
+## Why `emphasizes` was removed (deliberation trace — kept on purpose)
+The seed adapters once also declared `emphasizes` (the axes a type should *prioritize*), to make the analysis ADAPT
+per ad type (e.g. a transformational ad emphasizing visual/intent, an informational ad emphasizing copy/structure).
+It was removed as **dead code** for two architectural reasons that emerged after it was designed:
+1. **Cost premise flipped.** `emphasizes` existed partly to *skip/weight* axes and save cost. But once every axis
+   became a cheap **text** pass over the single `perception` vision pass, running all axes always costs almost
+   nothing — so there was no expensive thing to be selective about.
+2. **Per-type value moved downstream.** "Type matters differently" is now realized in the *interpretation* layers
+   (`strategy-projector` reads `ad_type`; `creative-opportunity-mapper` recommends per type), not by re-shaping the
+   *extraction*. The rings ①②③ layering absorbed it.
+So the lever had nothing left to pull. Only the consumed levers — `requires`/`gates` — remain. (If cost ever
+reverts and selective extraction is reconsidered, this is the rationale to argue from.)
 
 ## Lock discipline
 DRAFT v0 — pilot the classifier on real KEPT images and lock before the corpus runs

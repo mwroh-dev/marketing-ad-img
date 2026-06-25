@@ -4,7 +4,6 @@ import { defineAdType } from "../define-ad-type.mjs";
 export default defineAdType({
   name: "informational",
   grounds_in: "Puto & Wells (1984) informational; Belch & Belch execution styles: demonstration / scientific_evidence / comparison / straight_sell",
-  emphasizes: ["copy", "layout", "binding"],
   requires: ["claim_or_spec"], // a functional ad should carry an extractable claim/spec
   gates: ["informational_without_claim"],
 });

@@ -7,7 +7,7 @@ copy×layout binding). Analysis is the **tail of a collection run**: it begins o
 `screened` and ends at `analyzed`. Prompt-only system; no provider calls. Domain is never pre-fixed — the
 product/persona come only from the run's projected state (`non-negotiable-rules.md`).
 
-**Steps (for progress reporting, ~9):** 1) `perception-extractor` (vision ×1: geometry+text+scene+look per KEPT image) → 2) `stitch` + `bind` (deterministic: global-frame recombine + text↔graphic overlap pairs) → 3) `ad-type-classifier` (grounded ad TYPE + route to adapter — text-only on perception, vision 0) → 4) `copy-analyst` ⊥ `layout-analyst` ⊥ `visual-analyst` (parallel: text-meaning / spatial-meaning / visual-semantics+register; the routed adapter's `emphasizes` tunes priority) → 5) `intent-analyst` (persuasion strategy + binding meaning) → 6) `strategy-projector` (per-ad marketing projection: benefit×funnel + first_cognition — text-only, grounded in ad-strategy-taxonomy.md) → 7) `ad-pattern-rank` (deterministic enum aggregation) + `keyword-rank` → 8) `market-position-aggregate` (deterministic benefit×funnel matrix + crowded/whitespace) → 9) `pattern-synthesizer` (narrative on top of the aggregate). Report `[analysis · step k/9]` at each. Stage advances `screened → analyzed`.
+**Steps (for progress reporting, ~9):** 1) `perception-extractor` (vision ×1: geometry+text+scene+look per KEPT image) → 2) `stitch` + `bind` (deterministic: global-frame recombine + text↔graphic overlap pairs) → 3) `ad-type-classifier` (grounded ad TYPE + route to adapter — text-only on perception, vision 0) → 4) `copy-analyst` ⊥ `layout-analyst` ⊥ `visual-analyst` (parallel: text-meaning / spatial-meaning / visual-semantics+register — all axes run; the routed adapter is consumed later by the gate-check) → 5) `intent-analyst` (persuasion strategy + binding meaning) → 6) `strategy-projector` (per-ad marketing projection: benefit×funnel + first_cognition — text-only, grounded in ad-strategy-taxonomy.md) → 7) `ad-pattern-rank` (deterministic enum aggregation) + `keyword-rank` → 8) `market-position-aggregate` (deterministic benefit×funnel matrix + crowded/whitespace) → 9) `pattern-synthesizer` (narrative on top of the aggregate). Report `[analysis · step k/9]` at each. Stage advances `screened → analyzed`.
 
 ## The cost invariant (do not violate)
 **Vision tokens are spent ONCE**, in step 1 (`perception-extractor`). Steps 3–4 are **text-only** — every analyst
@@ -25,7 +25,7 @@ per KEPT image (stage ≥ screened):
         │
         ▼
   ad-type-classifier    → ad-type.json   (message_basis/execution_style/ad_type + grounds_in — TEXT-only, brand-free)
-        │  getAdType(ad_type) → the defineAdType adapter's `emphasizes` tunes which axes the analysts prioritize.
+        │  getAdType(ad_type) → the defineAdType adapter (its `requires`/`gates`) is consumed by the ad-type-gate step below.
         │  Grounded in knowledge/reference/ad-taxonomy.md (Puto&Wells 1984 / Belch&Belch / Kotler / Frazer 1983).
         ▼
         ├─ copy-analyst   → copy-analysis.json    (text role / hook / keywords — TEXT meaning only)      ⎫ parallel

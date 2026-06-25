@@ -12,10 +12,9 @@ test("getAdType dispatches by name; unknown throws with the registered list", ()
   assert.throws(() => getAdType("nope"), /unknown ad_type: 'nope' \(registered: /);
 });
 
-test("every registered adapter carries provenance (grounds_in) and emphasized axes", () => {
+test("every registered adapter carries provenance (grounds_in)", () => {
   for (const a of getAllAdTypes()) {
     assert.ok(a.grounds_in && a.grounds_in.length > 0, `${a.name} must cite grounds_in`);
-    assert.ok(Array.isArray(a.emphasizes) && a.emphasizes.length > 0, `${a.name} must emphasize axes`);
   }
 });
 

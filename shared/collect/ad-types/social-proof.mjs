@@ -4,7 +4,6 @@ import { defineAdType } from "../define-ad-type.mjs";
 export default defineAdType({
   name: "social_proof",
   grounds_in: "Belch & Belch execution style: testimonial/spokesperson; appeal=social_proof (Kotler)",
-  emphasizes: ["binding", "intent"],
   requires: ["social_device"], // a screenshot / quote / testimonial device the copy×graphic binding shows
   gates: ["social_proof_without_device"],
 });
