@@ -34,14 +34,18 @@ let ok = true;
 // perception / visual / intent are one object per image. layout / copy are envelopes ({analyses:[...]}).
 if (perceptionPath) ok = report("perception", validateAgainst("perception.schema.json", loadJson(perceptionPath))) && ok;
 
+// copy/layout are emitted as single per-image objects, AND collected into {analyses:[...]} envelopes for
+// aggregation. Accept EITHER shape (envelope → validate each; single object → validate it directly).
+function items(loaded: any): any[] {
+  return Array.isArray(loaded?.analyses) ? loaded.analyses : [loaded];
+}
+
 if (layoutPath) {
-  const layout = loadJson<any>(layoutPath);
-  for (const a of layout.analyses) ok = report(`layout-analysis ${a.image_ref}`, validateAgainst("layout-analysis.schema.json", a)) && ok;
+  for (const a of items(loadJson<any>(layoutPath))) ok = report(`layout-analysis ${a.image_ref ?? ""}`, validateAgainst("layout-analysis.schema.json", a)) && ok;
 }
 
 if (copyPath) {
-  const copy = loadJson<any>(copyPath);
-  for (const a of copy.analyses) ok = report(`copy-analysis ${a.image_ref}`, validateAgainst("copy-analysis.schema.json", a)) && ok;
+  for (const a of items(loadJson<any>(copyPath))) ok = report(`copy-analysis ${a.image_ref ?? ""}`, validateAgainst("copy-analysis.schema.json", a)) && ok;
 }
 
 if (visualPath) ok = report("visual-analysis", validateAgainst("visual-analysis.schema.json", loadJson(visualPath))) && ok;

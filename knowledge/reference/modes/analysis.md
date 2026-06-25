@@ -72,6 +72,9 @@ analysis/{persona_id}/{image_ref}.intent.json          # step 4
 ## Verification (gate per `completion-verification-policy.md`)
 Each producing step is verified at two layers: **shape** (`tsx ${CLAUDE_PLUGIN_ROOT}/shared/validators/validate-ad-analysis.ts --<flag> <path>`)
 ⊥ **logic** (the agent's `## Verification checklist`, applied per-item to the agent's ACTUAL output on real data).
+**On-disk shapes:** each per-image artifact (perception/ad-type/copy/layout/visual/intent/strategy) is a single object;
+`copy`/`layout` are ALSO collected into `{analyses:[…]}` envelopes for the per-persona aggregation. The validator's
+`--copy`/`--layout` accept EITHER shape (single object or envelope); the other flags take a single object.
 Code steps (`slice-stitch`, `bbox-bind`, `ad-pattern-rank`) are gated by their co-located `*.test.mjs`
 (`node --test`). **Done when:** every KEPT image has its six per-image artifacts (shape PASS + logic PASS),
 the persona `ad-pattern.json` validates and carries the new enum aggregates + synthesis, and `run.json`

@@ -33,7 +33,7 @@
             "type": "object", "additionalProperties": false,
             "required": ["source", "reason"],
             "properties": {
-              "source": { "type": "string", "enum": ["headline", "subcopy", "visual", "review", "badge", "price", "layout", "cta", "other"] },
+              "source": { "type": "string", "enum": ["headline", "subcopy", "visual", "review", "badge", "price", "offer", "layout", "cta", "other"] },
               "reason": { "type": "string", "minLength": 1 }
             }
           }
