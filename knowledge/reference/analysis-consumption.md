@@ -9,6 +9,10 @@ The analysis store is the set of per-image + per-persona artifacts (perception, 
 intent, bindings, strategy-projection; ad-pattern, market-position-matrix). **The image is opened once** (perception,
 the vision pass). Every other agent consumes *text* — a slice of the store, never the pixels.
 
+The store is the **image's substitute** (see `axis-model.md` → "The schema IS the image substitute"). So every
+load-bearing fact carries `value + evidence + confidence`; a consumer reads the **confidence** to decide *trust the
+schema vs re-look* — it never blindly trusts a summary. Low confidence / absence is surfaced, never hidden.
+
 ## The criterion (one line)
 > **Gather (pre-combine in CODE) ONLY when the combination is a *synthesized fact* — a relationship or an aggregate
 > that exists only after combining (e.g. which text binds which graphic; a frequency/positioning matrix). If a

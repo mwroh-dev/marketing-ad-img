@@ -37,7 +37,21 @@ Therefore:
   **LLM does meaning** (classification, register naming, strategy). They are never mixed in one pass — mixing
   extraction with interpretation makes the model "see what it expects" and corrupts the literal extraction.
 
-## The observe ⊥ name boundary (the discriminating rule)
+## The schema IS the image substitute ("OCR-first", schema-based — not an engine)
+Because vision is spent once, the perception schema must be a **faithful stand-in for the image** — complete and
+trustworthy enough that every downstream agent works from the *schema* and never re-opens the pixels. This is what
+"OCR-first" means here: **the schema is the OCR** — `perception` (the sole image reader) writes the text and visuals
+into the schema at a level where reading the schema is as good as having read the image. It is **NOT a separate OCR
+engine** (an OCR engine loses badly on stylized ad text — the VLM reads ad copy far better; verified and rejected).
+The contract, **adapted from `vision-token`'s `vision-index.v0` but tailored to ads** (text/copy is king; we do NOT
+import the generic tables/charts/forms/multi-provider layers):
+- Every **load-bearing fact carries `value + evidence + confidence`** — and, where possible, evidence is **id-linked
+  to its source element** (a downstream claim "this headline" traces to perception `t1`).
+- The **text layer is OCR-faithful**: each text element carries its own `text_confidence`, so a downstream consumer
+  can trust it or escalate WITHOUT the image.
+- **Low confidence / absence is surfaced, never hidden** — that is precisely what lets a consumer decide *"trust the
+  schema vs re-look"* from the schema alone. A summary that drops confidence forces a blind re-vision.
+- `perception` is the **only** image reader; everyone else is a schema consumer (see `analysis-consumption.md`).
 Perception may widen its **observation surface** to scene/look, but the **boundary is unchanged**: it records
 literal facts, it never names impressions. The mechanical test:
 
