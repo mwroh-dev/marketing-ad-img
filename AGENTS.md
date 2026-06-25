@@ -6,7 +6,7 @@ Agents are contracts, not code. Each agent definition must contain: Role, Inputs
 
 ## Real subagents vs. blueprint agents
 
-**20 role-scoped subagents** are instantiated as real Claude Code subagents under `agents/` (flat `agents/<name>.md`, each with `name`/`description`/`tools` frontmatter), plus the `orchestrator` entry agent (21 total). **stage** = the pipeline stage that agent implements (gate→setup→collection→analysis→generation); matches the CLAUDE.md Modes map.
+**22 role-scoped subagents** are instantiated as real Claude Code subagents under `agents/` (flat `agents/<name>.md`, each with `name`/`description`/`tools` frontmatter), plus the `orchestrator` entry agent (23 total). **stage** = the pipeline stage that agent implements (gate→setup→collection→analysis→generation); matches the CLAUDE.md Modes map.
 
 | Real subagent (`agents/`) | stage | Role / Absorbs |
 |---|---|---|
@@ -24,9 +24,11 @@ Agents are contracts, not code. Each agent definition must contain: Role, Inputs
 | `visual-analyst` | analysis | visual semantics + register/mood NAMING (text-only on perception scene/look; ring 2, brand-free) |
 | `intent-analyst` | analysis | persuasion strategy (appeal/funnel) + copy×layout binding MEANING (text-only on copy/layout/visual/bindings; ring 2, brand-free) |
 | `ad-analyst` | analysis | keyword extraction/normalization/slot-labeling |
+| `strategy-projector` | analysis | per-ad marketing projection (benefit×funnel + first_cognition + customer_language + reusability; projects intent; grounds_in ad-strategy-taxonomy.md) |
 | `pattern-synthesizer` | analysis | per-persona ad-pattern description |
 | `competitive-analyst` | analysis | per-persona competitive-trend narrative (longevity/variation/change + appeals) ON TOP of the deterministic trend aggregate |
-| `creative-brief-analyst` | generation | creative brief synthesis (brand/product/persona/review/pattern projection) |
+| `creative-opportunity-mapper` | generation | analysis→generation bridge (ring 3): market-position matrix → strategic positions + brief_constraints (our product selling-point enters) |
+| `creative-brief-analyst` | generation | creative brief synthesis (consumes creative-opportunity + brand/product/persona/review) |
 | `copy-layout-planner` | generation | per-candidate copy + layout |
 | `image-prompt-adapter` | generation | provider-neutral spec → ChatGPT/Gemini prompt (+ image-adapter-* skills) |
 | `critic-verifier` | generation | candidate verification gate (Agent-as-Judge) |
@@ -35,7 +37,7 @@ Data collection (D), the preprocessing slicer, pattern aggregation (deterministi
 
 ## Orchestrator
 
-The orchestrator is NOT a subagent. It is the main-session entry agent (`${CLAUDE_PLUGIN_ROOT}/agents/orchestrator.md`, auto-activated via `settings.json` `"agent": "orchestrator"`) — the shipped entry that works when the plugin is installed elsewhere (a plugin's root `CLAUDE.md` is NOT loaded for consumers). It holds the full artifact/knowledge set and dispatches the 20 subagents, projecting only role-scoped views to each.
+The orchestrator is NOT a subagent. It is the main-session entry agent (`${CLAUDE_PLUGIN_ROOT}/agents/orchestrator.md`, auto-activated via `settings.json` `"agent": "orchestrator"`) — the shipped entry that works when the plugin is installed elsewhere (a plugin's root `CLAUDE.md` is NOT loaded for consumers). It holds the full artifact/knowledge set and dispatches the 22 subagents, projecting only role-scoped views to each.
 
 ## Context Distribution Rule
 
@@ -45,7 +47,8 @@ The orchestrator is NOT a subagent. It is the main-session entry agent (`${CLAUD
 | interview-controller | highest-priority blocker, slot schema, interview-state, brand-researcher candidates (for choice questions) | full domain dump |
 | brand-researcher | pointers (brand · product · product URL · user target memo) + ONE research angle | other brands/personas, full domain set, credentials |
 | keyword-planner | product (name/category/USP), the single persona (language_cues/pains/desires), target_market, user keyword seeds | other personas, full domain set, credentials, collected creatives |
-| creative-brief-analyst | brand profile, product USP/claims, persona, review evidence summary, selected global principles | raw browser artifacts, login state |
+| creative-opportunity-mapper | the persona's market-position-matrix, OUR product USP/selling-point, the persona, brand tone | raw browser artifacts, other personas' matrices |
+| creative-brief-analyst | the creative-opportunity, brand profile, product USP/claims, persona, review evidence summary, selected global principles | raw browser artifacts, login state |
 | copy-layout-planner | persona, product USP, claim constraints, selected formats, copy + layout principles | full review dump, browser-flow logs |
 | image-prompt-adapter | provider-neutral CreativeCandidateSpec (incl. `style.brand_tone` + `style.avoid`), product asset metadata, exact Korean copy | all domain knowledge |
 | critic-verifier | candidate claims, evidence refs, constraints | private scratchpads |
@@ -58,6 +61,7 @@ The orchestrator is NOT a subagent. It is the main-session entry agent (`${CLAUD
 | copy-analyst | one perception artifact (text content), persona_id | coordinates/fonts |
 | visual-analyst | one perception artifact (medium/scene/look), persona_id | the image itself (text-only), the brand/persona positioning (ring 3), other images |
 | intent-analyst | one image's copy + layout + visual analyses + bindings, persona_id | the image itself (text-only), the brand/persona positioning + category-gap (ring 3), other images |
+| strategy-projector | one ad's completed analyses (ad-type/copy/layout/visual/intent/bindings) + its advertiser metadata, persona_id | the image itself (text-only), OUR product's selling-point (ring 3), other images |
 | pattern-synthesizer | the deterministic ad-pattern aggregate | raw images, recompute rights |
 | competitive-analyst | the deterministic competitive-trend aggregate (+ optional ad-pattern copy aggregates) | raw images, recompute rights, other personas |
 | ad-creative-refiner | one image (path), competitor_id, persona_id | text meaning interpretation, layout/composition analysis, other images |

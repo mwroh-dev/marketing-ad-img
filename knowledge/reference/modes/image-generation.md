@@ -37,11 +37,12 @@ Supported `formats`: `meta_square_1_1`, `meta_feed_4_5`, `meta_story_9_16`, `met
 The orchestrator dispatches these agents in strict order, each consuming the prior stage's artifact:
 
 ```
-creative-brief-analyst  →  copy-layout-planner  →  image-prompt-adapter  →  critic-verifier  →  finalize-candidates
-        (brief)               (copy ⊥ layout)        (prompt + asset)         (critique)          (finalize)
+creative-opportunity-mapper  →  creative-brief-analyst  →  copy-layout-planner  →  image-prompt-adapter  →  critic-verifier  →  finalize-candidates
+   (opportunity, ring 3)              (brief)                 (copy ⊥ layout)        (prompt + asset)         (critique)          (finalize)
 ```
 
-- **creative-brief-analyst** — fold brand/product/persona/request/signals into `creative-brief.json`.
+- **creative-opportunity-mapper** — the analysis→generation bridge (ring 3): consume the persona's `market-position-matrix` (benefit×funnel + crowded/whitespace) + OUR product selling-point/persona → select strategic positions → `creative-opportunity.json` (`brief_constraints`). Whitespace is an opportunity only with product/persona fit; cites matrix evidence. Where our product first enters.
+- **creative-brief-analyst** — consume `creative-opportunity.json` (the precomputed gap + `brief_constraints`) + brand/product/persona/request → `creative-brief.json`.
 - **copy-layout-planner** — plan copy and layout from the brief.
 - **image-prompt-adapter** — turn the plan into a provider-shaped image prompt, pulling the product cutout via the asset registry (`product_asset_id`) and the adapter via `image_adapter_id`.
 - **critic-verifier** — critique candidates against brief + non-negotiable rules.

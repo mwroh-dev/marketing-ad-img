@@ -7,7 +7,7 @@ copy×layout binding). Analysis is the **tail of a collection run**: it begins o
 `screened` and ends at `analyzed`. Prompt-only system; no provider calls. Domain is never pre-fixed — the
 product/persona come only from the run's projected state (`non-negotiable-rules.md`).
 
-**Steps (for progress reporting, ~7):** 1) `perception-extractor` (vision ×1: geometry+text+scene+look per KEPT image) → 2) `stitch` + `bind` (deterministic: global-frame recombine + text↔graphic overlap pairs) → 3) `ad-type-classifier` (grounded ad TYPE + route to adapter — text-only on perception, vision 0) → 4) `copy-analyst` ⊥ `layout-analyst` ⊥ `visual-analyst` (parallel: text-meaning / spatial-meaning / visual-semantics+register; the routed adapter's `emphasizes` tunes priority) → 5) `intent-analyst` (persuasion strategy + binding meaning) → 6) `ad-pattern-rank` (deterministic enum aggregation) + `keyword-rank` → 7) `pattern-synthesizer` (narrative on top of the aggregate). Report `[analysis · step k/7]` at each. Stage advances `screened → analyzed`.
+**Steps (for progress reporting, ~9):** 1) `perception-extractor` (vision ×1: geometry+text+scene+look per KEPT image) → 2) `stitch` + `bind` (deterministic: global-frame recombine + text↔graphic overlap pairs) → 3) `ad-type-classifier` (grounded ad TYPE + route to adapter — text-only on perception, vision 0) → 4) `copy-analyst` ⊥ `layout-analyst` ⊥ `visual-analyst` (parallel: text-meaning / spatial-meaning / visual-semantics+register; the routed adapter's `emphasizes` tunes priority) → 5) `intent-analyst` (persuasion strategy + binding meaning) → 6) `strategy-projector` (per-ad marketing projection: benefit×funnel + first_cognition — text-only, grounded in ad-strategy-taxonomy.md) → 7) `ad-pattern-rank` (deterministic enum aggregation) + `keyword-rank` → 8) `market-position-aggregate` (deterministic benefit×funnel matrix + crowded/whitespace) → 9) `pattern-synthesizer` (narrative on top of the aggregate). Report `[analysis · step k/9]` at each. Stage advances `screened → analyzed`.
 
 ## The cost invariant (do not violate)
 **Vision tokens are spent ONCE**, in step 1 (`perception-extractor`). Steps 3–4 are **text-only** — every analyst
@@ -34,9 +34,16 @@ per KEPT image (stage ≥ screened):
         ▼
   intent-analyst        → intent-analysis.json    (appeal / funnel_stage + binding MEANING — axes 5 & 6)
         ▼
+  strategy-projector    → strategy-projection.json (per-ad marketing WHY: benefit_vector × funnel_intent +
+        │                  first_cognition + customer_language + reusability — TEXT-only, ring 2, read on the
+        │                  AD'S OWN product selling-point; projects intent; grounds_in ad-strategy-taxonomy.md)
+        ▼
 per persona:
   [code] ad-pattern-rank → ad-pattern.json        (rankByFreq over the enum axes; later: longevity-weighted)
   [code] keyword-rank    → keyword-model.json
+  [code] market-position-aggregate → market-position-matrix.json
+        │                  (benefit×funnel 2-D matrix + crowded/whitespace — observed prevalence, NOT performance;
+        │                  Ries&Trout positioning / Kim&Mauborgne whitespace. Crosses the per-ad strategy-projections.)
         ▼
   pattern-synthesizer   → ad-pattern.json.synthesis  (narrative ON TOP — never recompute the aggregate)
 ```

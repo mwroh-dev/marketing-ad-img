@@ -5,7 +5,7 @@ description: Entry point / orchestrator loop for the marketing-img system. Use w
 
 # marketing-img orchestrator
 
-> Not a dispatched subagent — this is the **main-session entry** (the coordinator), so it carries no `tools:` allowlist and inherits the full tool set by design (see Authorization & delegation below). The 20 specialist subagents ARE tool-scoped.
+> Not a dispatched subagent — this is the **main-session entry** (the coordinator), so it carries no `tools:` allowlist and inherits the full tool set by design (see Authorization & delegation below). The 22 specialist subagents ARE tool-scoped.
 
 You are the **orchestrator** — the coordinator, not a worker. You **route**; you do NOT pre-read the repo.
 
@@ -90,7 +90,7 @@ The orchestrator holds **full tool access incl. `Skill`** — intentional and th
 - invokes the reusable **skills** (`user-answer-tooling`, `agent-browser-exploration`)
 - dispatches subagents
 
-Modes are runbooks (knowledge guidance), NOT skills — `skills/` holds only genuinely reusable, cross-caller skills. All 20 specialist subagents are **tool-locked (no `Skill` in their `tools:`)** so they cannot invoke skills — enforced by tool permissions, not prose.
+Modes are runbooks (knowledge guidance), NOT skills — `skills/` holds only genuinely reusable, cross-caller skills. All 22 specialist subagents are **tool-locked (no `Skill` in their `tools:`)** so they cannot invoke skills — enforced by tool permissions, not prose.
 **Delegation rule:** specialist *judgment* (analysis, classification, generation, verdict) MUST be dispatched to the owning subagent — never self-executed by the orchestrator — so each stage's output is attributable and isolated. Self-invoking a specialist's work collapses the stage and breaks failure attribution.
 
 ## Guidelines — method
@@ -241,8 +241,10 @@ What the orchestrator consults. The orchestrator holds full context; these are i
 - `${CLAUDE_PLUGIN_ROOT}/agents/visual-analyst.md` — analysis visual semantics + register naming (text-only on perception; ring 2 brand-free)
 - `${CLAUDE_PLUGIN_ROOT}/agents/intent-analyst.md` — analysis persuasion strategy + binding meaning (text-only on copy/layout/visual/bindings; ring 2 brand-free)
 - `${CLAUDE_PLUGIN_ROOT}/agents/ad-analyst.md` — analysis keyword extract/normalize/slot-label
+- `${CLAUDE_PLUGIN_ROOT}/agents/strategy-projector.md` — analysis per-ad marketing projection (benefit×funnel + first_cognition; text-only; grounds_in ad-strategy-taxonomy.md)
 - `${CLAUDE_PLUGIN_ROOT}/agents/pattern-synthesizer.md` — analysis per-persona ad-pattern narrative
-- `${CLAUDE_PLUGIN_ROOT}/agents/creative-brief-analyst.md` — generation creative brief synthesis
+- `${CLAUDE_PLUGIN_ROOT}/agents/creative-opportunity-mapper.md` — generation analysis→generation bridge (ring 3): market-position matrix → strategic positions + brief_constraints
+- `${CLAUDE_PLUGIN_ROOT}/agents/creative-brief-analyst.md` — generation creative brief synthesis (consumes creative-opportunity)
 - `${CLAUDE_PLUGIN_ROOT}/agents/copy-layout-planner.md` — generation per-candidate copy + layout
 - `${CLAUDE_PLUGIN_ROOT}/agents/image-prompt-adapter.md` — generation neutral spec → ChatGPT/Gemini prompts
 - `${CLAUDE_PLUGIN_ROOT}/agents/critic-verifier.md` — generation candidate verification gate (Agent-as-Judge)
