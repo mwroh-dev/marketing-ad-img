@@ -38,6 +38,12 @@ Consume `text_elements[].content`; ignore `bbox`, `font_size_scale`, `color_hex`
 
 ---
 
+## Traceability — carry `source_id` (the schema is the image substitute)
+Each `copy_elements[]` you emit SHOULD carry **`source_id`** = the perception text element id (`t#`) its `content`
+came from, so the role is traceable to the exact text WITHOUT re-opening the image. Carry the element's
+`text_confidence` forward into the copy element's `confidence` (high/medium/low) so downstream trusts the role or
+escalates. Omit `source_id` only when no single perception element maps (e.g. a role spanning several).
+
 ## The content-only discipline (the ⊥ split)
 
 perception artifact carries both content and geometry. Use **content only**.

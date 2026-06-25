@@ -16,8 +16,10 @@
         "required": ["content", "text_role"],
         "properties": {
           "content": { "type": "string" },
+          "source_id": { "type": "string", "description": "the perception text element id (t#) this copy element came from — makes the role traceable to the exact text WITHOUT the image (the schema is the image substitute). Omit only if no single source element maps." },
           "text_role": { "type": "string", "enum": ["headline", "subcopy", "CTA", "badge", "price", "review_quote", "spec_label", "other"] },
-          "hook_type": { "type": "string", "enum": ["question", "contrast", "result", "empathy", "number", "other"] }
+          "hook_type": { "type": "string", "enum": ["question", "contrast", "result", "empathy", "number", "other"] },
+          "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
         }
       }
     },
