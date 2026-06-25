@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { readFileSync } from "node:fs";
-import { runDate, loadPersonaRuns, groupByDate, loadRecipe, qualityFlags, cardHtml, renderRecipeHtml } from "./validate-recipe.mjs";
+import { runDate, loadPersonaRuns, groupByDate, loadRecipe, cardHtml, renderRecipeHtml } from "./validate-recipe.mjs";
 
 const TEMPLATE = readFileSync(resolve(import.meta.dirname, "validate-recipe.template.html"), "utf8");
 
@@ -14,40 +14,28 @@ test("runDate prefers dated run-id, falls back to created_at, then mtime", () =>
   assert.equal(runDate("task6live4", null, "2026-03-15T10:00:00Z"), "2026-03-15");
 });
 
-test("qualityFlags surfaces low-nutrition signals; a clean recipe has none", () => {
-  assert.deepEqual(qualityFlags(undefined).map((f) => f.label), ["분석 없음"]);
-  assert.deepEqual(qualityFlags({}).map((f) => f.label), ["분석 없음"]);
-
-  const clean = { perception: { observation_confidence: { text: "high", geometry: "high", scene: "high", look: "high" }, text_elements: [{ text_confidence: 0.95 }] },
-    visual: { confidence: "high" }, intent: { confidence: "high" }, adType: { confidence: "high", message_basis: "informational" },
-    strategy: { confidence: "high", benefit_vector: { primary: "function" }, funnel_intent: { stage: "consideration" }, first_cognition: { verdict: "ok", total_score: 12 } },
-    layout: { confidence: "high" }, gate: { gates_raised: [] } };
-  assert.deepEqual(qualityFlags(clean), []);
-
-  const bad = { perception: { observation_confidence: { text: "low" }, text_elements: [{ text_confidence: 0.3 }, { text_confidence: 0.4 }] },
-    visual: { confidence: "low" }, strategy: { benefit_vector: { primary: "unclear" }, funnel_intent: { stage: "unclear" } },
-    adType: { message_basis: "other" }, gate: { gates_raised: ["informational_without_claim"] } };
-  const labels = qualityFlags(bad).map((f) => f.label);
-  assert.ok(labels.includes("관찰:text 낮음"));
-  assert.ok(labels.includes("흐린 글자 2"));
-  assert.ok(labels.includes("비주얼 신뢰 낮음"));
-  assert.ok(labels.includes("혜택 불명확") && labels.includes("퍼널 불명확"));
-  assert.ok(labels.includes("메시지유형 불명"));
-  assert.ok(labels.some((l) => l.startsWith("게이트:")));
-  assert.ok(qualityFlags(bad).some((f) => f.level === "bad"));
-});
-
-test("cardHtml: copyable id button (data-id = full image_ref) + recipe rows + flagged border on a bad recipe", () => {
+test("cardHtml: faithful recipe + copyable id; NO quality verdict/badge; confidence shown as neutral self-report", () => {
   const recipe = { perception: { image_ref: "runs/task6live4/ad-creatives/p-vitamin/images/ad-9.jpg" },
-    adType: { ad_type: "social_proof", execution_style: "testimonial" }, copy: { copy_elements: [{ text_role: "headline", content: "오늘이면 끝" }] },
-    visual: { register: "clean_minimal", confidence: "low" }, strategy: { benefit_vector: { primary: "trust" }, funnel_intent: { stage: "discovery" }, first_cognition: { verdict: "ok", total_score: 11 } } };
+    adType: { ad_type: "social_proof", execution_style: "testimonial", confidence: "low" }, copy: { copy_elements: [{ text_role: "headline", content: "오늘이면 끝" }] },
+    visual: { register: "clean_minimal", confidence: "high" }, strategy: { benefit_vector: { primary: "trust" }, funnel_intent: { stage: "discovery" }, first_cognition: { verdict: "ok", total_score: 11 } } };
   const html = cardHtml("task6live4", "p-vitamin", { image_file: "images/ad-9.jpg", advertiser_name: "브랜드" }, recipe);
   assert.match(html, /class="idbtn"[^>]*data-id="runs\/task6live4\/ad-creatives\/p-vitamin\/images\/ad-9\.jpg"/);
   assert.match(html, />ad-9<\/button>/);
   assert.match(html, /social_proof \/ testimonial/);
   assert.match(html, /오늘이면 끝/);
-  assert.match(html, /class="card flagged"/);          // visual confidence low → bad → red border
   assert.match(html, /\/img\/task6live4\/ad-9\.jpg/);
+  // no system quality verdict: no "flagged" card, no badge, no "신뢰 낮음" red verdict
+  assert.doesNotMatch(html, /flagged|class="badge|신뢰 낮음/);
+  // confidence appears ONLY as neutral self-report data (e.g. "타입 low")
+  assert.match(html, /에이전트 자기보고 신뢰/);
+  assert.match(html, /타입 low/);
+});
+
+test("cardHtml: an un-analysed ad shows a neutral 'not analysed' note, not an alarm", () => {
+  const html = cardHtml("task6live4", "p-vitamin", { image_file: "images/ad-3.jpg" }, {});
+  assert.match(html, /아직 분석되지 않음/);
+  assert.doesNotMatch(html, /flagged|badge/);
+  assert.match(html, /class="idbtn"/);   // still copyable so the user can ask to analyse it
 });
 
 test("renderRecipeHtml groups by date, fills meta + id buttons; empty persona renders a note", () => {

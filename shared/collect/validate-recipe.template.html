@@ -30,21 +30,18 @@
     /* Masonry (Pinterest-style) via CSS columns — preserves each ad's native aspect ratio with no cropping. */
     .grid { column-width:260px; column-gap:16px; padding:8px 0 24px; }
     .card { position:relative; display:block; width:100%; margin:0 0 16px; break-inside:avoid; -webkit-column-break-inside:avoid; background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
-    .card.flagged { border-color:var(--bad); box-shadow:0 0 0 2px rgba(220,38,38,.12); }
     .card img { display:block; width:100%; height:auto; background:#f1f5f9; }
     .card .body { padding:10px 12px; }
     .info { font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .idbtn { display:inline-block; max-width:100%; margin:8px 0 6px; font:600 11px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--accent); background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:4px 8px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:bottom; }
     .idbtn:hover { background:#dbeafe; }
     .idbtn::before { content:"📋 "; }
-    .flags { display:flex; flex-wrap:wrap; gap:4px; margin:4px 0; }
-    .badge { font-size:11px; padding:2px 7px; border-radius:999px; font-weight:600; }
-    .badge.bad { background:#fee2e2; color:var(--bad); }
-    .badge.warn { background:#fef3c7; color:var(--warn); }
     .recipe { margin:8px 0 0; display:grid; grid-template-columns:auto 1fr; gap:2px 10px; font-size:12px; }
     .recipe dt { color:var(--muted); white-space:nowrap; }
+    .recipe dt.self { color:#9ca3af; font-style:italic; }
     .recipe dd { margin:0; color:var(--ink); }
     .recipe dd.none { color:#9ca3af; font-style:italic; }
+    .noanalysis { margin:8px 0 0; font-size:12px; color:#9ca3af; font-style:italic; }
     .empty { color:var(--muted); font-style:italic; padding:24px; }
     #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:#111827; color:#fff; font-size:13px; padding:10px 16px; border-radius:8px; opacity:0; pointer-events:none; transition:opacity .18s, transform .18s; z-index:30; max-width:80vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
@@ -54,7 +51,7 @@
   <header>
     <h1>분석 레시피 확인 (validate-recipe)</h1>
     <div class="meta"><!--META--></div>
-    <div class="hint">각 광고를 우리가 어떻게 분석했는지 확인하는 화면입니다. <b style="color:var(--bad)">빨간 뱃지</b>(저신뢰·불명확·게이트)가 붙은 카드는 분석이 부실할 수 있습니다.</div>
+    <div class="hint">각 광고를 우리가 어떻게 분석했는지 <b>사실 그대로</b> 보여줍니다. 시스템은 품질을 미리 판정하지 않습니다 — 분석이 맞는지 틀린지는 <b>광고와 레시피를 직접 비교해 사람이 판단</b>하세요. (에이전트가 확신하며 틀렸을 수도 있으니, 뱃지에 의존하지 말고 모든 카드를 보세요.)</div>
     <div class="hint">바로잡으려면 카드의 <b>📋 ID 버튼</b>을 눌러 복사한 뒤, 터미널에서 에이전트에게 말하세요 — 예: "이 광고 재분석해줘".</div>
     <div class="hint" style="opacity:.8">※ 읽기 전용 로컬 화면입니다(내 컴퓨터에서만 실행, 일정 시간 뒤 자동 종료). 여기서 직접 고치지 않습니다 — 판단은 사람이, 수정은 터미널 대화로.</div>
   </header>

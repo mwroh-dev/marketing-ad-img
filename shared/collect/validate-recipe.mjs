@@ -74,7 +74,7 @@ export function groupByDate(runs) {
   return [...byDate.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1)).map(([date, rs]) => ({ date, runs: rs })); // newest first
 }
 
-// ---- pure: load one ad's recipe + derive quality flags -----------------------------------------------------
+// ---- pure: load one ad's recipe ----------------------------------------------------------------------------
 
 // adBase = "ad-9" (image_file basename without extension). Reads the per-ad analysis subdir; missing → undefined.
 export function loadRecipe(analysisDir, adBase) {
@@ -84,31 +84,11 @@ export function loadRecipe(analysisDir, adBase) {
   return out;
 }
 
-// qualityFlags: surface the "this analysis may be bad" signals as badges (bad = red, warn = amber). The point of
-// the view is that low-nutrition analyses POP, not a flat dump.
-export function qualityFlags(recipe) {
-  const flags = [];
-  const bad = (label) => flags.push({ level: "bad", label });
-  const warn = (label) => flags.push({ level: "warn", label });
-  if (!recipe || !recipe.perception) { bad("분석 없음"); return flags; }
-
-  const oc = recipe.perception.observation_confidence || {};
-  for (const k of ["text", "geometry", "scene", "look"]) if (oc[k] === "low") warn(`관찰:${k} 낮음`);
-  const blurry = (recipe.perception.text_elements || []).filter((t) => typeof t.text_confidence === "number" && t.text_confidence < 0.6).length;
-  if (blurry) warn(`흐린 글자 ${blurry}`);
-
-  for (const k of ["visual", "intent", "adType", "strategy", "layout"]) {
-    const c = recipe[k] && recipe[k].confidence;
-    if (c === "low") bad(`${KOR[k]} 신뢰 낮음`);
-    else if (c === "medium") warn(`${KOR[k]} 신뢰 보통`);
-  }
-  if (recipe.strategy?.benefit_vector?.primary === "unclear") bad("혜택 불명확");
-  if (recipe.strategy?.funnel_intent?.stage === "unclear") bad("퍼널 불명확");
-  if (recipe.adType?.message_basis === "other") warn("메시지유형 불명");
-  const gates = recipe.gate?.gates_raised || [];
-  if (gates.length) bad(`게이트: ${gates.join(", ")}`);
-  return flags;
-}
+// NO quality verdict here — the system does NOT pre-grade the analysis. The whole reason a human does the recipe
+// check is that the agent's grounds can be wrong, INCLUDING when it was confident (a confidently-wrong analysis
+// would carry high confidence and so no "bad" flag — a badge would give false reassurance and make the human skip
+// exactly the card they should scrutinise). So the viewer shows the recipe faithfully and the human judges. The
+// agent's own confidence is shown transparently as data (labelled self-report), never as a system verdict.
 
 // ---- pure: render -----------------------------------------------------------------------------------------
 
@@ -123,12 +103,16 @@ function recipeRows(recipe) {
   const s = recipe.strategy;
   const bf = s ? [s.benefit_vector?.primary, s.funnel_intent?.stage].filter(Boolean).join(" × ") : "";
   const cog = s?.first_cognition ? `${s.first_cognition.verdict ?? ""} (${s.first_cognition.total_score ?? "?"})`.trim() : "";
+  // agent's OWN self-reported confidence — transparent data, NOT a system quality verdict. The human decides
+  // whether the analysis is right by looking at the ad; this just shows what the agent claimed (incl. how sure).
+  const conf = ["adType", "visual", "intent", "strategy", "layout"].map((k) => (recipe[k]?.confidence ? `${KOR[k]} ${recipe[k].confidence}` : "")).filter(Boolean).join(" · ");
   return `<dl class="recipe">`
     + `<dt>타입</dt>${dd(typeLine)}`
     + `<dt>카피</dt>${dd(head?.content)}`
     + `<dt>무드</dt>${dd(reg)}`
     + `<dt>혜택×퍼널</dt>${dd(bf)}`
     + `<dt>인지</dt>${dd(cog)}`
+    + `<dt class="self">에이전트 자기보고 신뢰</dt>${dd(conf)}`
     + `</dl>`;
 }
 
@@ -138,17 +122,15 @@ export function cardHtml(runId, personaId, creative, recipe) {
   // the canonical id the agent can locate — the image_ref carried in the analysis artifacts.
   const fullId = recipe.perception?.image_ref || `runs/${runId}/ad-creatives/${personaId}/${file}`;
   const info = [creative.advertiser_name, creative.started_at, creative.subtype].filter(Boolean).map(esc).join(" · ") || esc(adBase);
-  const flags = qualityFlags(recipe);
-  const flagged = flags.some((f) => f.level === "bad") ? " flagged" : "";
-  const badges = flags.map((f) => `<span class="badge ${f.level}">${esc(f.label)}</span>`).join("");
+  // a NEUTRAL state note only — "analysed yet or not" is a fact, not a quality judgement.
+  const body = recipe.perception ? recipeRows(recipe) : `<p class="noanalysis">아직 분석되지 않음</p>`;
   return `
-    <div class="card${flagged}">
+    <div class="card">
       <img src="/img/${esc(runId)}/${esc(basename(file))}" loading="lazy" alt="${esc(adBase)}" />
       <div class="body">
         <div class="info">${info}</div>
         <button class="idbtn" type="button" data-id="${esc(fullId)}" title="${esc(fullId)}">${esc(adBase)}</button>
-        <div class="flags">${badges}</div>
-        ${recipeRows(recipe)}
+        ${body}
       </div>
     </div>`;
 }

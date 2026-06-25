@@ -3,9 +3,16 @@
 An **on-demand, read-only QA viewer**: turn the analysis artifacts we already extracted into a browser view so
 the human can confirm the analyses are *nutritious* (correctly recognized, high-confidence) **before they feed
 generation**. Per ad — grouped by collection date — it shows the ad image + ad info + the analysis "recipe"
-(type / copy / register / benefit×funnel / first_cognition) + **quality badges** that make low-nutrition or
-mis-recognized analyses POP. The orchestrator reads this runbook when request-evaluation reports `ready` with
-`detected_mode = validate-recipe`, then runs the single step below.
+(type / copy / register / benefit×funnel / first_cognition) shown **faithfully** next to the ad. The orchestrator
+reads this runbook when request-evaluation reports `ready` with `detected_mode = validate-recipe`, then runs the
+single step below.
+
+> **No system quality verdict.** The viewer does NOT badge/flag/grade analyses. A quality badge would be derived
+> from the agent's OWN confidence — and the whole reason a human does this check is that the agent's grounds can be
+> wrong, INCLUDING when it was confident (a confidently-wrong analysis carries high confidence → no badge → false
+> reassurance → the human skips exactly the card they should scrutinise). So the recipe is shown faithfully and the
+> human judges by comparing it to the ad. The agent's confidence is shown only as transparent, labelled self-report
+> data — never as a verdict.
 
 > **Read-only. Judgment stays with the human; correction is a terminal conversation.** The viewer never captures a
 > selection, writes a flag file, or edits an analysis. To fix a bad analysis the user clicks the ad's **copyable id
@@ -26,8 +33,9 @@ mis-recognized analyses POP. The orchestrator reads this runbook when request-ev
    It scans every run for that persona, groups by collection date, renders the authored-once template
    (`validate-recipe.template.html`) and prints `SELECT_URL http://127.0.0.1:<port>/`. No LLM regenerates the HTML.
 2. **Relay the URL to the user** and explain plainly: a local read-only convenience screen (localhost-only,
-   self-closes on idle timeout). Tell them **red-badged cards may be weak analyses**, and to **click an ad's 📋 id
-   button to copy it, then say which to re-analyze here** (e.g. "이 광고 재분석해줘 / 이거 왜 이렇게 분석됐어").
+   self-closes on idle timeout). Tell them to **compare each ad to its recipe and judge it themselves** (the system
+   does not pre-grade — don't rely on it to flag the bad ones), and to **click an ad's 📋 id button to copy it, then
+   say which to re-analyze here** (e.g. "이 광고 재분석해줘 / 이거 왜 이렇게 분석됐어").
 3. **On a re-analysis request**, locate the ad by the pasted id (`runs/{run_id}/…/images/ad-N.jpg`) and re-run the
    analysis steps for that one image (per `modes/analysis.md`), then the user can re-open the viewer to confirm.
 
