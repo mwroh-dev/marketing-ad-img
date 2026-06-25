@@ -60,18 +60,24 @@ required_state:
   - persona_id                  # one persona's corpus per aggregation
 ```
 
-## Outputs (under `.generate-ads-img/runs/{run_id}/`)
+## Outputs — the global lineage store (persona-keyed, run-independent)
+Each per-image artifact is persisted into the **global lineage store** via `shared/lineage/persist-artifact.mjs`
+(`persistArtifact`), NOT a run-scoped folder — the artifact's identity is the ad (persona+image), the run is just
+provenance (`key.run_id`). Each is wrapped in a lineage envelope carrying its `derived_from` chain + `pattern_tag`
+(`{ad_type}:{benefit}×{funnel}`) + the `logic_version` stamp (see `knowledge/reference/provenance-lineage.md`):
 ```
-analysis/{persona_id}/{image_ref}.perception.json      # step 1 (+ stitched global frame)
-analysis/{persona_id}/{image_ref}.bindings.json        # step 2
-analysis/{persona_id}/{image_ref}.copy.json            # step 3
-analysis/{persona_id}/{image_ref}.layout.json          # step 3
-analysis/{persona_id}/{image_ref}.visual.json          # step 3
-analysis/{persona_id}/{image_ref}.intent.json          # step 4
-→ ad-pattern.json / keyword-model.json on the PERSONA NODE   (stage=analyzed)
+.generate-ads-img/store/{persona_id}/{ad}/perception.json   # envelope{payload: perception, derived_from: []}
+                                       .../ad-type.json       #   ← perception
+                                       .../copy|layout|visual.json   # ← perception
+                                       .../intent.json        #   ← copy+layout+visual
+                                       .../strategy.json      #   ← ad-type+intent+visual+copy
+                                       .../ad-type-gate.json  #   ← ad-type+strategy+visual+copy
+.generate-ads-img/store/{persona_id}/index.json              # rollup: slot → pattern_tag + kinds + chain
 ```
-(Per-image artifact paths are the canonical home the prior pipeline lacked; only `ad-pattern.json` +
-`keyword-model.json` are the durable persona-node outputs that downstream generation reads.)
+`migrate-pilot.mjs` is the reference implementation of the persist step (the chain map). The persona-node
+aggregates (`ad-pattern.json` / `keyword-model.json` / `market-position-matrix.json`) remain the durable
+per-persona outputs the generation pipeline reads. **Done when** every KEPT image has its store envelopes
+(shape PASS + logic PASS), the index lists them, and `run.json` stage = `analyzed`.
 
 ## Verification (gate per `completion-verification-policy.md`)
 Each producing step is verified at two layers: **shape** (`tsx ${CLAUDE_PLUGIN_ROOT}/shared/validators/validate-ad-analysis.ts --<flag> <path>`)

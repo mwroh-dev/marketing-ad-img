@@ -64,9 +64,13 @@ which commit, what it makes stale). This is the structured, global, first-class 
   dir for the store (today three inconsistent write roots exist — the store standardizes on STATE_DIR).
 
 ## Build order (incremental — north star fixed, realized in steps)
-1. **#1 lineage persistence (foundation)** — envelope schema + global store + `logic_version` stamp + `persist-artifact`
-   helper, proven by persisting the real pilot chains; then point `validate-recipe` at the store.
-2. **#2 audit/logic-change log** — trigger→finding→qa→commit→impact, on top of `logic_version`.
-3. **Live wiring** — the analysis/generation runbooks persist every run's artifacts into the store (replacing the
-   documented-but-unrealized `runs/{run}/analysis/` home).
-4. **Generation-side lineage + the dual (theirs+ours) comparison view + staleness/impact** computation.
+1. **#1 lineage persistence (foundation)** ✅ — `schemas/lineage/artifact-envelope.schema.json` + the global store +
+   `shared/lineage/logic-version.mjs` + `persist-artifact.mjs` (+`migrate-pilot.mjs` proof); `validate-recipe` reads
+   the store.
+2. **#2 audit/logic-change log** ✅ — `schemas/lineage/logic-change.schema.json` + `shared/lineage/logic-change-log.mjs`
+   (trigger→finding→qa→commit→impact) on top of `shared/lineage/staleness.mjs` (flag-only).
+3. **Live wiring** — the analysis runbook now persists each artifact to the store via `persistArtifact`
+   (`modes/analysis.md` Outputs); the correction loop is `modes/validate-recipe.md` step 3. Exercised on real runs;
+   the helpers are proven on pilot data.
+4. **Generation-side lineage + the dual (theirs+ours) comparison view** — the envelope already supports
+   `opportunity`/`brief`/`candidate` kinds; the viewer renders our generated items alongside theirs when present.

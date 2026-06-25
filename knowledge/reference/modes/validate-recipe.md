@@ -37,8 +37,17 @@ single step below.
    self-closes on idle timeout). Tell them to **compare each ad to its recipe and judge it themselves** (the system
    does not pre-grade — don't rely on it to flag the bad ones), and to **click an ad's 📋 id button to copy it, then
    say which to re-analyze here** (e.g. "이 광고 재분석해줘 / 이거 왜 이렇게 분석됐어").
-3. **On a re-analysis request**, locate the ad by the pasted id (`runs/{run_id}/…/images/ad-N.jpg`) and re-run the
-   analysis steps for that one image (per `modes/analysis.md`), then the user can re-open the viewer to confirm.
+3. **On "why is this like this?" / a re-analysis request** — the correction loop (`provenance-lineage.md`):
+   - **Diagnose**: locate the ad by the pasted id; walk its `derived_from` chain (the store envelopes) to explain how
+     the recipe was built, and **compare it to its peers** (same `pattern_tag`, via the persona `index.json`) to
+     localize whether the fault is this one ad or the whole shared pattern. Propose the hypothesis to the user.
+   - **Human verdict**: everything of that pattern is wrong (a shared-logic flaw) vs only this one.
+   - **Fix = a commit**: if shared logic is wrong, change it (agent/taxonomy/grounds/code) and commit. Record it:
+     `recordLogicChange({trigger, finding, qa_log, commit_sha, scope})` (`shared/lineage/logic-change-log.mjs`) — it
+     computes `impact` = stale artifacts in scope (`shared/lineage/staleness.mjs`). Surface what is now stale.
+   - **Re-run the right path** for the in-scope items — competitor ad → re-analyze (`modes/analysis.md`, re-persist to
+     the store); our item → re-generate (`modes/image-generation.md`). **Flag-then-rerun, NEVER auto re-run** — the
+     human chooses. Re-open the viewer to confirm.
 
 ## Gates the orchestrator enforces
 - Do not run with 0 runs for the persona — route to data-collection.
