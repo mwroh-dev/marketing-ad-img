@@ -246,7 +246,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const { port } = server.address();
     console.log(`SELECT_URL http://127.0.0.1:${port}/`);
     console.log(`  Read-only analysis viewer for '${personaId}' (${runs.length} runs, ${groups.length} dates). Open in a browser.`);
-    console.log(`  Red-badged cards may be low-quality analyses — click an ad's 📋 id to copy it, then tell the agent here (e.g. "이 광고 재분석해줘").`);
+    console.log(`  The system does NOT pre-grade — compare each ad to its recipe and judge it yourself. To correct one, click its 📋 id to copy it, then tell the agent here (e.g. "이 광고 재분석해줘").`);
     const timeoutMin = Number(process.env.SELECT_TIMEOUT_MIN) || 30;
     lifeTimer = setTimeout(() => { console.log(`TIMEOUT idle ${timeoutMin}m — shutting down. Re-run to view again.`); shutdown(0); }, timeoutMin * 60_000);
   });
