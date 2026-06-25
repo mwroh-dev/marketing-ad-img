@@ -24,6 +24,7 @@
         "balance": { "type": "string" }
       }
     },
-    "grid_pattern": { "type": "string" }
+    "grid_pattern": { "type": "string" },
+    "confidence": { "type": "string", "enum": ["high", "medium", "low"], "description": "read confidence — so a downstream consumer trusts the layout read or escalates from the schema alone (the schema is the image substitute)." }
   }
 }
