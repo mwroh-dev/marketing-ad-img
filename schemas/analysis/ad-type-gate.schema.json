@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marketing-img/schemas/ad-type-gate.schema.json",
+  "title": "AdTypeGate",
+  "description": "Deterministic per-ad quality gate. Looks up the routed ad-type adapter (getAdType) and checks its `requires` against the ad's analyses; each unmet requirement raises the adapter's corresponding `gates` flag. No LLM. This is where the ad-type classification CHANGES behavior — closing the adapter seam: classification → routed adapter → gate flags an ad that does not deliver what its type implies (e.g. an informational ad with no extractable claim).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["image_ref", "ad_type", "requires_checked", "gates_raised"],
+  "properties": {
+    "image_ref": { "type": "string", "minLength": 1 },
+    "persona_id": { "type": "string" },
+    "ad_type": { "type": "string" },
+    "requires_checked": { "type": "array", "items": { "type": "string" } },
+    "gates_raised": { "type": "array", "items": { "type": "string" } }
+  }
+}

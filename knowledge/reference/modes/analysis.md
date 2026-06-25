@@ -38,6 +38,10 @@ per KEPT image (stage ≥ screened):
         │                  first_cognition + customer_language + reusability — TEXT-only, ring 2, read on the
         │                  AD'S OWN product selling-point; projects intent; grounds_in ad-strategy-taxonomy.md)
         ▼
+  [code] ad-type-gate   → ad-type-gate.json   (getAdType(ad_type).requires vs the analyses → raise `gates` flags;
+        │                  deterministic. This is where the ad-type classification CHANGES behavior — flags an ad
+        │                  that doesn't deliver what its type implies, e.g. informational ad with no claim.)
+        ▼
 per persona:
   [code] ad-pattern-rank → ad-pattern.json        (rankByFreq over the enum axes; later: longevity-weighted)
   [code] keyword-rank    → keyword-model.json
