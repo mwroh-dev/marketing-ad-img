@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<!--
+  validate-recipe template — authored ONCE, filled by shared/collect/validate-recipe.mjs (deterministic, no LLM).
+  The renderer replaces the HTML comment markers (META / GROUPS) with HTML-escaped fragments built from
+  ad-creative.json + the per-image analysis artifacts. (Do NOT write a literal token sample here — an inner
+  comment-close sequence would terminate this comment early and leak the rest as visible text.)
+  An LLM never regenerates this HTML per run. Edit the design here; edit the data wiring in validate-recipe.mjs.
+
+  READ-ONLY: there is no POST, no selection, no file write. The user inspects each ad's analysis ("recipe"),
+  spots low-nutrition / mis-recognized ones via the quality badges, and COPIES the ad id (label button) to take
+  to the terminal and talk to the agent ("이 광고 재분석해줘"). Judgment stays with the human; correction is a
+  terminal conversation, not a server action.
+-->
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>분석 레시피 확인</title>
+  <style>
+    :root { --ink:#1a1a1a; --muted:#6b7280; --line:#e5e7eb; --accent:#2563eb; --bg:#f9fafb; --bad:#dc2626; --warn:#d97706; --ok:#16a34a; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif; color:var(--ink); background:var(--bg); line-height:1.5; }
+    header { position:sticky; top:0; z-index:5; background:rgba(249,250,251,.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:16px 24px; }
+    header h1 { font-size:18px; margin:0 0 4px; }
+    .meta { color:var(--muted); font-size:13px; }
+    .hint { color:var(--muted); font-size:13px; margin-top:6px; }
+    .day { padding:8px 24px 0; }
+    .day > h2 { font-size:15px; margin:18px 0 2px; padding-bottom:6px; border-bottom:1px solid var(--line); color:#374151; }
+    .day > .daysub { color:var(--muted); font-size:12px; margin-bottom:8px; }
+    /* Masonry (Pinterest-style) via CSS columns — preserves each ad's native aspect ratio with no cropping. */
+    .grid { column-width:260px; column-gap:16px; padding:8px 0 24px; }
+    .card { position:relative; display:block; width:100%; margin:0 0 16px; break-inside:avoid; -webkit-column-break-inside:avoid; background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+    .card.flagged { border-color:var(--bad); box-shadow:0 0 0 2px rgba(220,38,38,.12); }
+    .card img { display:block; width:100%; height:auto; background:#f1f5f9; }
+    .card .body { padding:10px 12px; }
+    .info { font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .idbtn { display:inline-block; max-width:100%; margin:8px 0 6px; font:600 11px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--accent); background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:4px 8px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:bottom; }
+    .idbtn:hover { background:#dbeafe; }
+    .idbtn::before { content:"📋 "; }
+    .flags { display:flex; flex-wrap:wrap; gap:4px; margin:4px 0; }
+    .badge { font-size:11px; padding:2px 7px; border-radius:999px; font-weight:600; }
+    .badge.bad { background:#fee2e2; color:var(--bad); }
+    .badge.warn { background:#fef3c7; color:var(--warn); }
+    .recipe { margin:8px 0 0; display:grid; grid-template-columns:auto 1fr; gap:2px 10px; font-size:12px; }
+    .recipe dt { color:var(--muted); white-space:nowrap; }
+    .recipe dd { margin:0; color:var(--ink); }
+    .recipe dd.none { color:#9ca3af; font-style:italic; }
+    .empty { color:var(--muted); font-style:italic; padding:24px; }
+    #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:#111827; color:#fff; font-size:13px; padding:10px 16px; border-radius:8px; opacity:0; pointer-events:none; transition:opacity .18s, transform .18s; z-index:30; max-width:80vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>분석 레시피 확인 (validate-recipe)</h1>
+    <div class="meta"><!--META--></div>
+    <div class="hint">각 광고를 우리가 어떻게 분석했는지 확인하는 화면입니다. <b style="color:var(--bad)">빨간 뱃지</b>(저신뢰·불명확·게이트)가 붙은 카드는 분석이 부실할 수 있습니다.</div>
+    <div class="hint">바로잡으려면 카드의 <b>📋 ID 버튼</b>을 눌러 복사한 뒤, 터미널에서 에이전트에게 말하세요 — 예: "이 광고 재분석해줘".</div>
+    <div class="hint" style="opacity:.8">※ 읽기 전용 로컬 화면입니다(내 컴퓨터에서만 실행, 일정 시간 뒤 자동 종료). 여기서 직접 고치지 않습니다 — 판단은 사람이, 수정은 터미널 대화로.</div>
+  </header>
+
+  <main><!--GROUPS--></main>
+
+  <div id="toast"></div>
+
+  <script>
+    (function () {
+      var toast = document.getElementById("toast"), t;
+      function showToast(msg) {
+        toast.textContent = msg; toast.classList.add("show");
+        clearTimeout(t); t = setTimeout(function () { toast.classList.remove("show"); }, 1800);
+      }
+      function copy(id) {
+        function done() { showToast("복사됨 · 터미널에 붙여넣어 대화하세요: " + id); }
+        function fallback() {
+          var ta = document.createElement("textarea"); ta.value = id; ta.style.position = "fixed"; ta.style.opacity = "0";
+          document.body.appendChild(ta); ta.select();
+          try { document.execCommand("copy"); done(); } catch (e) { showToast("복사 실패 — 수동으로 선택해 복사하세요"); }
+          document.body.removeChild(ta);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(id).then(done).catch(fallback);
+        else fallback();
+      }
+      Array.prototype.slice.call(document.querySelectorAll(".idbtn")).forEach(function (b) {
+        b.addEventListener("click", function () { copy(b.getAttribute("data-id")); });
+      });
+    })();
+  </script>
+</body>
+</html>

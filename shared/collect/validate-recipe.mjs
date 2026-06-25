@@ -1,0 +1,230 @@
+// On-demand, READ-ONLY HTML viewer for analysis QA ("validate-recipe" mode). For ONE persona it gathers every
+// collection run (grouped by collection date) and, per ad, renders the ad image + ad info + the analysis we
+// extracted ("recipe") + quality badges that surface low-nutrition / mis-recognized analyses. The user inspects,
+// then COPIES an ad's id (a label button) to take to the terminal and talk to the agent ("이 광고 재분석해줘").
+//
+// Read-only by design: NO POST, NO selection capture, NO file write/move. Judgment stays with the human; the
+// correction loop is a terminal conversation, not a server action — so grounds_in/confidence discipline is never
+// overwritten by an inline human edit. (Cf. select-images.mjs, which DOES capture a selection; this clones only
+// its static-server skeleton.)
+//
+// Run it in the background (run_in_background:true): it serves until the user is done or the idle timeout fires.
+//
+// Usage: node shared/collect/validate-recipe.mjs <persona_id>
+
+import http from "node:http";
+import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
+import { resolve, dirname, basename, extname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { safeName } from "./ad-source-helpers.mjs";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const TEMPLATE = resolve(HERE, "validate-recipe.template.html");
+const IMG_RE = /\.(jpe?g|png|webp|gif)$/i;
+const MIME = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif" };
+const STATE = process.env.GEN_ADS_IMG_STATE || ".generate-ads-img";
+
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+
+// the analysis artifacts the viewer reads per ad (per-ad subdir layout, matching the analysis pilot).
+const ARTIFACTS = { perception: "perception.json", adType: "ad-type.json", copy: "copy.json", layout: "layout.json", visual: "visual.json", intent: "intent.json", strategy: "strategy.json", gate: "ad-type-gate.json" };
+const KOR = { visual: "비주얼", intent: "의도", adType: "타입", strategy: "전략", layout: "레이아웃" };
+
+const readJson = (p) => { try { return JSON.parse(readFileSync(p, "utf8")); } catch { return undefined; } };
+const imageCreatives = (creatives) => (creatives || []).filter((c) => c && typeof c.image_file === "string" && IMG_RE.test(c.image_file));
+
+// ---- pure: discover a persona's runs, grouped by collection date ------------------------------------------
+
+// runDate: prefer the dated run-id prefix (datedRunId = "YYYY-MM-DD-…"), else run.json.created_at, else dir mtime.
+export function runDate(runId, runJson, mtimeIso) {
+  const m = String(runId).match(/^(\d{4}-\d{2}-\d{2})/);
+  if (m) return m[1];
+  if (runJson && typeof runJson.created_at === "string") return runJson.created_at.slice(0, 10);
+  return (mtimeIso || "").slice(0, 10) || "날짜 미상";
+}
+
+export function loadPersonaRuns(personaId, stateDir = STATE) {
+  const runsRoot = resolve(stateDir, "runs");
+  let dirs;
+  try { dirs = readdirSync(runsRoot, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name); }
+  catch { return []; }
+  const runs = [];
+  for (const runId of dirs) {
+    const personaDir = resolve(runsRoot, runId, "ad-creatives", personaId);
+    const creativePath = resolve(personaDir, "ad-creative.json");
+    if (!existsSync(creativePath)) continue;            // this run has no corpus for this persona
+    const creative = readJson(creativePath);
+    if (!creative) continue;
+    const runJson = readJson(resolve(runsRoot, runId, "run.json"));
+    let mtimeIso = ""; try { mtimeIso = statSync(resolve(runsRoot, runId)).mtime.toISOString(); } catch { /* ignore */ }
+    runs.push({
+      runId,
+      personaId,
+      date: runDate(runId, runJson, mtimeIso),
+      creatives: imageCreatives(creative.creatives),
+      analysisDir: resolve(runsRoot, runId, "analysis", personaId),
+    });
+  }
+  return runs;
+}
+
+export function groupByDate(runs) {
+  const byDate = new Map();
+  for (const r of runs) { if (!byDate.has(r.date)) byDate.set(r.date, []); byDate.get(r.date).push(r); }
+  return [...byDate.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1)).map(([date, rs]) => ({ date, runs: rs })); // newest first
+}
+
+// ---- pure: load one ad's recipe + derive quality flags -----------------------------------------------------
+
+// adBase = "ad-9" (image_file basename without extension). Reads the per-ad analysis subdir; missing → undefined.
+export function loadRecipe(analysisDir, adBase) {
+  const dir = resolve(analysisDir, adBase);
+  const out = {};
+  for (const [key, file] of Object.entries(ARTIFACTS)) out[key] = readJson(resolve(dir, file));
+  return out;
+}
+
+// qualityFlags: surface the "this analysis may be bad" signals as badges (bad = red, warn = amber). The point of
+// the view is that low-nutrition analyses POP, not a flat dump.
+export function qualityFlags(recipe) {
+  const flags = [];
+  const bad = (label) => flags.push({ level: "bad", label });
+  const warn = (label) => flags.push({ level: "warn", label });
+  if (!recipe || !recipe.perception) { bad("분석 없음"); return flags; }
+
+  const oc = recipe.perception.observation_confidence || {};
+  for (const k of ["text", "geometry", "scene", "look"]) if (oc[k] === "low") warn(`관찰:${k} 낮음`);
+  const blurry = (recipe.perception.text_elements || []).filter((t) => typeof t.text_confidence === "number" && t.text_confidence < 0.6).length;
+  if (blurry) warn(`흐린 글자 ${blurry}`);
+
+  for (const k of ["visual", "intent", "adType", "strategy", "layout"]) {
+    const c = recipe[k] && recipe[k].confidence;
+    if (c === "low") bad(`${KOR[k]} 신뢰 낮음`);
+    else if (c === "medium") warn(`${KOR[k]} 신뢰 보통`);
+  }
+  if (recipe.strategy?.benefit_vector?.primary === "unclear") bad("혜택 불명확");
+  if (recipe.strategy?.funnel_intent?.stage === "unclear") bad("퍼널 불명확");
+  if (recipe.adType?.message_basis === "other") warn("메시지유형 불명");
+  const gates = recipe.gate?.gates_raised || [];
+  if (gates.length) bad(`게이트: ${gates.join(", ")}`);
+  return flags;
+}
+
+// ---- pure: render -----------------------------------------------------------------------------------------
+
+const dd = (val) => (val ? `<dd>${esc(val)}</dd>` : `<dd class="none">—</dd>`);
+
+function recipeRows(recipe) {
+  const t = recipe.adType;
+  const typeLine = t ? [t.ad_type, t.execution_style].filter(Boolean).join(" / ") : "";
+  const copyEls = recipe.copy?.copy_elements || [];
+  const head = copyEls.find((e) => e.text_role === "headline") || copyEls[0];
+  const reg = recipe.visual?.register || "";
+  const s = recipe.strategy;
+  const bf = s ? [s.benefit_vector?.primary, s.funnel_intent?.stage].filter(Boolean).join(" × ") : "";
+  const cog = s?.first_cognition ? `${s.first_cognition.verdict ?? ""} (${s.first_cognition.total_score ?? "?"})`.trim() : "";
+  return `<dl class="recipe">`
+    + `<dt>타입</dt>${dd(typeLine)}`
+    + `<dt>카피</dt>${dd(head?.content)}`
+    + `<dt>무드</dt>${dd(reg)}`
+    + `<dt>혜택×퍼널</dt>${dd(bf)}`
+    + `<dt>인지</dt>${dd(cog)}`
+    + `</dl>`;
+}
+
+export function cardHtml(runId, personaId, creative, recipe) {
+  const file = creative.image_file;                       // "images/ad-9.jpg"
+  const adBase = basename(file).replace(IMG_RE, "");       // "ad-9"
+  // the canonical id the agent can locate — the image_ref carried in the analysis artifacts.
+  const fullId = recipe.perception?.image_ref || `runs/${runId}/ad-creatives/${personaId}/${file}`;
+  const info = [creative.advertiser_name, creative.started_at, creative.subtype].filter(Boolean).map(esc).join(" · ") || esc(adBase);
+  const flags = qualityFlags(recipe);
+  const flagged = flags.some((f) => f.level === "bad") ? " flagged" : "";
+  const badges = flags.map((f) => `<span class="badge ${f.level}">${esc(f.label)}</span>`).join("");
+  return `
+    <div class="card${flagged}">
+      <img src="/img/${esc(runId)}/${esc(basename(file))}" loading="lazy" alt="${esc(adBase)}" />
+      <div class="body">
+        <div class="info">${info}</div>
+        <button class="idbtn" type="button" data-id="${esc(fullId)}" title="${esc(fullId)}">${esc(adBase)}</button>
+        <div class="flags">${badges}</div>
+        ${recipeRows(recipe)}
+      </div>
+    </div>`;
+}
+
+export function renderRecipeHtml({ personaId, groups }, template) {
+  const totalAds = groups.reduce((n, g) => n + g.runs.reduce((m, r) => m + r.creatives.length, 0), 0);
+  const totalRuns = groups.reduce((n, g) => n + g.runs.length, 0);
+  const meta = `페르소나 <b>${esc(personaId)}</b> · 수집 ${totalRuns}회(${groups.length}개 날짜) · 광고 ${totalAds}개`;
+  const sections = groups.length
+    ? groups.map((g) => {
+        const runIds = g.runs.map((r) => r.runId);
+        const cards = g.runs.flatMap((r) => r.creatives.map((c) => cardHtml(r.runId, personaId, c, loadRecipe(r.analysisDir, basename(c.image_file).replace(IMG_RE, ""))))).join("");
+        return `<section class="day"><h2>${esc(g.date)}</h2><div class="daysub">run: ${esc(runIds.join(", "))}</div>`
+          + `<div class="grid">${cards || `<p class="empty">이미지 없음</p>`}</div></section>`;
+      }).join("")
+    : `<p class="empty">이 페르소나로 수집된 런이 없습니다.</p>`;
+  return template.replace("<!--META-->", () => meta).replace("<!--GROUPS-->", () => sections);
+}
+
+// ---- CLI: render + serve (read-only) + self-exit -----------------------------------------------------------
+
+function serveStatic(res, absPath, type) {
+  try {
+    const buf = readFileSync(absPath);
+    res.writeHead(200, { "Content-Type": type, "Cache-Control": "no-store" });
+    res.end(buf);
+  } catch { res.writeHead(404); res.end("not found"); }
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const [personaRaw] = process.argv.slice(2);
+  if (!personaRaw) { console.error("Usage: node shared/collect/validate-recipe.mjs <persona_id>"); process.exit(2); }
+  const personaId = safeName(personaRaw, "persona_id");
+
+  const runs = loadPersonaRuns(personaId);
+  if (runs.length === 0) { console.error(`FAIL  no collected runs for persona '${personaId}' under ${STATE}/runs`); process.exit(1); }
+  const groups = groupByDate(runs);
+  const template = readFileSync(TEMPLATE, "utf8");
+  const html = renderRecipeHtml({ personaId, groups }, template);
+  const runsRoot = resolve(STATE, "runs");
+
+  const server = http.createServer((req, res) => {
+    if (req.method === "GET" && (req.url === "/" || req.url === "/index.html")) {
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+      return res.end(html);
+    }
+    // /img/{runId}/{name} — read-only static, traversal-guarded (runId + basename), scoped to this persona's images.
+    if (req.method === "GET" && req.url.startsWith("/img/")) {
+      let runId, name;
+      try {
+        const parts = req.url.split(/[?#]/)[0].slice("/img/".length).split("/");
+        runId = safeName(decodeURIComponent(parts.shift() || ""), "runId");
+        name = basename(decodeURIComponent(parts.join("/")));
+      } catch { res.writeHead(400); return res.end("bad request"); }
+      const imagesDir = resolve(runsRoot, runId, "ad-creatives", personaId, "images");
+      const abs = resolve(imagesDir, name);
+      if (!IMG_RE.test(name) || !abs.startsWith(imagesDir)) { res.writeHead(403); return res.end("forbidden"); }
+      return serveStatic(res, abs, MIME[extname(name).toLowerCase()] || "application/octet-stream");
+    }
+    res.writeHead(404); res.end("not found");   // read-only: nothing else is served
+  });
+
+  let lifeTimer;
+  function shutdown(code = 0) {
+    if (lifeTimer) clearTimeout(lifeTimer);
+    server.closeAllConnections?.();
+    server.close(() => process.exit(code));
+    setTimeout(() => process.exit(code), 1500).unref();
+  }
+
+  server.listen(0, "127.0.0.1", () => {
+    const { port } = server.address();
+    console.log(`SELECT_URL http://127.0.0.1:${port}/`);
+    console.log(`  Read-only analysis viewer for '${personaId}' (${runs.length} runs, ${groups.length} dates). Open in a browser.`);
+    console.log(`  Red-badged cards may be low-quality analyses — click an ad's 📋 id to copy it, then tell the agent here (e.g. "이 광고 재분석해줘").`);
+    const timeoutMin = Number(process.env.SELECT_TIMEOUT_MIN) || 30;
+    lifeTimer = setTimeout(() => { console.log(`TIMEOUT idle ${timeoutMin}m — shutting down. Re-run to view again.`); shutdown(0); }, timeoutMin * 60_000);
+  });
+}
