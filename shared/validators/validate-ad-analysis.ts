@@ -21,10 +21,11 @@ const bindingsPath = arg("--bindings");
 const adtypePath = arg("--adtype");
 const strategyPath = arg("--strategy");
 const marketposPath = arg("--marketpos");
+const opportunityPath = arg("--opportunity");
 const patternPath = arg("--pattern");
 
-if (!perceptionPath && !layoutPath && !copyPath && !visualPath && !intentPath && !bindingsPath && !adtypePath && !strategyPath && !marketposPath && !patternPath) {
-  console.error("Usage: tsx shared/validators/validate-ad-analysis.ts [--perception <path>] [--layout <path>] [--copy <path>] [--visual <path>] [--intent <path>] [--bindings <path>] [--adtype <path>] [--strategy <path>] [--marketpos <path>] [--pattern <path>] (at least one)");
+if (!perceptionPath && !layoutPath && !copyPath && !visualPath && !intentPath && !bindingsPath && !adtypePath && !strategyPath && !marketposPath && !opportunityPath && !patternPath) {
+  console.error("Usage: tsx shared/validators/validate-ad-analysis.ts [--perception <path>] [--layout <path>] [--copy <path>] [--visual <path>] [--intent <path>] [--bindings <path>] [--adtype <path>] [--strategy <path>] [--marketpos <path>] [--opportunity <path>] [--pattern <path>] (at least one)");
   process.exit(2);
 }
 
@@ -54,6 +55,8 @@ if (adtypePath) ok = report("ad-type", validateAgainst("ad-type.schema.json", lo
 if (strategyPath) ok = report("strategy-projection", validateAgainst("strategy-projection.schema.json", loadJson(strategyPath))) && ok;
 
 if (marketposPath) ok = report("market-position-matrix", validateAgainst("market-position-matrix.schema.json", loadJson(marketposPath))) && ok;
+
+if (opportunityPath) ok = report("creative-opportunity", validateAgainst("creative-opportunity.schema.json", loadJson(opportunityPath))) && ok;
 
 if (patternPath) ok = report("ad-pattern", validateAgainst("ad-pattern.schema.json", loadJson(patternPath))) && ok;
 
