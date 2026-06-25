@@ -1,6 +1,31 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseFollowerCount, parseStartedAt, mapPlatforms, normalizeStatus, normalizeDetail } from "./detail-normalize.mjs";
+import { parseFollowerCount, parseStartedAt, mapPlatforms, normalizeStatus, normalizeDetail, normalizeAdCopy, normalizeAdvertiser } from "./detail-normalize.mjs";
+
+test("normalizeAdvertiser strips the collab wrapper, passes a normal name through", () => {
+  // live bug: branded-content ad → "{advertiser} 페이지는 {partner}과(와) 함께합니다"
+  assert.equal(normalizeAdvertiser("trend__mandu 페이지는 ChatGPT과(와) 함께합니다"), "trend__mandu");
+  assert.equal(normalizeAdvertiser("그녀의 다이어리"), "그녀의 다이어리");        // normal name unchanged
+  assert.equal(normalizeAdvertiser("스텐드랩 - STEND LAB"), "스텐드랩 - STEND LAB"); // hyphenated name unchanged
+  assert.equal(normalizeAdvertiser(""), "");
+  assert.equal(normalizeAdvertiser(null), "");
+});
+
+test("normalizeDetail uses the collab-stripped advertiser", () => {
+  assert.equal(normalizeDetail({ advertiser: "trend__mandu 페이지는 ChatGPT과(와) 함께합니다" }).advertiser_name, "trend__mandu");
+});
+
+test("normalizeAdCopy collapses whitespace, trims, caps length; empty → ''", () => {
+  assert.equal(normalizeAdCopy("  촉촉한   보습\n크림  "), "촉촉한 보습 크림");
+  assert.equal(normalizeAdCopy(""), "");
+  assert.equal(normalizeAdCopy(null), "");
+  assert.equal(normalizeAdCopy("x".repeat(3000)).length, 2000);
+});
+
+test("normalizeDetail carries ad_copy when present, omits it when blank", () => {
+  assert.equal(normalizeDetail({ ad_copy: "  세일 중  " }).ad_copy, "세일 중");
+  assert.equal("ad_copy" in normalizeDetail({ status: "활성" }), false);
+});
 
 test("parseFollowerCount handles KR 명/천/만/억 and EN K/M, commas, junk", () => {
   assert.equal(parseFollowerCount("팔로워 35명"), 35);

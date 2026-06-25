@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseAdvertiserId, filterQueriesByModes, dedupKey, fbcdnAssetId, chooseAdvertiser, safeName, buildCreativeRecord, classifyResponse, downloadVideoFile, downloadImageFile, isImageMagic } from "./ad-source-helpers.mjs";
+import { parseAdvertiserId, filterQueriesByModes, dedupKey, fbcdnAssetId, chooseAdvertiser, safeName, buildCreativeRecord, appendKeyword, classifyResponse, downloadVideoFile, downloadImageFile, isImageMagic } from "./ad-source-helpers.mjs";
 
 test("safeName accepts a plain segment, rejects traversal/separators", () => {
   assert.equal(safeName("buyer", "personaId"), "buyer");
@@ -88,6 +88,28 @@ test("classifyResponse prefers video then image then null, uses mime", () => {
   assert.equal(classifyResponse("https://x/img.jpg", a), "image");
   assert.equal(classifyResponse("https://x/other", a), null);
   assert.equal(classifyResponse("https://x/img", { imgMatch: (u) => u.includes("img") }), "image"); // no videoMatch
+});
+
+test("buildCreativeRecord seeds keywords[] from the surfacing keyword (image + video); absent when no keyword", () => {
+  const img = buildCreativeRecord({ kind: "image", key: "https://x/i", n: 0, meta: {}, keyword: "수분크림" });
+  assert.deepEqual(img.keywords, ["수분크림"]);
+  const vid = buildCreativeRecord({ kind: "video", key: "https://x/v", n: 1, meta: {}, keyword: "핸드크림" });
+  assert.deepEqual(vid.keywords, ["핸드크림"]);
+  const none = buildCreativeRecord({ kind: "image", key: "https://x/j", n: 2, meta: {} });
+  assert.equal(none.keywords, undefined);   // omitted, not [] (additionalProperties stays clean)
+});
+
+test("appendKeyword: records a SECOND keyword on a dup, idempotent, null/empty-safe", () => {
+  const rec = buildCreativeRecord({ kind: "image", key: "https://x/i", n: 0, meta: {}, keyword: "a" });
+  appendKeyword(rec, "b");
+  appendKeyword(rec, "a");        // already present → no dup
+  appendKeyword(rec, "");         // empty → ignored
+  appendKeyword(rec, null);       // null → ignored
+  assert.deepEqual(rec.keywords, ["a", "b"]);
+  // a record that had no keywords gets the array initialized
+  const bare = buildCreativeRecord({ kind: "image", key: "https://x/j", n: 1, meta: {} });
+  appendKeyword(bare, "c");
+  assert.deepEqual(bare.keywords, ["c"]);
 });
 
 test("buildCreativeRecord shapes image and video records", () => {

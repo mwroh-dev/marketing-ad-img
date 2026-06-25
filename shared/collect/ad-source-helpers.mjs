@@ -93,11 +93,13 @@ export function classifyResponse(url, adapter, mime = "") {
 // `videoSaved` (Meta video-via-poster path): when the harness has downloaded the actual .mp4 bytes (recon
 // §11 — direct fetch of the signed url) and written `videos/ad-N.mp4`, pass videoSaved:true to attach
 // `video_file`. The transient signed url (`video_url_full`) is NEVER persisted — it expires (recon §11b).
-export function buildCreativeRecord({ kind, key, n, meta = {}, saved = true, videoSaved = false }) {
+export function buildCreativeRecord({ kind, key, n, meta = {}, saved = true, videoSaved = false, keyword = null }) {
+  const kws = keyword ? [keyword] : undefined;   // the search keyword that surfaced this ad (model B grouping)
   if (kind === "video") {
     const { video_url_full, ...m } = meta;  // signed url is transient — never persisted
     const rec = { video_url: key, subtype: "video", ...m };
     if (saved) rec.video_file = `videos/ad-${n}.mp4`;
+    if (kws) rec.keywords = kws;
     return rec;
   }
   const { video_url, video_url_full, ...restMeta } = meta;  // drop the transient signed url
@@ -108,10 +110,22 @@ export function buildCreativeRecord({ kind, key, n, meta = {}, saved = true, vid
     const rec = { video_url, subtype: "video", image_url: key, ...restMeta };
     if (saved) rec.image_file = `images/ad-${n}.jpg`;  // the thumbnail bytes (poster)
     if (videoSaved) rec.video_file = `videos/ad-${n}.mp4`;  // the actual mp4 bytes (recon §11)
+    if (kws) rec.keywords = kws;
     return rec;
   }
   const rec = { image_url: key, subtype: "single_image", ...restMeta };
   if (saved) rec.image_file = `images/ad-${n}.jpg`;
+  if (kws) rec.keywords = kws;
+  return rec;
+}
+
+// appendKeyword: the global dedup drops a creative the SECOND time a different keyword surfaces it — but the
+// ad genuinely belongs to BOTH keywords (model B). Instead of discarding, the harness calls this to record the
+// extra keyword on the already-saved record. Idempotent (no dup keyword), null/empty-safe.
+export function appendKeyword(rec, keyword) {
+  if (!rec || !keyword) return rec;
+  if (!Array.isArray(rec.keywords)) rec.keywords = [];
+  if (!rec.keywords.includes(keyword)) rec.keywords.push(keyword);
   return rec;
 }
 

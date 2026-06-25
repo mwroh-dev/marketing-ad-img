@@ -37,7 +37,7 @@
 //
 // Non-intrusive: dedicated headless Chrome (default 9291), never bringToFront/activateTarget.
 import { realScroll, sleep, isBlocked, matchToolEntry } from "./lib.mjs";
-import { dedupKey, fbcdnAssetId, safeName, classifyResponse, buildCreativeRecord, downloadVideoFile, downloadImageFile } from "./ad-source-helpers.mjs";
+import { dedupKey, fbcdnAssetId, safeName, classifyResponse, buildCreativeRecord, appendKeyword, downloadVideoFile, downloadImageFile } from "./ad-source-helpers.mjs";
 import CDP from "chrome-remote-interface";
 import { writeFileSync, mkdirSync } from "fs";
 
@@ -72,6 +72,7 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
   const tgt = await CDP.New({ port, url: "about:blank" });
   const c = await CDP({ port, target: tgt.id });
   const seen = new Set();
+  const seenRec = new Map();   // dedupKey → the saved creative record, so a dup (same ad, ANOTHER keyword) can append its keyword (model B)
   let imagesCollected = 0;   // IMAGE creatives are the PRIMARY budget; videos are uncapped, collected incidentally
   const buf = new Map();
   // Hard timeout: never process.exit() from a library — it skips the finally cleanup and kills any
@@ -205,12 +206,14 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
       // with its OWN detail is still its own correct record because each modal pass is independent; the dedup
       // here only prevents the SAME url being written twice within the modal loop). Honors the image budget.
       // Returns { collected, index, imageSaved, videoSaved, reason }.
-      collectCreative: async ({ imageKey, imageFull = null, videoKey = null, videoFull = null, meta = {} } = {}) => {
+      collectCreative: async ({ imageKey, imageFull = null, videoKey = null, videoFull = null, meta = {}, keyword = null } = {}) => {
         // VIDEO ad → video-only: mp4 to videos/, no poster in images/ (a video's first frame is not an image ad).
         // Videos are uncapped (collected while hunting images).
         if (videoKey) {
           const vkey = dedupKey(videoKey);
-          if (seen.has(vkey)) return { collected: false, reason: "dup" };
+          // dup = the SAME ad surfaced again under another keyword → record that keyword on the existing
+          // record instead of discarding (model B: one ad belongs to every keyword that surfaced it).
+          if (seen.has(vkey)) { appendKeyword(seenRec.get(vkey), keyword); return { collected: false, reason: "dup" }; }
           const n = result.creatives.length;
           let videoSaved = false;
           if (videoFull) {
@@ -221,13 +224,14 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
               : `video not downloaded (${dl.reason}) — url only`);
           }
           seen.add(vkey);
-          result.creatives.push(buildCreativeRecord({ kind: "video", key: vkey, n, meta, saved: videoSaved }));
+          const rec = buildCreativeRecord({ kind: "video", key: vkey, n, meta, saved: videoSaved, keyword });
+          result.creatives.push(rec); seenRec.set(vkey, rec);
           return { collected: true, index: n, videoSaved };
         }
         // IMAGE ad → one image to images/ (best-effort; url-only fallback). Images are the budget — refuse past target.
         if (!imageKey || typeof imageKey !== "string") return { collected: false, reason: "no imageKey" };
         const key = dedupKey(imageKey);
-        if (seen.has(key)) return { collected: false, reason: "dup" };
+        if (seen.has(key)) { appendKeyword(seenRec.get(key), keyword); return { collected: false, reason: "dup" }; }
         if (imagesCollected >= totalImages) return { collected: false, reason: "image-cap" };
         const n = result.creatives.length;
         let imageSaved = false;
@@ -237,7 +241,8 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
           if (!dl.saved) result.coverage_flags.push(`image not downloaded (${dl.reason}) — url only`);
         }
         seen.add(key);
-        result.creatives.push(buildCreativeRecord({ kind: "image", key, n, meta, saved: imageSaved }));
+        const rec = buildCreativeRecord({ kind: "image", key, n, meta, saved: imageSaved, keyword });
+        result.creatives.push(rec); seenRec.set(key, rec);
         imagesCollected++;
         return { collected: true, index: n, imageSaved };
       },

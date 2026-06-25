@@ -79,7 +79,7 @@ export function normalizeDetail(raw = {}) {
   if (lib) out.library_id = lib;
   const started = parseStartedAt(raw.started_at);
   if (started) out.started_at = started;
-  const adv = (raw.advertiser ?? "").toString().trim();
+  const adv = normalizeAdvertiser(raw.advertiser);
   if (adv) out.advertiser_name = adv;
   const fc = parseFollowerCount(raw.follower_raw);
   if (fc != null) out.follower_count = fc;
@@ -91,6 +91,28 @@ export function normalizeDetail(raw = {}) {
   if (platforms.length) out.platforms = platforms;
   const dur = (raw.video_duration ?? "").toString().trim();
   if (dur) out.video_duration = dur;
+  const copy = normalizeAdCopy(raw.ad_copy);
+  if (copy) out.ad_copy = copy;
   out.detail_captured = Object.keys(out).length > 0;
   return out;
+}
+
+// The advertiser's primary text (the ad copy shown above the creative). Collapses whitespace and caps length
+// so a runaway capture can't bloat the record; returns "" for empty/chrome-only input. The DOM SOURCE of the
+// raw string (which card node is the copy) is the live-unverified part — see flow.mjs CARD_PRIMARY_TEXT.
+// The advertiser line of a branded-content / collaboration ad renders (KR locale) as
+// "{advertiser} 페이지는 {partner}과(와) 함께합니다" — the EXTRACT picks the line before "광고", so a collab ad
+// would otherwise store that whole sentence as advertiser_name (live bug: "trend__mandu 페이지는 ChatGPT…").
+// Reduce it to the advertiser; a normal advertiser line (no collab marker) passes through unchanged.
+export function normalizeAdvertiser(raw) {
+  const s = String(raw ?? "").trim();
+  if (!s) return "";
+  const m = s.match(/^(.+?)\s+페이지는\s+.+함께합니다\s*$/);
+  return m ? m[1].trim() : s;
+}
+
+export function normalizeAdCopy(raw) {
+  const s = String(raw ?? "").replace(/\s+/g, " ").trim();
+  if (!s) return "";
+  return s.length > 2000 ? s.slice(0, 2000) : s;
 }

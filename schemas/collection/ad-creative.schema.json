@@ -34,6 +34,7 @@
           "image_file": { "type": "string" },
           "ad_copy": { "type": "string" },
           "platforms": { "type": "array", "items": { "type": "string" } },
+          "keywords": { "type": "array", "items": { "type": "string" }, "description": "every search keyword whose results surfaced this ad (one ad can match multiple keywords; preserved across the global dedup)" },
           "started_at": { "type": "string" },
           "subtype": { "type": "string", "enum": ["single_image", "carousel", "video_thumb", "video"] },
           "advertiser_id": { "type": "string" },

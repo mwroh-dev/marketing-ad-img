@@ -1,5 +1,5 @@
 import { defineFlow } from "../../shared/collect/define-flow.mjs";
-import { normalizeDetail } from "./detail-normalize.mjs";
+import { normalizeDetail, normalizeAdCopy } from "./detail-normalize.mjs";
 
 // Meta uses the public FILTER URL directly (the documented public-ad-transparency carve-out) — there is
 // NO search-box/mouse interaction; the query is a URL parameter, and the assembled URL is still validated
@@ -81,7 +81,7 @@ export default defineFlow({
         else stale = 0;
         continue;
       }
-      const r = await this.collectOneCard(ctx, i);
+      const r = await this.collectOneCard(ctx, i, q);
       i++;
       if (r.collected) { total++; if (r.isVideo) videos++; else images++; if (r.detail) withDetail++; else fallback++; }
     }
@@ -92,11 +92,14 @@ export default defineFlow({
   // collect EXACTLY ONE creative — VIDEO ad → one video record (no poster in images/); IMAGE ad → one
   // representative image (modal preferred, card fallback; renditions not re-collected). Modal/extract failure →
   // grid card img, detail false. Returns { collected, isVideo, detail } so the keyword loop counts img vs video.
-  async collectOneCard(ctx, i) {
+  async collectOneCard(ctx, i, q = null) {
     // card image assets (full signed + stripped key) read BEFORE opening the modal — the modal-fail FALLBACK.
     let cardAssets = [];
     try { cardAssets = await ctx.evalJs(CARD_IMG_ASSETS(i)); } catch { cardAssets = []; }
     if (!Array.isArray(cardAssets) || !cardAssets.length) return { collected: false };
+    // ad copy (best-effort, live-unverified) — read from the grid card before the modal opens.
+    let cardText = "";
+    try { cardText = await ctx.evalJs(CARD_PRIMARY_TEXT(i)); } catch { cardText = ""; }
 
     let detail = null, video = null, modalAssets = [];
     try {
@@ -120,14 +123,16 @@ export default defineFlow({
     try { await this.closeModal(ctx); } catch { /* best-effort */ }
 
     const meta = detail ? { ...detail } : {};
+    const copy = normalizeAdCopy(cardText);
+    if (copy && !meta.ad_copy) meta.ad_copy = copy;   // card primary text; detail modal has no copy field
     if (video && video.key) {
-      const res = await ctx.collectCreative({ videoKey: video.key, videoFull: video.full, meta });
+      const res = await ctx.collectCreative({ videoKey: video.key, videoFull: video.full, meta, keyword: q });
       return { collected: res.collected, isVideo: true, detail: !!detail };
     }
     const assets = (Array.isArray(modalAssets) && modalAssets.length) ? modalAssets : cardAssets;
     const primary = assets.find((a) => a && a.key);   // the ad's primary creative (modal preferred, card fallback)
     if (primary) {
-      const res = await ctx.collectCreative({ imageKey: primary.key, imageFull: primary.full, meta });
+      const res = await ctx.collectCreative({ imageKey: primary.key, imageFull: primary.full, meta, keyword: q });
       return { collected: res.collected, isVideo: false, detail: !!detail };
     }
     return { collected: false };
@@ -200,6 +205,23 @@ const CARD_IMG_ASSETS = (i) => `(() => {
     p=p.parentElement;
   }
   return [];
+})()`;
+
+// the i-th card's advertiser PRIMARY TEXT (the ad copy). VERIFIED against live Meta Ad Library (KR): Meta renders
+// the primary text in a `._7jyr` block — clean, separate from the "<advertiser> Sponsored" header (._8nsi) and
+// from all the detail chrome (Library ID / dates / platforms). We climb from the detail trigger to the nearest
+// ancestor that holds this ad's ._7jyr (text-length-bounded so we never swallow a neighbouring ad's copy) and
+// return it. No ._7jyr → "" (honest absence; e.g. image-only ads with no body text).
+const CARD_PRIMARY_TEXT = (i) => `(() => {
+  const b=${TRIG}[${i}]; if(!b) return "";
+  let p=b;
+  for(let k=0;k<16 && p;k++){
+    if((p.innerText||'').length>2600) break;                 // climbed past one ad → stop before grabbing a neighbour's copy
+    const t=p.querySelector && p.querySelector('._7jyr');     // Meta primary-text block (the ad copy)
+    if(t && (t.innerText||'').trim()) return (t.innerText||'').replace(/\\s+/g,' ').trim();
+    p=p.parentElement;
+  }
+  return "";
 })()`;
 
 // the OPEN modal's own creative image assets — { full, key } — the ad's actual creative as shown in the modal
