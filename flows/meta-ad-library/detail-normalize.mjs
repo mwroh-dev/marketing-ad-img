@@ -102,7 +102,7 @@ export function normalizeDetail(raw = {}) {
 // raw string (which card node is the copy) is the live-unverified part — see flow.mjs CARD_PRIMARY_TEXT.
 // The advertiser line of a branded-content / collaboration ad renders (KR locale) as
 // "{advertiser} 페이지는 {partner}과(와) 함께합니다" — the EXTRACT picks the line before "광고", so a collab ad
-// would otherwise store that whole sentence as advertiser_name (live bug: "trend__mandu 페이지는 ChatGPT…").
+// would otherwise store that whole sentence as advertiser_name (live bug: "{advertiser} 페이지는 {partner}…").
 // Reduce it to the advertiser; a normal advertiser line (no collab marker) passes through unchanged.
 export function normalizeAdvertiser(raw) {
   const s = String(raw ?? "").trim();

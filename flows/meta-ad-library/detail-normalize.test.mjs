@@ -3,16 +3,16 @@ import assert from "node:assert/strict";
 import { parseFollowerCount, parseStartedAt, mapPlatforms, normalizeStatus, normalizeDetail, normalizeAdCopy, normalizeAdvertiser } from "./detail-normalize.mjs";
 
 test("normalizeAdvertiser strips the collab wrapper, passes a normal name through", () => {
-  // live bug: branded-content ad → "{advertiser} 페이지는 {partner}과(와) 함께합니다"
-  assert.equal(normalizeAdvertiser("trend__mandu 페이지는 ChatGPT과(와) 함께합니다"), "trend__mandu");
-  assert.equal(normalizeAdvertiser("그녀의 다이어리"), "그녀의 다이어리");        // normal name unchanged
-  assert.equal(normalizeAdvertiser("스텐드랩 - STEND LAB"), "스텐드랩 - STEND LAB"); // hyphenated name unchanged
+  // live bug: branded-content ad → "{advertiser} 페이지는 {partner}과(와) 함께합니다" (synthetic fixtures, structure preserved)
+  assert.equal(normalizeAdvertiser("seller__shop 페이지는 파트너과(와) 함께합니다"), "seller__shop"); // strips wrapper, keeps the __ handle
+  assert.equal(normalizeAdvertiser("샘플상점"), "샘플상점");                       // normal name unchanged
+  assert.equal(normalizeAdvertiser("샘플랩 - SAMPLE LAB"), "샘플랩 - SAMPLE LAB");  // hyphenated KR-EN name unchanged
   assert.equal(normalizeAdvertiser(""), "");
   assert.equal(normalizeAdvertiser(null), "");
 });
 
 test("normalizeDetail uses the collab-stripped advertiser", () => {
-  assert.equal(normalizeDetail({ advertiser: "trend__mandu 페이지는 ChatGPT과(와) 함께합니다" }).advertiser_name, "trend__mandu");
+  assert.equal(normalizeDetail({ advertiser: "seller__shop 페이지는 파트너과(와) 함께합니다" }).advertiser_name, "seller__shop");
 });
 
 test("normalizeAdCopy collapses whitespace, trims, caps length; empty → ''", () => {
@@ -78,20 +78,20 @@ test("normalizeStatus maps KR/EN", () => {
   assert.equal(normalizeStatus("???"), "unknown");
 });
 
-test("normalizeDetail assembles a real recon fixture (KR, accordion expanded)", () => {
+test("normalizeDetail assembles a representative detail fixture (KR, accordion expanded)", () => {
   const out = normalizeDetail({
-    status: "활성", library_id: "1972922693648310",
-    started_at: "2026. 2. 26.에 게재 시작함", advertiser: "진시황의 비밀",
-    follower_raw: "팔로워 35명", category: "건강/뷰티", page_id: "275345032325614",
+    status: "활성", library_id: "1000000000000001",
+    started_at: "2026. 2. 26.에 게재 시작함", advertiser: "샘플브랜드",
+    follower_raw: "팔로워 35명", category: "건강/뷰티", page_id: "2000000000000002",
     platform_offsets: ["-387px -766px", "-387px -805px"], video_duration: "0:00 / 0:43",
   });
   assert.equal(out.status, "active");
-  assert.equal(out.library_id, "1972922693648310");
+  assert.equal(out.library_id, "1000000000000001");
   assert.equal(out.started_at, "2026-02-26");
-  assert.equal(out.advertiser_name, "진시황의 비밀");
+  assert.equal(out.advertiser_name, "샘플브랜드");
   assert.equal(out.follower_count, 35);
   assert.equal(out.page_category, "건강/뷰티");
-  assert.equal(out.page_id, "275345032325614");
+  assert.equal(out.page_id, "2000000000000002");
   assert.deepEqual(out.platforms, ["facebook", "instagram"]);
   assert.equal(out.video_duration, "0:00 / 0:43");
   assert.equal(out.detail_captured, true);
