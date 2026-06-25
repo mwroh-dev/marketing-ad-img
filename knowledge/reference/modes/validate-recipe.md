@@ -22,10 +22,11 @@ single step below.
 ## Required state (gate)
 - ≥1 collection run for the target persona: `.generate-ads-img/runs/*/ad-creatives/{persona_id}/ad-creative.json`.
   - **0 runs → not runnable.** Nothing to view; route to **data-collection** first.
-- Analysis artifacts are read from `runs/{run_id}/analysis/{persona_id}/{ad}/<artifact>.json` (per-ad subdir:
-  `perception.json`, `ad-type.json`, `copy.json`, `layout.json`, `visual.json`, `intent.json`, `strategy.json`,
-  `ad-type-gate.json`). Ads with **no** analysis still render — flagged `분석 없음` (honest, not hidden). So the
-  viewer is useful even mid-analysis, and especially to spot the un-analyzed/low-quality tail.
+- The recipe is read from the **global lineage store** `STATE_DIR/store/{persona_id}/{ad}/{kind}.json` (envelopes;
+  the viewer unwraps `payload`) — the persona-global, run-independent canonical home (`provenance-lineage.md`). The
+  ad **image** still comes from the run corpus (`runs/{run_id}/ad-creatives/{persona}/images/`). Ads with **no**
+  stored recipe still render — a neutral `아직 분석되지 않음` note (honest, not hidden); the viewer is useful even
+  mid-analysis to see the un-analyzed tail.
 
 ## What the orchestrator does
 1. **Serve (deterministic, no agent, read-only).** Run

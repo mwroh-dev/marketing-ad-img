@@ -26,8 +26,9 @@ const STATE = process.env.GEN_ADS_IMG_STATE || ".generate-ads-img";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 
-// the analysis artifacts the viewer reads per ad (per-ad subdir layout, matching the analysis pilot).
-const ARTIFACTS = { perception: "perception.json", adType: "ad-type.json", copy: "copy.json", layout: "layout.json", visual: "visual.json", intent: "intent.json", strategy: "strategy.json", gate: "ad-type-gate.json" };
+// the recipe is read from the global lineage store (STATE_DIR/store/{persona}/{ad}/{kind}.json envelopes);
+// map each recipe slot → its store `kind` (= filename). The image still comes from the run corpus (runs/...).
+const STORE_KIND = { perception: "perception", adType: "ad-type", copy: "copy", layout: "layout", visual: "visual", intent: "intent", strategy: "strategy", gate: "ad-type-gate" };
 const KOR = { visual: "비주얼", intent: "의도", adType: "타입", strategy: "전략", layout: "레이아웃" };
 
 const readJson = (p) => { try { return JSON.parse(readFileSync(p, "utf8")); } catch { return undefined; } };
@@ -62,7 +63,6 @@ export function loadPersonaRuns(personaId, stateDir = STATE) {
       personaId,
       date: runDate(runId, runJson, mtimeIso),
       creatives: imageCreatives(creative.creatives),
-      analysisDir: resolve(runsRoot, runId, "analysis", personaId),
     });
   }
   return runs;
@@ -76,11 +76,12 @@ export function groupByDate(runs) {
 
 // ---- pure: load one ad's recipe ----------------------------------------------------------------------------
 
-// adBase = "ad-9" (image_file basename without extension). Reads the per-ad analysis subdir; missing → undefined.
-export function loadRecipe(analysisDir, adBase) {
-  const dir = resolve(analysisDir, adBase);
+// adBase = "ad-9" (image basename, the store slot). Reads each kind's ENVELOPE from the global store and unwraps
+// its payload; missing → undefined. The store is persona-global (run-independent) — the canonical recipe home.
+export function loadRecipe(personaId, adBase, stateDir = STATE) {
+  const dir = resolve(stateDir, "store", personaId, adBase);
   const out = {};
-  for (const [key, file] of Object.entries(ARTIFACTS)) out[key] = readJson(resolve(dir, file));
+  for (const [slot, kind] of Object.entries(STORE_KIND)) out[slot] = readJson(resolve(dir, `${kind}.json`))?.payload;
   return out;
 }
 
@@ -135,14 +136,14 @@ export function cardHtml(runId, personaId, creative, recipe) {
     </div>`;
 }
 
-export function renderRecipeHtml({ personaId, groups }, template) {
+export function renderRecipeHtml({ personaId, groups, stateDir = STATE }, template) {
   const totalAds = groups.reduce((n, g) => n + g.runs.reduce((m, r) => m + r.creatives.length, 0), 0);
   const totalRuns = groups.reduce((n, g) => n + g.runs.length, 0);
   const meta = `페르소나 <b>${esc(personaId)}</b> · 수집 ${totalRuns}회(${groups.length}개 날짜) · 광고 ${totalAds}개`;
   const sections = groups.length
     ? groups.map((g) => {
         const runIds = g.runs.map((r) => r.runId);
-        const cards = g.runs.flatMap((r) => r.creatives.map((c) => cardHtml(r.runId, personaId, c, loadRecipe(r.analysisDir, basename(c.image_file).replace(IMG_RE, ""))))).join("");
+        const cards = g.runs.flatMap((r) => r.creatives.map((c) => cardHtml(r.runId, personaId, c, loadRecipe(personaId, basename(c.image_file).replace(IMG_RE, ""), stateDir)))).join("");
         return `<section class="day"><h2>${esc(g.date)}</h2><div class="daysub">run: ${esc(runIds.join(", "))}</div>`
           + `<div class="grid">${cards || `<p class="empty">이미지 없음</p>`}</div></section>`;
       }).join("")

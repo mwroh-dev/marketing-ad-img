@@ -39,8 +39,8 @@ test("cardHtml: an un-analysed ad shows a neutral 'not analysed' note, not an al
 });
 
 test("renderRecipeHtml groups by date, fills meta + id buttons; empty persona renders a note", () => {
-  const groups = [{ date: "2026-06-23", runs: [{ runId: "2026-06-23-1430-meta-keyword", personaId: "p", creatives: [{ image_file: "images/ad-0.jpg" }], analysisDir: "/nope" }] }];
-  const html = renderRecipeHtml({ personaId: "p", groups }, TEMPLATE);
+  const groups = [{ date: "2026-06-23", runs: [{ runId: "2026-06-23-1430-meta-keyword", personaId: "p", creatives: [{ image_file: "images/ad-0.jpg" }] }] }];
+  const html = renderRecipeHtml({ personaId: "p", groups, stateDir: "/nonexistent-store" }, TEMPLATE);
   assert.match(html, /페르소나 <b>p<\/b>/);
   assert.match(html, /<h2>2026-06-23<\/h2>/);
   assert.match(html, /class="idbtn"/);
@@ -56,19 +56,21 @@ test("loadPersonaRuns + loadRecipe discover a persona's runs on disk and read th
   const personaDir = resolve(root, "runs", runId, "ad-creatives", persona);
   mkdirSync(resolve(personaDir, "images"), { recursive: true });
   writeFileSync(resolve(personaDir, "ad-creative.json"), JSON.stringify({ persona_id: persona, creatives: [{ image_file: "images/ad-0.jpg", advertiser_name: "브랜드" }, { image_file: "video.mp4" }] }));
-  const adDir = resolve(root, "runs", runId, "analysis", persona, "ad-0");
-  mkdirSync(adDir, { recursive: true });
-  writeFileSync(resolve(adDir, "perception.json"), JSON.stringify({ image_ref: "runs/.../ad-0.jpg", observation_confidence: { text: "high" } }));
-  writeFileSync(resolve(adDir, "ad-type.json"), JSON.stringify({ ad_type: "informational", confidence: "high" }));
+  // recipe now lives in the global store as ENVELOPES (payload unwrapped on read)
+  const slotDir = resolve(root, "store", persona, "ad-0");
+  mkdirSync(slotDir, { recursive: true });
+  const env = (kind, payload) => ({ kind, key: { persona_id: persona, image_ref: "ad-0.jpg" }, pattern_tag: "t:a×b", derived_from: [], logic_version: { version: "x", method: "content" }, produced_by: kind, stamped_at: "z", payload });
+  writeFileSync(resolve(slotDir, "perception.json"), JSON.stringify(env("perception", { image_ref: "runs/.../ad-0.jpg", observation_confidence: { text: "high" } })));
+  writeFileSync(resolve(slotDir, "ad-type.json"), JSON.stringify(env("ad-type", { ad_type: "informational", confidence: "high" })));
 
   const runs = loadPersonaRuns(persona, root);
   assert.equal(runs.length, 1);
   assert.equal(runs[0].date, "2026-06-23");
   assert.equal(runs[0].creatives.length, 1);            // the video is filtered out
-  const recipe = loadRecipe(runs[0].analysisDir, "ad-0");
+  const recipe = loadRecipe(persona, "ad-0", root);     // reads store envelopes, unwraps payload
   assert.equal(recipe.perception.observation_confidence.text, "high");
   assert.equal(recipe.adType.ad_type, "informational");
-  assert.equal(recipe.copy, undefined);                 // missing artifact → undefined, not a throw
+  assert.equal(recipe.copy, undefined);                 // missing kind → undefined, not a throw
 
   assert.deepEqual(loadPersonaRuns("nobody", root), []); // unknown persona
   assert.equal(groupByDate(runs)[0].date, "2026-06-23");
