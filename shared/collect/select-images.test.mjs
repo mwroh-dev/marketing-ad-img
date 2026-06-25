@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync, mkdirSync, writeFileSync, existsSync, rmSync, readdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { renderSelectHtml, buildScreenJson, moveUnselected, imageCreatives, metaLine } from "./select-images.mjs";
+import { renderSelectHtml, buildScreenJson, moveUnselected, imageCreatives, metaLine, groupByKeywordSignature, sortByStartedAt, keywordSet } from "./select-images.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TEMPLATE = readFileSync(resolve(HERE, "select-grid.template.html"), "utf8");
@@ -91,4 +91,65 @@ test("moveUnselected relocates only the non-kept images to _removed/, kept stays
 
 test("moveUnselected on a missing dir is a no-op (returns [])", () => {
   assert.deepEqual(moveUnselected(resolve(HERE, "__nope__"), []), []);
+});
+
+// ---- model-B keyword grouping ------------------------------------------------------------------------------
+
+const img = (file, keywords, started_at) => ({ image_file: file, ...(keywords ? { keywords } : {}), ...(started_at ? { started_at } : {}) });
+
+test("keywordSet dedupes, trims and sorts; missing → []", () => {
+  assert.deepEqual(keywordSet({ keywords: ["b", "a", "a", " b ", ""] }), ["a", "b"]);
+  assert.deepEqual(keywordSet({}), []);
+  assert.deepEqual(keywordSet(null), []);
+});
+
+test("groupByKeywordSignature: exact-combo sections, count desc then label asc, 미분류 last", () => {
+  // user's example: singles {a},{b},{c} + combos {a,b},{a,b,c} → abc / ab / a / b / c  (+ an unkeyed ad last)
+  const creatives = [
+    img("images/0.jpg", ["a"]), img("images/1.jpg", ["b"]), img("images/2.jpg", ["c"]),
+    img("images/3.jpg", ["a", "b"]), img("images/4.jpg", ["c", "b", "a"]),
+    img("images/5.jpg", null), // no keywords → 미분류
+  ];
+  const groups = groupByKeywordSignature(creatives);
+  assert.deepEqual(groups.map((g) => g.label), ["a · b · c", "a · b", "a", "b", "c", "미분류"]);
+  assert.deepEqual(groups.map((g) => g.items.length), [1, 1, 1, 1, 1, 1]);
+});
+
+test("groupByKeywordSignature: one ad in multiple keywords lands in its EXACT combo once (no duplication)", () => {
+  const creatives = [
+    img("images/0.jpg", ["a", "b", "c"]), img("images/1.jpg", ["a", "b"]),
+    img("images/2.jpg", ["a", "b"]), img("images/3.jpg", ["a", "b", "c"]),
+  ];
+  const groups = groupByKeywordSignature(creatives);
+  assert.deepEqual(groups.map((g) => g.label), ["a · b · c", "a · b"]);
+  assert.deepEqual(groups.map((g) => g.items.map((c) => c.image_file)), [["images/0.jpg", "images/3.jpg"], ["images/1.jpg", "images/2.jpg"]]);
+});
+
+test("sortByStartedAt: oldest first (ISO lexical), undated sinks to the end, stable", () => {
+  const items = [
+    { image_file: "x", started_at: "2026-02-26" }, { image_file: "y" },
+    { image_file: "z", started_at: "2024-01-01" }, { image_file: "w", started_at: "2025-06-15" },
+  ];
+  assert.deepEqual(sortByStartedAt(items).map((c) => c.image_file), ["z", "w", "x", "y"]);
+});
+
+test("renderSelectHtml: section header + oldest-first within section + ad_copy shown", () => {
+  const creatives = [
+    img("images/new.jpg", ["수분크림"], "2026-02-01"),
+    { image_file: "images/old.jpg", keywords: ["수분크림"], started_at: "2024-03-10", ad_copy: "촉촉한 보습" },
+  ];
+  const html = renderSelectHtml({ runId: "r", personaId: "p", queries: [{ query: "수분크림" }], creatives }, TEMPLATE);
+  assert.match(html, /키워드: 수분크림/);                          // section header rendered
+  assert.match(html, /class="kw-count">2</);                       // count badge
+  assert.match(html, /촉촉한 보습/);                                // ad_copy line shown
+  assert.match(html, /총 2개/);
+  // oldest (2024) card must appear before the newer (2026) card in document order
+  assert.ok(html.indexOf("images/old.jpg") < html.indexOf("images/new.jpg"));
+});
+
+test("renderSelectHtml: older run with no keywords → single 미분류 group renders bare grid (no header)", () => {
+  const html = renderSelectHtml({ runId: "r", personaId: "p", creatives: [{ image_file: "images/a.jpg" }] }, TEMPLATE);
+  assert.doesNotMatch(html, /<h1 class="kw-h1">/);   // no rendered section header when only 미분류 exists (CSS .kw-h1 stays)
+  assert.match(html, /class="card"/);
+  assert.match(html, /총 1개/);
 });

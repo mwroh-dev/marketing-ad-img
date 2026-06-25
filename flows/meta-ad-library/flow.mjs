@@ -1,5 +1,5 @@
 import { defineFlow } from "../../shared/collect/define-flow.mjs";
-import { normalizeDetail } from "./detail-normalize.mjs";
+import { normalizeDetail, normalizeAdCopy } from "./detail-normalize.mjs";
 
 // Meta uses the public FILTER URL directly (the documented public-ad-transparency carve-out) — there is
 // NO search-box/mouse interaction; the query is a URL parameter, and the assembled URL is still validated
@@ -81,7 +81,7 @@ export default defineFlow({
         else stale = 0;
         continue;
       }
-      const r = await this.collectOneCard(ctx, i);
+      const r = await this.collectOneCard(ctx, i, q);
       i++;
       if (r.collected) { total++; if (r.isVideo) videos++; else images++; if (r.detail) withDetail++; else fallback++; }
     }
@@ -92,11 +92,14 @@ export default defineFlow({
   // collect EXACTLY ONE creative — VIDEO ad → one video record (no poster in images/); IMAGE ad → one
   // representative image (modal preferred, card fallback; renditions not re-collected). Modal/extract failure →
   // grid card img, detail false. Returns { collected, isVideo, detail } so the keyword loop counts img vs video.
-  async collectOneCard(ctx, i) {
+  async collectOneCard(ctx, i, q = null) {
     // card image assets (full signed + stripped key) read BEFORE opening the modal — the modal-fail FALLBACK.
     let cardAssets = [];
     try { cardAssets = await ctx.evalJs(CARD_IMG_ASSETS(i)); } catch { cardAssets = []; }
     if (!Array.isArray(cardAssets) || !cardAssets.length) return { collected: false };
+    // ad copy (best-effort, live-unverified) — read from the grid card before the modal opens.
+    let cardText = "";
+    try { cardText = await ctx.evalJs(CARD_PRIMARY_TEXT(i)); } catch { cardText = ""; }
 
     let detail = null, video = null, modalAssets = [];
     try {
@@ -120,14 +123,16 @@ export default defineFlow({
     try { await this.closeModal(ctx); } catch { /* best-effort */ }
 
     const meta = detail ? { ...detail } : {};
+    const copy = normalizeAdCopy(cardText);
+    if (copy && !meta.ad_copy) meta.ad_copy = copy;   // card primary text; detail modal has no copy field
     if (video && video.key) {
-      const res = await ctx.collectCreative({ videoKey: video.key, videoFull: video.full, meta });
+      const res = await ctx.collectCreative({ videoKey: video.key, videoFull: video.full, meta, keyword: q });
       return { collected: res.collected, isVideo: true, detail: !!detail };
     }
     const assets = (Array.isArray(modalAssets) && modalAssets.length) ? modalAssets : cardAssets;
     const primary = assets.find((a) => a && a.key);   // the ad's primary creative (modal preferred, card fallback)
     if (primary) {
-      const res = await ctx.collectCreative({ imageKey: primary.key, imageFull: primary.full, meta });
+      const res = await ctx.collectCreative({ imageKey: primary.key, imageFull: primary.full, meta, keyword: q });
       return { collected: res.collected, isVideo: false, detail: !!detail };
     }
     return { collected: false };
@@ -200,6 +205,23 @@ const CARD_IMG_ASSETS = (i) => `(() => {
     p=p.parentElement;
   }
   return [];
+})()`;
+
+// the i-th card's advertiser PRIMARY TEXT (ad copy shown above the creative). ⚠️ LIVE-UNVERIFIED selector:
+// Meta renders user-authored text in [dir="auto"] blocks, so we scope to the card container (same walk-up as
+// CARD_IMG_ASSETS) and pick the longest dir=auto block that is NOT chrome (Library ID / dates / follower /
+// Sponsored / Platforms / status / numeric-only). Errs toward "" (honest absence) rather than capturing chrome.
+// MUST be confirmed/tuned against a real Meta modal — see tasks/IMPLEMENTATION_NOTES.md.
+const CARD_PRIMARY_TEXT = (i) => `(() => {
+  const b=${TRIG}[${i}]; if(!b) return "";
+  let p=b, card=null;
+  for(let k=0;k<12 && p;k++){ if(p.querySelector('img,video')){ card=p; break; } p=p.parentElement; }
+  card=card||b.parentElement; if(!card) return "";
+  const CHROME=/Library ID|라이브러리 ID|게재 시작|Started running|^Sponsored$|^광고$|Platforms|플랫폼|팔로워|followers|See ad details|광고 상세|See summary|^(활성|비활성|Active|Inactive)$/i;
+  const blocks=[...card.querySelectorAll('[dir="auto"]')].map(e=>(e.innerText||'').replace(/\\s+/g,' ').trim())
+    .filter(t=>t && t.length>=20 && /\\s/.test(t) && !CHROME.test(t) && !/^[0-9.,:/\\s-]+$/.test(t));
+  if(!blocks.length) return "";
+  return blocks.sort((a,b)=>b.length-a.length)[0];
 })()`;
 
 // the OPEN modal's own creative image assets — { full, key } — the ad's actual creative as shown in the modal

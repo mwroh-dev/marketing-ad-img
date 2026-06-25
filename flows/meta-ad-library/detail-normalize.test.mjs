@@ -1,6 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseFollowerCount, parseStartedAt, mapPlatforms, normalizeStatus, normalizeDetail } from "./detail-normalize.mjs";
+import { parseFollowerCount, parseStartedAt, mapPlatforms, normalizeStatus, normalizeDetail, normalizeAdCopy } from "./detail-normalize.mjs";
+
+test("normalizeAdCopy collapses whitespace, trims, caps length; empty → ''", () => {
+  assert.equal(normalizeAdCopy("  촉촉한   보습\n크림  "), "촉촉한 보습 크림");
+  assert.equal(normalizeAdCopy(""), "");
+  assert.equal(normalizeAdCopy(null), "");
+  assert.equal(normalizeAdCopy("x".repeat(3000)).length, 2000);
+});
+
+test("normalizeDetail carries ad_copy when present, omits it when blank", () => {
+  assert.equal(normalizeDetail({ ad_copy: "  세일 중  " }).ad_copy, "세일 중");
+  assert.equal("ad_copy" in normalizeDetail({ status: "활성" }), false);
+});
 
 test("parseFollowerCount handles KR 명/천/만/억 and EN K/M, commas, junk", () => {
   assert.equal(parseFollowerCount("팔로워 35명"), 35);

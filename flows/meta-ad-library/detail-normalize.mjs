@@ -91,6 +91,17 @@ export function normalizeDetail(raw = {}) {
   if (platforms.length) out.platforms = platforms;
   const dur = (raw.video_duration ?? "").toString().trim();
   if (dur) out.video_duration = dur;
+  const copy = normalizeAdCopy(raw.ad_copy);
+  if (copy) out.ad_copy = copy;
   out.detail_captured = Object.keys(out).length > 0;
   return out;
+}
+
+// The advertiser's primary text (the ad copy shown above the creative). Collapses whitespace and caps length
+// so a runaway capture can't bloat the record; returns "" for empty/chrome-only input. The DOM SOURCE of the
+// raw string (which card node is the copy) is the live-unverified part — see flow.mjs CARD_PRIMARY_TEXT.
+export function normalizeAdCopy(raw) {
+  const s = String(raw ?? "").replace(/\s+/g, " ").trim();
+  if (!s) return "";
+  return s.length > 2000 ? s.slice(0, 2000) : s;
 }
