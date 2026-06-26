@@ -160,7 +160,7 @@ Agent-specific must-NOTs (the discriminating gate; the method is the *how*, this
 Canonical sources this agent reads and writes against. Paths are repo-root relative.
 
 ## Output contract (what you emit)
-- Schema: @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/layout-analysis.schema.json
+- Schema: @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/layout-analysis.view.md
   The single JSON object you return must validate against this. Required keys:
   `image_ref, persona_id, composition_type, text_density, comfort`. Enums:
   `composition_type` (product_only|lifestyle|comparison_table|review_capture|spec_list|usage|price_emphasis|other),

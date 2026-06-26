@@ -151,7 +151,7 @@ Agent-specific must-NOTs (the discriminating gate; the method is the *how*, this
   These are ground truth; narrate, never overwrite.
 
 ## Upstream analyses (what the aggregate is built from)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/layout-analysis.schema.json — `LayoutAnalysis` (L2a):
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/layout-analysis.pattern-synthesizer.view.md — `LayoutAnalysis` (L2a):
   feeds `composition_top_k` (`composition_type`), `comfort` (`crowding`,
   `awkward_placement`, `whitespace_ratio`). Per-image; never read raw to override
   the aggregate.
