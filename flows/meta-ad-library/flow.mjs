@@ -14,17 +14,12 @@ import { normalizeDetail, normalizeAdCopy } from "./detail-normalize.mjs";
 //                 ctx.collectCreative per asset: FETCH the asset by its full signed url, save images/ad-N.jpg
 //                 (+ videos/ad-N.mp4 for video ads), build ONE record with THIS ad's detail attached.
 //
-// MODAL-DRIVEN REARCHITECTURE (recon §11/§12): the OLD design ran two passes (grid scroll buffered creative
-// NETWORK responses; a separate modal pass built a metaByKey and drain() joined the two by image-url key).
-// That left ~3/24 creatives detail-less because the buffered-creative set and the opened-modal set did not
-// perfectly overlap (CDN size-variant url mismatches + occasional modal-open misses). The fix UNIFIES the
-// passes: collection is DRIVEN from the modal pass. For each ad we open its modal, extract its detail, AND
-// fetch that ad's creative asset(s) DIRECTLY by the full signed fbcdn url (proven token-authed: a bare Node
-// GET returns the complete jpg/mp4 — recon §12a images, §11a video). Each collected creative is therefore
-// 1:1 with its detail BY CONSTRUCTION — no join, no mis-join (two ads reselling one asset = two records, each
-// from its own modal pass with its own detail). The Network buffer/drain path is RETIRED for Meta (it stays
-// in the harness for Google, which still uses scroll→buffer→drain). Modal-open/extract failure FALLS BACK to
-// collecting the card's grid <img> with detail_captured:false, so creative coverage is never worse than before.
+// MODAL-DRIVEN: collection is driven from the per-ad modal pass — for each ad we open its modal, extract its
+// detail, AND fetch that ad's creative asset(s) directly by the full signed fbcdn url (token-authed; a bare GET
+// returns the bytes — recon §11/§12). So each creative is 1:1 with its detail BY CONSTRUCTION — no join, no
+// mis-join. Modal-open/extract failure falls back to the card grid <img> with detail_captured:false (coverage
+// never worse). The buffer→drain path is retired for Meta, kept for Google.
+// (Why this replaced the old two-pass buffer+drain join: recon-notes.md "Modal-driven rearchitecture".)
 export default defineFlow({
   name: "meta",
   source: "meta_ad_library",

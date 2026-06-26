@@ -506,3 +506,14 @@ expires); only the stripped `image_url` key is stored in the record + the saved 
 Throwaway `flows/meta-ad-library/_recon_image_download.mjs` (scroll → collect card `<img>.currentSrc` WITH query
 → Node bare `fetch` → status/ct/bytes/magic/valid). Non-intrusive (headless, ko-KR, in-page scrollBy,
 timeout-bound, no bringToFront/activateTarget). Deleted after these notes.
+
+## Modal-driven rearchitecture (§11/§12) — why the old two-pass join was retired (Meta only)
+The OLD Meta design ran **two passes**: a grid scroll that buffered creative NETWORK responses, plus a separate
+modal pass that built a `metaByKey`; `drain()` then joined the two by image-url key. That left **~3/24 creatives
+detail-less** — the buffered-creative set and the opened-modal set did not perfectly overlap (CDN size-variant url
+mismatches + occasional modal-open misses). The fix **unifies** the passes: collection is DRIVEN from the modal
+pass — for each ad we open its modal, extract its detail, AND fetch that ad's creative asset(s) directly by the
+full signed fbcdn url (§11/§12). Each creative is then **1:1 with its detail by construction** — no join, no
+mis-join (two ads reselling one asset → two records, each from its own modal). The Network buffer/`drain` path is
+retired for Meta but **kept in the harness for Google** (which still uses scroll→buffer→drain). `flow.mjs`'s
+`collect`/`collectOneCard` carry only the current-design summary + a pointer here.
