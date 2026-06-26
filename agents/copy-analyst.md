@@ -205,7 +205,7 @@ Canonical sources for this agent. Paths are repo-root relative and verified.
   keyword extraction, the content-only discipline, other-overuse avoidance, self-checklist.
 
 ## Schema (output I/O contract)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/copy-analysis.schema.json — `CopyAnalysis`. The fields this
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/copy-analysis.view.md — `CopyAnalysis` (the typed contract you emit). The fields this
   agent populates: `copy_elements[].content`, `.text_role`
   {headline·subcopy·CTA·badge·price·review_quote·spec_label·other}, `.hook_type`
   {question·contrast·result·empathy·number·other}, plus `sentence_patterns` and `keywords[]`.

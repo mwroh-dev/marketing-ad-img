@@ -155,7 +155,7 @@ Agent-specific must-NOTs (the discriminating gate; the method is the *how*, this
   feeds `composition_top_k` (`composition_type`), `comfort` (`crowding`,
   `awkward_placement`, `whitespace_ratio`). Per-image; never read raw to override
   the aggregate.
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/copy-analysis.schema.json — `CopyAnalysis` (L2b):
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/copy-analysis.consumer.view.md — `CopyAnalysis` (L2b):
   feeds `text_role_distribution` (`copy_elements[].text_role`), `hook_top_k`
   (`hook_type`), and `copy_keywords_top_k` (`keywords`).
 - @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/visual-analysis.schema.json — `VisualAnalysis` (L2c):

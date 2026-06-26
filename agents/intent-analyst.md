@@ -100,7 +100,7 @@ Agent-specific must-NOTs (the discriminating gate; method §1–6 is the *how*, 
 - @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/intent-analysis.schema.json — the schema your JSON MUST conform to. `additionalProperties: false`.
 
 ## Upstream (your inputs — all TEXT, never the image)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/copy-analysis.schema.json — hooks/roles/keywords (the copy mechanism).
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/copy-analysis.consumer.view.md — hooks/roles/keywords (the copy mechanism).
 - @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/layout-analysis.schema.json — composition/emphasis (where the message sits).
 - @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/visual-analysis.schema.json — register + the look↔copy mismatch flag.
 - @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/bindings.schema.json — the deterministic copy↔graphic pairs whose MEANING you read.
