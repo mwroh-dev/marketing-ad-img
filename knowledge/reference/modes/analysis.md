@@ -7,7 +7,7 @@ copy×layout binding). Analysis is the **tail of a collection run**: it begins o
 `screened` and ends at `analyzed`. Prompt-only system; no provider calls. Domain is never pre-fixed — the
 product/persona come only from the run's projected state (`non-negotiable-rules.md`).
 
-**Steps (for progress reporting, ~9):** 1) `perception-extractor` (vision ×1: geometry+text+scene+look per KEPT image) → 2) `stitch` + `bind` (deterministic: global-frame recombine + text↔graphic overlap pairs) → 3) `ad-type-classifier` (grounded ad TYPE + route to adapter — text-only on perception, vision 0) → 4) `copy-analyst` ⊥ `layout-analyst` ⊥ `visual-analyst` (parallel: text-meaning / spatial-meaning / visual-semantics+register — all axes run; the routed adapter is consumed later by the gate-check) → 5) `intent-analyst` (persuasion strategy + binding meaning) → 6) `strategy-projector` (per-ad marketing projection: benefit×funnel + first_cognition — text-only, grounded in ad-strategy-taxonomy.md) → 7) `ad-pattern-rank` (deterministic enum aggregation) + `keyword-rank` → 8) `market-position-aggregate` (deterministic benefit×funnel matrix + crowded/whitespace) → 9) `pattern-synthesizer` (narrative on top of the aggregate). Report `[analysis · step k/9]` at each. Stage advances `screened → analyzed`.
+**Progress reporting:** report `[analysis · step k/9]` at each stage of the dispatch chain below (the stage table is the canonical enumeration); the stage advances `screened → analyzed` once step 9 completes.
 
 ## The cost invariant (do not violate)
 **Vision tokens are spent ONCE**, in step 1 (`perception-extractor`). Steps 3–4 are **text-only** — every analyst
@@ -15,42 +15,22 @@ reads the perception text artifact, never the image. Re-sending the image to any
 steps (2, 5) touch no model. See `axis-model.md` → "The cost invariant".
 
 ## Dispatch chain
-```
-per KEPT image (stage ≥ screened):
-  perception-extractor  → perception.json        (geometry + text + scene + look, observe-only; confidence + absence)
-        │  (vision ×1 — the ONLY pixel pass)
-        ▼
-  [code] slice-stitch   → global-frame perception (slice y0/y1 recombined; section bboxes offset)   ⎫ deterministic
-  [code] bbox-bind      → bindings.json {bound_pairs[]: text_id↔graphic_id, overlap}                 ⎭ facts (axis 6)
-        │
-        ▼
-  ad-type-classifier    → ad-type.json   (message_basis/execution_style/ad_type + grounds_in — TEXT-only, brand-free)
-        │  getAdType(ad_type) → the defineAdType adapter (its `requires`/`gates`) is consumed by the ad-type-gate step below.
-        │  Grounded in knowledge/reference/ad-taxonomy.md (Puto&Wells 1984 / Belch&Belch / Kotler / Frazer 1983).
-        ▼
-        ├─ copy-analyst   → copy-analysis.json    (text role / hook / keywords — TEXT meaning only)      ⎫ parallel
-        ├─ layout-analyst → layout-analysis.json  (composition / comfort — GEOMETRY meaning only)        ⎬ ⊥ lanes,
-        └─ visual-analyst → visual-analysis.json  (scene taxonomy + register/mood NAMED — VISUAL only)   ⎭ text-only
-        ▼
-  intent-analyst        → intent-analysis.json    (appeal / funnel_stage + binding MEANING — axes 5 & 6)
-        ▼
-  strategy-projector    → strategy-projection.json (per-ad marketing WHY: benefit_vector × funnel_intent +
-        │                  first_cognition + customer_language + reusability — TEXT-only, ring 2, read on the
-        │                  AD'S OWN product selling-point; projects intent; grounds_in ad-strategy-taxonomy.md)
-        ▼
-  [code] ad-type-gate   → ad-type-gate.json   (getAdType(ad_type).requires vs the analyses → raise `gates` flags;
-        │                  deterministic. This is where the ad-type classification CHANGES behavior — flags an ad
-        │                  that doesn't deliver what its type implies, e.g. informational ad with no claim.)
-        ▼
-per persona:
-  [code] ad-pattern-rank → ad-pattern.json        (rankByFreq over the enum axes; later: longevity-weighted)
-  [code] keyword-rank    → keyword-model.json
-  [code] market-position-aggregate → market-position-matrix.json
-        │                  (benefit×funnel 2-D matrix + crowded/whitespace — observed prevalence, NOT performance;
-        │                  Ries&Trout positioning / Kim&Mauborgne whitespace. Crosses the per-ad strategy-projections.)
-        ▼
-  pattern-synthesizer   → ad-pattern.json.synthesis  (narrative ON TOP — never recompute the aggregate)
-```
+
+Stage table — input → output, with the vision/text/code type that enforces the cost invariant. `⊥` = parallel
+independent lanes off the same perception artifact. The chain runs per KEPT image (steps 1–7), then per persona
+(steps 8–9).
+
+| # | Stage | Type | Input → Output | Notes |
+|---|---|---|---|---|
+| 1 | `perception-extractor` | vision ×1 | KEPT image → `perception.json` | the ONLY pixel pass — geometry+text+scene+look, observe-only, confidence + absence |
+| 2 | `slice-stitch` + `bbox-bind` | code | perception → global-frame perception + `bindings.json` | deterministic: slice y0/y1 recombined (section bboxes offset) + `bound_pairs[]` text↔graphic overlap (axis 6) |
+| 3 | `ad-type-classifier` | text | perception → `ad-type.json` | message_basis/execution_style/ad_type + `grounds_in` (ad-taxonomy.md: Puto&Wells 1984 / Belch&Belch / Kotler / Frazer 1983); brand-free. `getAdType(ad_type)` → the adapter (`requires`/`gates`) consumed by step 7 |
+| 4 | `copy-analyst` ⊥ `layout-analyst` ⊥ `visual-analyst` | text (parallel) | perception → `copy-analysis.json` / `layout-analysis.json` / `visual-analysis.json` | text-meaning / geometry-meaning / visual-semantics+register NAMED — ⊥ lanes |
+| 5 | `intent-analyst` | text | copy+layout+visual+bindings → `intent-analysis.json` | appeal / funnel_stage + binding MEANING (axes 5 & 6) |
+| 6 | `strategy-projector` | text | the analyses → `strategy-projection.json` | benefit_vector × funnel_intent + first_cognition + customer_language + reusability — ring 2, the AD'S OWN product lens, projects intent, `grounds_in` ad-strategy-taxonomy.md |
+| 7 | `ad-type-gate` | code | `getAdType(ad_type).requires` vs the analyses → `ad-type-gate.json` | deterministic. **Where the ad-type classification CHANGES behavior** — raises `gates` flags on an ad that doesn't deliver its type (e.g. informational ad with no claim) |
+| 8 | `ad-pattern-rank` · `keyword-rank` · `market-position-aggregate` | code | per-ad analyses → `ad-pattern.json` · `keyword-model.json` · `market-position-matrix.json` | rankByFreq over enum axes; benefit×funnel 2-D matrix + crowded/whitespace — observed prevalence, NOT performance (Ries&Trout / Kim&Mauborgne) |
+| 9 | `pattern-synthesizer` | text | the aggregate → `ad-pattern.json.synthesis` | narrative ON TOP — never recompute the aggregate |
 
 ## Required state the orchestrator confirms before running
 ```yaml
