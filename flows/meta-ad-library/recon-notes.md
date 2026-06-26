@@ -1,7 +1,9 @@
 # Meta Ad Library — detail-modal + video recon notes
 
 Live CDP recon (Task 1 spike). Source of truth for the selectors / patterns the later coding
-tasks will hardcode. **All values below were observed live**, not guessed.
+tasks will hardcode. **The selectors / patterns / pixel-offsets below were observed live**, not guessed.
+Advertiser names and library/page ids are **synthetic placeholders** — the recon ran against real public ads,
+but their identities are redacted (the brand identity isn't load-bearing; the DOM structure is).
 
 - **Run env**: dedicated headless Chrome (`launchChrome`, `--user-data-dir=/tmp/gai-meta-recon`),
   attached via `connect(port)` on an `acquirePort("meta-detail-recon")` port (9223 in this run).
@@ -56,16 +58,16 @@ The robust extraction is to read `dialog.innerText` and parse by inline label. R
 Ad details
 Close
 Active
-Library ID: 1972922693648310
+Library ID: 1000000000000001
 Started running on 26 Feb 2026
 Platforms
-진시황의 비밀
+샘플브랜드
 Sponsored
-Library ID: 1972922693648310
+Library ID: 1000000000000001
 Open Drop-down
 0:00 / 0:43
 RE4DAY.CO.KR
-진시황의 비밀
+샘플브랜드
 Order now
 About the advertiser
 About ads and data use
@@ -76,10 +78,10 @@ Per-field extraction (verified to yield the sample objects in §6):
 
 | Field | How to extract from `dialog.innerText` | Raw observed |
 |---|---|---|
-| **library_id** | regex `Library ID:\s*([0-9]+)` | `Library ID: 1972922693648310` |
+| **library_id** | regex `Library ID:\s*([0-9]+)` | `Library ID: 1000000000000001` |
 | **started_at** | regex `Started running on\s*(.+)` (KR: `집행 시작\|게재 시작`) | `Started running on 26 Feb 2026` |
 | **status** | line matching `^(Active\|Inactive\|활성\|비활성)$` | `Active` |
-| **advertiser** | the line **immediately before** the `Sponsored`/`후원` line | `진시황의 비밀` (line before `Sponsored`) |
+| **advertiser** | the line **immediately before** the `Sponsored`/`후원` line | `샘플브랜드` (line before `Sponsored`) |
 | **platforms** | **NOT TEXT — see §7. Not reliably extractable in headless.** | (icons only) |
 | **follower count** | **ABSENT from this modal — see §7.** | (not present) |
 | video_duration (bonus: video-ad signal) | regex `\d+:\d{2}\s*/\s*\d+:\d{2}` present ⇒ video ad | `0:00 / 0:43` |
@@ -87,7 +89,7 @@ Per-field extraction (verified to yield the sample objects in §6):
 Notes:
 - `Library ID` appears **twice** in the modal (header + under the advertiser block) — anchor on the
   first match.
-- `advertiser` = the Page/advertiser display name (`진시황의 비밀`, `올록담`). The line below the video
+- `advertiser` = the Page/advertiser display name (`샘플브랜드`, `데모상점`). The line below the video
   (`RE4DAY.CO.KR`) is the *link/landing domain*, not the advertiser name.
 
 ## 3. Modal close
@@ -138,17 +140,17 @@ Two live samples, literal strings as scraped (shape
 [
   {
     "status": "Active",
-    "library_id": "1972922693648310",
+    "library_id": "1000000000000001",
     "started_at": "26 Feb 2026",
-    "advertiser": "진시황의 비밀",
+    "advertiser": "샘플브랜드",
     "follower_raw": null,
     "video_duration": "0:00 / 0:43"
   },
   {
     "status": "Active",
-    "library_id": "1912634476109702",
+    "library_id": "1000000000000002",
     "started_at": "10 Jun 2026",
-    "advertiser": "올록담",
+    "advertiser": "데모상점",
     "follower_raw": null,
     "video_duration": "0:00 / 0:43"
   }
@@ -231,15 +233,15 @@ Expanding it reveals advertiser detail **inside the same dialog — no navigatio
   the accordion. A **real CDP `Input.dispatchMouseEvent` at the header's fresh center coords DID** open
   it (dialog innerText grew 188→261 chars). So the coding task must `scrollIntoView` the header, re-read
   its `getBoundingClientRect` center, then CDP-click — not `el.click()`.
-- **Revealed content (verbatim, ad `진시황의 비밀`):**
+- **Revealed content (verbatim, ad `샘플브랜드`):**
   ```
   광고주 정보
-  진시황의 비밀          ← page/advertiser name
-  ID: 275345032325614   ← page ID (≠ library_id)
+  샘플브랜드          ← page/advertiser name
+  ID: 2000000000000001   ← page ID (≠ library_id)
   팔로워 35명 •          ← FOLLOWER COUNT
   건강/뷰티              ← page category
   추가 정보
-  진시황의 건강 비밀.. 나는 알고 있지   ← page bio
+  예시 page bio (건강 카피 문구)   ← page bio
   ```
 - **follower extraction**: regex on dialog innerText `팔로워\s*([0-9][0-9.,]*\s*(?:천|만|억)?\s*명?)`
   → raw `"팔로워 35명"` / `"팔로워 192명"`. EN variant: `([0-9][0-9.,]*[KMB]?)\s*followers`.
@@ -254,8 +256,8 @@ icon has a distinct **`mask-position`** — a deterministic per-platform key. Tw
 
 | Ad | platform count | mask-position Y-offsets (in render order) |
 |---|---|---|
-| `진시황의 비밀` | 2 | `-766px`, `-805px` |
-| `올록담` | 4 | `-766px`, `-805px`, `-818px`, `-831px` |
+| `샘플브랜드` | 2 | `-766px`, `-805px` |
+| `데모상점` | 4 | `-766px`, `-805px`, `-818px`, `-831px` |
 
 (all share `x = -387px`; only Y varies.) The **count and identity-keys are reliable**. The
 offset→name mapping (derived from render order + the user's screenshot of a 4-platform ad showing
@@ -279,12 +281,12 @@ omission** — extract them; just keep the offset→name table maintainable.
 
 ```json
 [
-  { "status":"활성", "library_id":"1972922693648310",
-    "started_at":"2026. 2. 26.에 게재 시작함", "advertiser":"진시황의 비밀",
-    "follower_raw":"팔로워 35명", "category":"건강/뷰티", "page_id":"275345032325614",
+  { "status":"활성", "library_id":"1000000000000001",
+    "started_at":"2026. 2. 26.에 게재 시작함", "advertiser":"샘플브랜드",
+    "follower_raw":"팔로워 35명", "category":"건강/뷰티", "page_id":"2000000000000001",
     "platform_offsets":["-387px -766px","-387px -805px"], "video_duration":"0:00 / 0:43" },
-  { "status":"활성", "library_id":"1912634476109702",
-    "started_at":"...에 게재 시작함", "advertiser":"올록담",
+  { "status":"활성", "library_id":"1000000000000002",
+    "started_at":"...에 게재 시작함", "advertiser":"데모상점",
     "follower_raw":"팔로워 192명", "category":"건강/뷰티",
     "platform_offsets":["-387px -766px","-387px -805px","-387px -818px","-387px -831px"],
     "video_duration":"0:00 / 0:43" }

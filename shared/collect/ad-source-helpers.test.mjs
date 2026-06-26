@@ -11,7 +11,7 @@ test("safeName accepts a plain segment, rejects traversal/separators", () => {
 });
 
 test("parseAdvertiserId extracts AR id from advertiser href, ignores query", () => {
-  assert.equal(parseAdvertiserId("/advertiser/AR17828074650563772417?region=KR"), "AR17828074650563772417");
+  assert.equal(parseAdvertiserId("/advertiser/AR10000000000000000001?region=KR"), "AR10000000000000000001");
   assert.equal(parseAdvertiserId("https://adstransparency.google.com/advertiser/AR123"), "AR123");
   assert.equal(parseAdvertiserId("/region=KR"), null);
   assert.equal(parseAdvertiserId(""), null);
@@ -31,9 +31,9 @@ test("dedupKey strips query string", () => {
 test("fbcdnAssetId: same id across two different-SIZE/path variants of one asset; null when no _n basename", () => {
   // The live gap: fbcdn serves one asset under different host/path/size variants → different dedupKeys.
   // The `_n.(jpg|mp4)` basename is the stable, size-invariant identity → both variants share one asset id.
-  const v1 = "https://scontent-icn2-1.xx.fbcdn.net/v/t39.35426-6/643399974_1422859576201451_1855107910192996339_n.jpg?stp=dst-jpg_s600x600&_nc_cat=1&oh=A&oe=B";
-  const v2 = "https://scontent-a.xx.fbcdn.net/v/t39.35426-6/643399974_1422859576201451_1855107910192996339_n.jpg?stp=dst-jpg_p1080x1080&_nc_cat=9&oh=C&oe=D";
-  const id = "643399974_1422859576201451_1855107910192996339";
+  const v1 = "https://scontent-icn2-1.xx.fbcdn.net/v/t39.35426-6/100000000_200000000000000_300000000000000_n.jpg?stp=dst-jpg_s600x600&_nc_cat=1&oh=A&oe=B";
+  const v2 = "https://scontent-a.xx.fbcdn.net/v/t39.35426-6/100000000_200000000000000_300000000000000_n.jpg?stp=dst-jpg_p1080x1080&_nc_cat=9&oh=C&oe=D";
+  const id = "100000000_200000000000000_300000000000000";
   assert.equal(fbcdnAssetId(v1), id);
   assert.equal(fbcdnAssetId(v2), id, "size/host variants of the same asset must yield the SAME asset id");
   assert.equal(fbcdnAssetId(v1), fbcdnAssetId(v2));
@@ -45,7 +45,7 @@ test("fbcdnAssetId: same id across two different-SIZE/path variants of one asset
 
   // null cases: no _n basename / non-conforming / non-string
   assert.equal(fbcdnAssetId("https://x.fbcdn.net/v/t39.35426-6/poster.jpg"), null);
-  assert.equal(fbcdnAssetId("https://x.fbcdn.net/v/t39.35426-6/643399974_1422859576201451_o.jpg"), null, "_o (not _n) is not an ad asset basename");
+  assert.equal(fbcdnAssetId("https://x.fbcdn.net/v/t39.35426-6/100000000_200000000000000_o.jpg"), null, "_o (not _n) is not an ad asset basename");
   assert.equal(fbcdnAssetId("https://adstransparency.google.com/creative/abc.png"), null);
   assert.equal(fbcdnAssetId(""), null);
   assert.equal(fbcdnAssetId(null), null);
@@ -137,14 +137,14 @@ test("buildCreativeRecord: image (poster) response carrying a video_url → VIDE
   // keeping the poster as image_url + the saved thumbnail jpg (NO video bytes — url-only per §10c).
   const poster = "https://scontent-icn2-1.xx.fbcdn.net/v/t39.35426-6/poster.jpg";
   const mp4 = "https://video-icn2-1.xx.fbcdn.net/o1/v/t2/f2/m86/clip.mp4";
-  const rec = buildCreativeRecord({ kind: "image", key: poster, n: 5, meta: { video_url: mp4, video_duration: "0:00 / 0:43", detail_captured: true, advertiser_name: "올록담" } });
+  const rec = buildCreativeRecord({ kind: "image", key: poster, n: 5, meta: { video_url: mp4, video_duration: "0:00 / 0:43", detail_captured: true, advertiser_name: "데모상점" } });
   assert.equal(rec.subtype, "video");
   assert.equal(rec.video_url, mp4);            // the real mp4, not the poster key
   assert.equal(rec.image_url, poster);          // poster kept as the thumbnail
   assert.equal(rec.image_file, "images/ad-5.jpg"); // saved bytes are the poster (thumbnail), not a video file
   assert.equal(rec.video_file, undefined);      // url-only — no mp4 bytes fetched
   assert.equal(rec.video_duration, "0:00 / 0:43");
-  assert.equal(rec.advertiser_name, "올록담");
+  assert.equal(rec.advertiser_name, "데모상점");
   assert.equal(rec.detail_captured, true);
 
   // unsaved (poster bytes evicted) still yields a video record with the url, no file

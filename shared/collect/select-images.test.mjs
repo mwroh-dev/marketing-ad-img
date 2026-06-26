@@ -9,7 +9,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const TEMPLATE = readFileSync(resolve(HERE, "select-grid.template.html"), "utf8");
 
 const CREATIVES = [
-  { image_file: "images/ad-0.jpg", advertiser_name: "진시황의 비밀", started_at: "2026-02-26" },
+  { image_file: "images/ad-0.jpg", advertiser_name: "샘플브랜드", started_at: "2026-02-26" },
   { image_file: "images/ad-1.jpg" },
   { image_file: "videos/ad-2.mp4", video_duration: "0:43" }, // video → excluded from grid
 ];
@@ -22,7 +22,7 @@ test("renderSelectHtml renders one card per IMAGE creative (videos excluded) + e
   const cards = html.match(/class="card"/g) || [];
   assert.equal(cards.length, 2);                         // 2 images, video skipped
   assert.match(html, /data-file="images\/ad-0\.jpg"/);
-  assert.match(html, /진시황의 비밀/);                    // caption shown
+  assert.match(html, /샘플브랜드/);                    // caption shown
   assert.doesNotMatch(html, /ad-2\.mp4/);                // video not in grid
   assert.match(html, /총 2개/);                          // TOTAL token filled
   assert.match(html, /경쟁사 광고/);                      // track label

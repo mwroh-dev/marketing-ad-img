@@ -54,7 +54,7 @@ test("single UNDATED snapshot (pre-timestamp real data): longevity + variation s
     persona_id: "p-test", captured_at: "live-cdp-run",
     creatives: [
       { library_id: "100", started_at: "2025-08-31", advertiser_name: "감탄수산", platforms: ["facebook", "instagram"], status: "active", subtype: "video" },
-      { library_id: "101", started_at: "2026-02-26", advertiser_name: "진시황의 비밀", platforms: ["facebook"], status: "active" },
+      { library_id: "101", started_at: "2026-02-26", advertiser_name: "샘플브랜드", platforms: ["facebook"], status: "active" },
     ],
   };
   const t = aggregateTrend({ snapshots: [snap], today: "2026-06-22" });
