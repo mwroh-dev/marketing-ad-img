@@ -97,7 +97,7 @@ Agent-specific must-NOTs (the discriminating gate; method §1–6 is the *how*, 
 ## References (I/O contract)
 
 ## Output contract (this agent)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/intent-analysis.schema.json — the schema your JSON MUST conform to. `additionalProperties: false`.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/intent-analysis.view.md — the typed contract your output MUST match (validated against intent-analysis.schema.json).
 
 ## Upstream (your inputs — all TEXT, never the image)
 - @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/copy-analysis.consumer.view.md — hooks/roles/keywords (the copy mechanism).

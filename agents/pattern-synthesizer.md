@@ -160,7 +160,7 @@ Agent-specific must-NOTs (the discriminating gate; the method is the *how*, this
   (`hook_type`), and `copy_keywords_top_k` (`keywords`).
 - @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/visual-analysis.consumer.view.md — `VisualAnalysis` (L2c):
   feeds `medium_top_k` (`medium`), `setting_top_k` (`scene_class.setting`), `register_top_k` (`register`).
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/intent-analysis.schema.json — `IntentAnalysis` (L2d):
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/intent-analysis.consumer.view.md — `IntentAnalysis` (L2d) — what the appeal/funnel aggregates derive from:
   feeds `appeal_top_k` (`appeal`) and `funnel_stage_top_k` (`funnel_stage`) — the transferable strategy axis.
 
 ## Knowledge (vocabulary + framing only — not new facts)

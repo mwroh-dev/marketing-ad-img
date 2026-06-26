@@ -1,52 +1,194 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/intent-analysis.schema.json",
   "title": "IntentAnalysis",
-  "description": "L2d — the ad's persuasion intent/strategy (axis 5) + the MEANING of its copy×layout bindings (axis 6). Ring 2, brand-free: it classifies what persuasion mechanism the ad USES, never whether that mechanism fits OUR brand/persona (that is the brief, ring 3). TEXT-ONLY: derived from copy-analysis + layout-analysis + visual-analysis + bindings, never the image. appeal/funnel_stage are the aggregatable enums; the rest is free-text rationale.",
+  "description": "persuasion intent (axis 5) + binding meaning (axis 6), ring 2 brand-free, text-only",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["image_ref", "persona_id", "appeal", "funnel_stage"],
+  "required": [
+    "image_ref",
+    "persona_id",
+    "appeal",
+    "funnel_stage"
+  ],
   "properties": {
-    "image_ref": { "type": "string", "minLength": 1 },
-    "persona_id": { "type": "string", "minLength": 1 },
+    "image_ref": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
     "appeal": {
-      "description": "The dominant persuasion mechanism the ad uses (brand-free).",
-      "type": "string",
-      "enum": ["price", "quality_proof", "social_proof", "fear_avoidance", "aspiration", "convenience", "novelty", "authority", "scarcity", "other"]
+      "description": "the dominant persuasion mechanism the ad uses (brand-free)",
+      "anyOf": [
+        {
+          "const": "price",
+          "type": "string"
+        },
+        {
+          "const": "quality_proof",
+          "type": "string"
+        },
+        {
+          "const": "social_proof",
+          "type": "string"
+        },
+        {
+          "const": "fear_avoidance",
+          "type": "string"
+        },
+        {
+          "const": "aspiration",
+          "type": "string"
+        },
+        {
+          "const": "convenience",
+          "type": "string"
+        },
+        {
+          "const": "novelty",
+          "type": "string"
+        },
+        {
+          "const": "authority",
+          "type": "string"
+        },
+        {
+          "const": "scarcity",
+          "type": "string"
+        },
+        {
+          "const": "other",
+          "type": "string"
+        }
+      ]
     },
     "secondary_appeals": {
       "type": "array",
-      "items": { "type": "string", "enum": ["price", "quality_proof", "social_proof", "fear_avoidance", "aspiration", "convenience", "novelty", "authority", "scarcity", "other"] }
+      "items": {
+        "anyOf": [
+          {
+            "const": "price",
+            "type": "string"
+          },
+          {
+            "const": "quality_proof",
+            "type": "string"
+          },
+          {
+            "const": "social_proof",
+            "type": "string"
+          },
+          {
+            "const": "fear_avoidance",
+            "type": "string"
+          },
+          {
+            "const": "aspiration",
+            "type": "string"
+          },
+          {
+            "const": "convenience",
+            "type": "string"
+          },
+          {
+            "const": "novelty",
+            "type": "string"
+          },
+          {
+            "const": "authority",
+            "type": "string"
+          },
+          {
+            "const": "scarcity",
+            "type": "string"
+          },
+          {
+            "const": "other",
+            "type": "string"
+          }
+        ]
+      }
     },
     "funnel_stage": {
-      "type": "string",
-      "enum": ["awareness", "consideration", "conversion", "retargeting", "other"]
+      "anyOf": [
+        {
+          "const": "awareness",
+          "type": "string"
+        },
+        {
+          "const": "consideration",
+          "type": "string"
+        },
+        {
+          "const": "conversion",
+          "type": "string"
+        },
+        {
+          "const": "retargeting",
+          "type": "string"
+        },
+        {
+          "const": "other",
+          "type": "string"
+        }
+      ]
     },
     "primary_objection_addressed": {
-      "description": "Free-text: the buyer objection this ad most works to neutralize (NOT aggregated).",
+      "description": "free-text: the buyer objection this ad most neutralizes (not aggregated)",
       "type": "string"
     },
     "binding_reading": {
-      "description": "Axis 6 MEANING — what each spatial text↔graphic binding (from the bindings artifact) DOES, e.g. a price tag placed ON the product = value-anchored-to-product framing. References bound_pairs by id.",
+      "description": "axis-6 MEANING per bound_pair; references bound_pairs by id",
       "type": "array",
       "items": {
-        "type": "object", "additionalProperties": false,
-        "required": ["text_id", "graphic_id", "meaning"],
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text_id",
+          "graphic_id",
+          "meaning"
+        ],
         "properties": {
-          "text_id": { "type": "string" },
-          "graphic_id": { "type": "string" },
-          "meaning": { "type": "string", "minLength": 1 }
+          "text_id": {
+            "type": "string"
+          },
+          "graphic_id": {
+            "type": "string"
+          },
+          "meaning": {
+            "minLength": 1,
+            "description": "what the placement DOES (e.g. price ON product = value anchored to product)",
+            "type": "string"
+          }
         }
       }
     },
     "look_copy_tension": {
-      "description": "If visual-analyst flagged a look↔copy mismatch (e.g. clean look wearing a raw social-proof device), the STRATEGY that mismatch encodes — read here, never re-labeled as a register.",
+      "description": "the STRATEGY a look↔copy mismatch encodes (never a re-labeled register)",
       "type": "string"
     },
     "evidence": {
-      "description": "Anti-hallucination trace: which analysis facts (copy hook/role, layout, visual register, binding) the appeal was derived from. An appeal with no basis is a defect.",
+      "description": "anti-hallucination trace: which analysis facts the appeal was derived from",
       "type": "string"
     },
-    "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+    "confidence": {
+      "anyOf": [
+        {
+          "const": "high",
+          "type": "string"
+        },
+        {
+          "const": "medium",
+          "type": "string"
+        },
+        {
+          "const": "low",
+          "type": "string"
+        }
+      ]
+    }
   }
 }
