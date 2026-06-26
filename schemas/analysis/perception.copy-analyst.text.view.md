@@ -1,5 +1,6 @@
 <!-- GENERATED from copy-analyst.text.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
 copy-analyst.text = {
   image_ref: string  // non-empty
   persona_id: string  // non-empty

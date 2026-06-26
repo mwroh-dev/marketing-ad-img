@@ -1,5 +1,6 @@
 <!-- GENERATED from strategy-projection.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
 // per-ad marketing-strategy projection (text-only, ring 2, own-product lens); projects intent, does not re-classify
 strategy-projection = {
   image_ref: string  // non-empty

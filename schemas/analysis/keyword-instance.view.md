@@ -1,5 +1,6 @@
 <!-- GENERATED from keyword-instance.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
 // ad-analyst output: extracted+normalized keyword instances (not ranked)
 keyword-instance = {
   product_id: string  // non-empty

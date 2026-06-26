@@ -1,5 +1,6 @@
 <!-- GENERATED from market-position-matrix.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
 // per-persona benefit×funnel positioning matrix (observed prevalence, not performance); whitespace = low frequency
 market-position-matrix = {
   persona_id: string  // non-empty

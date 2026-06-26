@@ -1,5 +1,6 @@
 <!-- GENERATED from layout-analysis.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
 // layout structure + comfort, derived from L1 geometry only
 layout-analysis = {
   image_ref: string  // non-empty

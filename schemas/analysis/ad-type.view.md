@@ -1,5 +1,6 @@
 <!-- GENERATED from ad-type.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
 // the ad-type classification for ONE ad (text-only, ring 2), with grounds_in provenance
 ad-type = {
   image_ref: string  // non-empty

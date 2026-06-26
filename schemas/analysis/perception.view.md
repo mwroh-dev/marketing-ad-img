@@ -1,5 +1,6 @@
 <!-- GENERATED from perception.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
 // literal observation of ONE ad image (axes 1-4), observe-only
 perception = {
   image_ref: string  // non-empty

@@ -1,5 +1,6 @@
 <!-- GENERATED from slice-manifest.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
 // collection slicer output — long image → section mapping with source provenance
 slice-manifest = {
   sliced: {

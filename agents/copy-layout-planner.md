@@ -158,7 +158,7 @@ Canonical sources for this agent. Paths are repo-root relative and verified.
 
 ## Upstream (input — creative-brief-analyst, generation)
 - `creative-brief-analyst` — the agent that produces your input.
-- ${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-brief.schema.json — `CreativeBrief`. You consume
+- @${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-brief.view.md — `CreativeBrief`. You consume
   `persona_id`, `core_message`, `differentiation`, `angles[]` (each `angle` + `direction` +
   `evidence_refs`), and `forbidden_claims` — the claim guard you must never violate.
 

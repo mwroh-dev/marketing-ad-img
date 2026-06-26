@@ -168,7 +168,7 @@ Agent-specific must-NOTs (the discriminating gate). A schema-valid brief can sti
 ## References (I/O contract)
 
 ## Output contract (this agent)
-- ${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-brief.schema.json — the schema your JSON MUST conform to.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-brief.view.md — the typed contract your output MUST match (validated against creative-brief.schema.json).
   `additionalProperties: false` everywhere. Required: `persona_id`, `product_id`, `core_message`,
   `angles` (≥1; `angle` ∈ {`product_usp`, `persona_response`, `compelling_claim`, `visual_hierarchy`}),
   `forbidden_claims`. Every claim-bearing message carries `evidence_refs`.

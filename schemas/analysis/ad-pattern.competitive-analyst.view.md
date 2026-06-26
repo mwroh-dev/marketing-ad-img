@@ -1,5 +1,6 @@
 <!-- GENERATED from competitive-analyst.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
 competitive-analyst = {
   persona_id: string  // non-empty
   product_id: string  // non-empty

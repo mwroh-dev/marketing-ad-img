@@ -1,5 +1,6 @@
 <!-- GENERATED from ad-pattern.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
 // per-persona aggregated ad composition + strategy pattern (deterministic top-k + synthesis)
 ad-pattern = {
   product_id: string  // non-empty

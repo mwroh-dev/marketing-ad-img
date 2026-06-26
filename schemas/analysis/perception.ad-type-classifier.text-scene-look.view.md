@@ -1,5 +1,6 @@
 <!-- GENERATED from ad-type-classifier.text-scene-look.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
 ad-type-classifier.text-scene-look = {
   image_ref: string  // non-empty
   persona_id: string  // non-empty

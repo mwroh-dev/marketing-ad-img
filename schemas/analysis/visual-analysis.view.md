@@ -1,5 +1,6 @@
 <!-- GENERATED from visual-analysis.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
 // visual semantics + register, derived from perception (text-only), ring 2 brand-free
 visual-analysis = {
   image_ref: string  // non-empty

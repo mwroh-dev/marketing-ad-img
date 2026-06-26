@@ -1,5 +1,6 @@
 <!-- GENERATED from layout-analyst.geometry.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
 layout-analyst.geometry = {
   image_ref: string  // non-empty
   persona_id: string  // non-empty

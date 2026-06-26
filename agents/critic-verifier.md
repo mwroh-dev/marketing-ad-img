@@ -143,7 +143,7 @@ Agent-specific must-NOTs (the discriminating gate). critic-verifier IS the final
 - ${CLAUDE_PLUGIN_ROOT}/agents/image-prompt-adapter.md — producer of the adapter outputs under review.
 - ${CLAUDE_PLUGIN_ROOT}/schemas/generation/image-adapter-output.schema.json — the input you verify. Each `outputs[]` item has the **9 required fields** (`provider`, `candidate_id`, `prompt`, `negative_prompt`, `provider_notes`, `input_assets`, `expected_output`, `verification_checklist`, `retry_instruction_template`). `verification_checklist` must be non-empty.
 - ${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-candidate.schema.json — candidate spec; Korean headline/subcopy/cta here must match the adapter `prompt` byte-for-byte.
-- ${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-brief.schema.json — brief + `evidence_refs` claims trace back to.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-brief.view.md — brief + `evidence_refs` claims trace back to.
 
 ## Brand constraints (defect source)
 - ${CLAUDE_PLUGIN_ROOT}/schemas/setup/brand.schema.json — `forbidden_claims` (array) and `tone` live here; scan all copy against `forbidden_claims`, match voice to `tone`.

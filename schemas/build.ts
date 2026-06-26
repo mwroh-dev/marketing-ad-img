@@ -20,9 +20,11 @@ function tsType(node: any, indent: string): string {
     return /[|]/.test(item) && !item.startsWith("{") ? `(${item})[]` : `${item}[]`;
   }
   if (node.type === "object") {
-    // Record / map (additionalProperties is a schema, no fixed properties) → { [key: string]: T }
-    if (node.additionalProperties && typeof node.additionalProperties === "object" && !Object.keys(node.properties ?? {}).length)
+    const noProps = !Object.keys(node.properties ?? {}).length;
+    // Record / map (additionalProperties is a schema) → { [key: string]: T }
+    if (noProps && node.additionalProperties && typeof node.additionalProperties === "object")
       return `{ [key: string]: ${tsType(node.additionalProperties, indent)} }`;
+    if (noProps && node.additionalProperties === true) return "object"; // any object
     return renderObject(node, indent);
   }
   if (node.type === "number" || node.type === "integer") return `${node.type === "integer" ? "int" : "number"}${node.minimum !== undefined || node.maximum !== undefined ? ` /*${node.minimum ?? ""}..${node.maximum ?? ""}*/` : ""}`;
@@ -47,7 +49,9 @@ function renderObject(node: any, indent: string): string {
 }
 function viewMd(node: any, title: string): string {
   const head = node.description ? `// ${node.description}\n` : "";
-  return `<!-- GENERATED from ${title}.ts — the contract your output must match; regenerate via schemas/build.ts -->\n\`\`\`ts\n${head}${title} = ${renderObject(node, "")}\n\`\`\`\n`;
+  // TS-view semantics so a producer reads it as the exact output contract (objects are closed; the validator enforces).
+  const sem = "// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)\n";
+  return `<!-- GENERATED from ${title}.ts — the contract your output must match; regenerate via schemas/build.ts -->\n\`\`\`ts\n${sem}${head}${title} = ${renderObject(node, "")}\n\`\`\`\n`;
 }
 
 // ---- consumer projection (field-level: pick sub-fields, carry join keys) ----

@@ -1,5 +1,6 @@
 <!-- GENERATED from ad-type-gate.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
 // deterministic per-ad gate: routed adapter requires vs the analyses → gates_raised (no LLM)
 ad-type-gate = {
   image_ref: string  // non-empty

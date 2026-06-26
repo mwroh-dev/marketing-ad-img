@@ -1,5 +1,6 @@
 <!-- GENERATED from copy-analysis.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
 // text-role + hook + keywords, from L1 text content only
 copy-analysis = {
   image_ref: string  // non-empty

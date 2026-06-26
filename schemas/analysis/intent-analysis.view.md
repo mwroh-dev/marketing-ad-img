@@ -1,5 +1,6 @@
 <!-- GENERATED from intent-analysis.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
 // persuasion intent (axis 5) + binding meaning (axis 6), ring 2 brand-free, text-only
 intent-analysis = {
   image_ref: string  // non-empty

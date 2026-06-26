@@ -1,5 +1,6 @@
 <!-- GENERATED from bindings.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
 // deterministic text↔graphic spatial bindings (axis-6 fact, no LLM)
 bindings = {
   image_ref: string  // non-empty

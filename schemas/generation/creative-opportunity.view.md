@@ -1,5 +1,6 @@
 <!-- GENERATED from creative-opportunity.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
 // ring-3 selection of strategic positions + brief_constraints for OUR next ad (not a final prompt)
 creative-opportunity = {
   persona_id: string  // non-empty

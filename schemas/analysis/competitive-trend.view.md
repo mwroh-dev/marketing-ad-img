@@ -1,5 +1,6 @@
 <!-- GENERATED from competitive-trend.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
 // per-persona competitive trend across dated snapshots (longevity + variation + change); temporal fields omitted when unsupported
 competitive-trend = {
   persona_id: string|null
