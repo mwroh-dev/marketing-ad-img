@@ -158,7 +158,7 @@ Agent-specific must-NOTs (the discriminating gate; the method is the *how*, this
 - @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/copy-analysis.consumer.view.md — `CopyAnalysis` (L2b):
   feeds `text_role_distribution` (`copy_elements[].text_role`), `hook_top_k`
   (`hook_type`), and `copy_keywords_top_k` (`keywords`).
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/visual-analysis.schema.json — `VisualAnalysis` (L2c):
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/visual-analysis.consumer.view.md — `VisualAnalysis` (L2c):
   feeds `medium_top_k` (`medium`), `setting_top_k` (`scene_class.setting`), `register_top_k` (`register`).
 - @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/intent-analysis.schema.json — `IntentAnalysis` (L2d):
   feeds `appeal_top_k` (`appeal`) and `funnel_stage_top_k` (`funnel_stage`) — the transferable strategy axis.
