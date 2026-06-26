@@ -136,7 +136,7 @@ Agent-specific must-NOTs (the discriminating gate; the method is the *how*, this
   self-checklist.
 
 ## Output schema (I/O contract)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-pattern.schema.json — `AdPattern`: the per-persona
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-pattern.view.md — `AdPattern`: the per-persona
   aggregated pattern object. You fill `synthesis` (and optional
   `confidence_note`); all other fields are produced upstream. Output MUST
   validate against this schema.

@@ -110,5 +110,5 @@ Agent-specific must-NOTs (the discriminating gate; method §1–6 is the *how*, 
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/marketing-techniques/README.md — appeal/funnel frameworks for judging the mechanism (not for asserting brand fit).
 
 ## Downstream consumers
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-pattern.schema.json — the aggregator counts your `appeal`/`funnel_stage` enums across the persona's images.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-pattern.view.md — the aggregator counts your `appeal`/`funnel_stage` enums across the persona's images.
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md — completion = verify-decided. Peeking at the image, an ungrounded appeal, or a brand-fit judgement → FAIL.

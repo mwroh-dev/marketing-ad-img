@@ -190,6 +190,6 @@ analysts own what the text/arrangement/visuals *mean*.
 
 ## Pipeline context
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/reference/modes/analysis.md — the analysis runbook (dispatch order, cost invariant).
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-pattern.schema.json — synthesized patterns (downstream of the analysts).
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-pattern.view.md — synthesized patterns (downstream of the analysts).
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md — completion = verify-decided, not self-declaration.
   Hollow output (dropped elements, missing scene/look, impression-naming leak) → FAIL.

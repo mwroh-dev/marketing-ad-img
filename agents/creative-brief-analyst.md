@@ -184,7 +184,7 @@ Agent-specific must-NOTs (the discriminating gate). A schema-valid brief can sti
   `language_cues`. Drives `core_message` register and the `persona_response` angle.
 - ${CLAUDE_PLUGIN_ROOT}/schemas/setup/brand.schema.json — brand `goal` / `positioning` / `tone` and especially
   `forbidden_claims` (the hard guard you copy verbatim into the brief).
-- ${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-pattern.schema.json — abstracted competitor/category pattern:
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-pattern.view.md — abstracted competitor/category pattern:
   `composition_top_k`, `hook_top_k`, `copy_keywords_top_k`, `comfort`. **Supporting evidence** to ground the
   opportunity's differentiation + the `visual_hierarchy` angle — the gap itself comes from `creative-opportunity`.
   Patterns only — never copy creative.

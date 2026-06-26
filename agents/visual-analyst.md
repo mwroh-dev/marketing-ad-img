@@ -120,6 +120,6 @@ Agent-specific must-NOTs (the discriminating gate; method §1–5 is the *how*, 
 - `copy-analyst` — text meaning. `layout-analyst` — spatial meaning. You own visual semantics + register; no overlap.
 
 ## Downstream consumers
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-pattern.schema.json — the deterministic aggregator counts your enum labels (setting/register/palette) across the persona's images.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-pattern.view.md — the deterministic aggregator counts your enum labels (setting/register/palette) across the persona's images.
 - `intent-analyst` — consumes your visual labels AND the look↔copy mismatch you flagged as a strategy signal (ring ②).
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md — completion = verify-decided, not self-declaration. Peeking at the image, an ungrounded register, or a brand-fit judgement → FAIL.

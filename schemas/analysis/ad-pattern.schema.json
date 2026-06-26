@@ -1,71 +1,258 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/ad-pattern.schema.json",
   "title": "AdPattern",
-  "description": "L3 — per-persona aggregated ad composition pattern.",
+  "description": "per-persona aggregated ad composition + strategy pattern (deterministic top-k + synthesis)",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["product_id", "persona_id", "image_count", "composition_top_k", "text_role_distribution", "comfort"],
+  "required": [
+    "product_id",
+    "persona_id",
+    "image_count",
+    "composition_top_k",
+    "text_role_distribution",
+    "comfort"
+  ],
   "properties": {
-    "product_id": { "type": "string", "minLength": 1 },
-    "persona_id": { "type": "string", "minLength": 1 },
-    "image_count": { "type": "integer", "minimum": 0 },
+    "product_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "image_count": {
+      "minimum": 0,
+      "type": "integer"
+    },
     "composition_top_k": {
       "type": "array",
       "items": {
-        "type": "object", "additionalProperties": false,
-        "required": ["value", "freq", "score"],
-        "properties": { "value": { "type": "string" }, "freq": { "type": "number" }, "score": { "type": "number" } }
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "value",
+          "freq",
+          "score"
+        ],
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "freq": {
+            "type": "number"
+          },
+          "score": {
+            "type": "number"
+          }
+        }
       }
     },
-    "text_role_distribution": { "type": "object", "additionalProperties": { "type": "number" } },
+    "text_role_distribution": {
+      "description": "role → share map",
+      "type": "object",
+      "patternProperties": {
+        "^(.*)$": {
+          "type": "number"
+        }
+      }
+    },
     "hook_top_k": {
       "type": "array",
-      "items": { "type": "object", "additionalProperties": false, "required": ["value", "freq", "score"],
-        "properties": { "value": { "type": "string" }, "freq": { "type": "number" }, "score": { "type": "number" } } }
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "value",
+          "freq",
+          "score"
+        ],
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "freq": {
+            "type": "number"
+          },
+          "score": {
+            "type": "number"
+          }
+        }
+      }
     },
     "copy_keywords_top_k": {
       "type": "array",
-      "items": { "type": "object", "additionalProperties": false, "required": ["value", "freq", "score"],
-        "properties": { "value": { "type": "string" }, "freq": { "type": "number" }, "score": { "type": "number" } } }
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "value",
+          "freq",
+          "score"
+        ],
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "freq": {
+            "type": "number"
+          },
+          "score": {
+            "type": "number"
+          }
+        }
+      }
     },
     "medium_top_k": {
-      "description": "Axis 3 — rendering medium (photo/illustration/flat_graphic/…) distribution from visual analyses.",
+      "description": "axis 3 — rendering medium distribution (from visual analyses)",
       "type": "array",
-      "items": { "type": "object", "additionalProperties": false, "required": ["value", "freq", "score"],
-        "properties": { "value": { "type": "string" }, "freq": { "type": "number" }, "score": { "type": "number" } } }
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "value",
+          "freq",
+          "score"
+        ],
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "freq": {
+            "type": "number"
+          },
+          "score": {
+            "type": "number"
+          }
+        }
+      }
     },
     "setting_top_k": {
-      "description": "Axis 3 — scene setting (studio/lifestyle/flatlay/…) distribution from visual analyses.",
+      "description": "axis 3 — scene setting distribution",
       "type": "array",
-      "items": { "type": "object", "additionalProperties": false, "required": ["value", "freq", "score"],
-        "properties": { "value": { "type": "string" }, "freq": { "type": "number" }, "score": { "type": "number" } } }
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "value",
+          "freq",
+          "score"
+        ],
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "freq": {
+            "type": "number"
+          },
+          "score": {
+            "type": "number"
+          }
+        }
+      }
     },
     "register_top_k": {
-      "description": "Axis 4 — named visual register/mood (clean_minimal/premium_refined/raw_authentic/…) distribution.",
+      "description": "axis 4 — named visual register/mood distribution",
       "type": "array",
-      "items": { "type": "object", "additionalProperties": false, "required": ["value", "freq", "score"],
-        "properties": { "value": { "type": "string" }, "freq": { "type": "number" }, "score": { "type": "number" } } }
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "value",
+          "freq",
+          "score"
+        ],
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "freq": {
+            "type": "number"
+          },
+          "score": {
+            "type": "number"
+          }
+        }
+      }
     },
     "appeal_top_k": {
-      "description": "Axis 5 — persuasion appeal (price/social_proof/quality_proof/…) distribution from intent analyses (the transferable strategy layer).",
+      "description": "axis 5 — persuasion appeal distribution (the transferable strategy layer)",
       "type": "array",
-      "items": { "type": "object", "additionalProperties": false, "required": ["value", "freq", "score"],
-        "properties": { "value": { "type": "string" }, "freq": { "type": "number" }, "score": { "type": "number" } } }
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "value",
+          "freq",
+          "score"
+        ],
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "freq": {
+            "type": "number"
+          },
+          "score": {
+            "type": "number"
+          }
+        }
+      }
     },
     "funnel_stage_top_k": {
-      "description": "Axis 5 — funnel stage (awareness/consideration/conversion/retargeting) distribution from intent analyses.",
+      "description": "axis 5 — funnel stage distribution",
       "type": "array",
-      "items": { "type": "object", "additionalProperties": false, "required": ["value", "freq", "score"],
-        "properties": { "value": { "type": "string" }, "freq": { "type": "number" }, "score": { "type": "number" } } }
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "value",
+          "freq",
+          "score"
+        ],
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "freq": {
+            "type": "number"
+          },
+          "score": {
+            "type": "number"
+          }
+        }
+      }
     },
     "comfort": {
-      "type": "object", "additionalProperties": false,
-      "required": ["avg_crowding", "avg_whitespace", "awkward_rate"],
-      "properties": { "avg_crowding": { "type": "number" }, "avg_whitespace": { "type": "number" }, "awkward_rate": { "type": "number" } }
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "avg_crowding",
+        "avg_whitespace",
+        "awkward_rate"
+      ],
+      "properties": {
+        "avg_crowding": {
+          "type": "number"
+        },
+        "avg_whitespace": {
+          "type": "number"
+        },
+        "awkward_rate": {
+          "type": "number"
+        }
+      }
     },
-    "synthesis": { "type": "string" },
-    "generated_at": { "type": "string" },
-    "confidence_note": { "type": "string" }
+    "synthesis": {
+      "description": "interpretive narrative added by pattern-synthesizer ON TOP (recomputes nothing)",
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "confidence_note": {
+      "type": "string"
+    }
   }
 }

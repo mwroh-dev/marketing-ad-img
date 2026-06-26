@@ -19,7 +19,12 @@ function tsType(node: any, indent: string): string {
     const item = tsType(node.items, indent);
     return /[|]/.test(item) && !item.startsWith("{") ? `(${item})[]` : `${item}[]`;
   }
-  if (node.type === "object") return renderObject(node, indent);
+  if (node.type === "object") {
+    // Record / map (additionalProperties is a schema, no fixed properties) → { [key: string]: T }
+    if (node.additionalProperties && typeof node.additionalProperties === "object" && !Object.keys(node.properties ?? {}).length)
+      return `{ [key: string]: ${tsType(node.additionalProperties, indent)} }`;
+    return renderObject(node, indent);
+  }
   if (node.type === "number" || node.type === "integer") return `${node.type === "integer" ? "int" : "number"}${node.minimum !== undefined || node.maximum !== undefined ? ` /*${node.minimum ?? ""}..${node.maximum ?? ""}*/` : ""}`;
   if (node.type === "boolean") return "boolean";
   return "string";
