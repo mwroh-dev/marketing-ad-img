@@ -11,6 +11,7 @@ const SCHEMAS = dirname(fileURLToPath(import.meta.url));
 
 // ---- typed-view renderer (terse TS-like contract with inline intent comments) ----
 function tsType(node: any, indent: string): string {
+  if ("const" in node) return JSON.stringify(node.const); // standalone literal (single-value enum)
   // union (literals → "a"|"b"; types incl. null → string|null)
   const u = node.anyOf ?? node.oneOf;
   if (Array.isArray(u)) return u.map((x: any) => ("const" in x ? JSON.stringify(x.const) : tsType(x, indent))).join("|");

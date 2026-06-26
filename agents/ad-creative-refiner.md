@@ -173,7 +173,7 @@ Canonical sources for this agent. Paths are repo-root relative and verified.
 ## Contract & method
 
 ## Schema (output I/O contract)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/collection/ad-creative.schema.json — `AdCreativeSet`. The per-creative
+- @${CLAUDE_PLUGIN_ROOT}/schemas/collection/ad-creative.view.md — `AdCreativeSet`. The per-creative
   `type` enum {ad_creative, catalog, spec, review, lifestyle, unknown}, `confidence`
   (0–1), and `competitor_id` are the fields this agent populates.
 

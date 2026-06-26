@@ -1,32 +1,88 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/image-screening.schema.json",
   "title": "ImageScreening",
-  "description": "collection → analysis gate: which collected ad images are kept and which were dropped (with reason). Two producers write this shape: (1) the HUMAN keep/delete review (reason user_removed) — the first-pass quality/fit cut, fast and cheap; (2) the deterministic screen-images.mjs pass (reason broken_or_empty | duplicate) that runs AFTER the human, on the survivors. Every collected image is accounted for; nothing dropped silently.",
+  "description": "collection→analysis keep/drop gate; every collected image accounted for",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["run_id", "persona_id", "total", "kept", "dropped"],
+  "required": [
+    "run_id",
+    "persona_id",
+    "total",
+    "kept",
+    "dropped"
+  ],
   "properties": {
-    "run_id": { "type": "string", "minLength": 1 },
-    "persona_id": { "type": "string", "minLength": 1 },
-    "total": { "type": "integer", "minimum": 0, "description": "must equal kept.length + dropped.length — no silent omission" },
+    "run_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "total": {
+      "minimum": 0,
+      "description": "must equal kept.length + dropped.length — no silent omission",
+      "type": "integer"
+    },
     "kept": {
-      "type": "array",
       "description": "image_file paths that proceed to analysis",
-      "items": { "type": "string", "minLength": 1 }
+      "type": "array",
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      }
     },
     "dropped": {
       "type": "array",
       "items": {
-        "type": "object",
         "additionalProperties": false,
-        "required": ["image_file", "reason"],
+        "type": "object",
+        "required": [
+          "image_file",
+          "reason"
+        ],
         "properties": {
-          "image_file": { "type": "string", "minLength": 1 },
+          "image_file": {
+            "minLength": 1,
+            "type": "string"
+          },
           "reason": {
-            "type": "string",
-            "description": "concrete one-line reason from the allowed set",
-            "enum": ["user_removed", "logo_only", "ui_or_screenshot", "unrelated", "broken_or_empty", "duplicate", "no_ad_content", "unreadable"]
+            "anyOf": [
+              {
+                "const": "user_removed",
+                "type": "string"
+              },
+              {
+                "const": "logo_only",
+                "type": "string"
+              },
+              {
+                "const": "ui_or_screenshot",
+                "type": "string"
+              },
+              {
+                "const": "unrelated",
+                "type": "string"
+              },
+              {
+                "const": "broken_or_empty",
+                "type": "string"
+              },
+              {
+                "const": "duplicate",
+                "type": "string"
+              },
+              {
+                "const": "no_ad_content",
+                "type": "string"
+              },
+              {
+                "const": "unreadable",
+                "type": "string"
+              }
+            ]
           }
         }
       }

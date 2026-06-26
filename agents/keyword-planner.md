@@ -74,6 +74,6 @@ The schema validator checks SHAPE only (fields, `keyword` enum, axis keys). This
 > Apply each criterion to the agent's ACTUAL output on real data, at self-review and independent review. See `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/collection/keyword-plan.schema.json — `KeywordPlan`: the per-persona 3-axis plan. Output MUST validate (`tsx ${CLAUDE_PLUGIN_ROOT}/shared/validators/validate-keyword-plan.ts <path>`).
+- @${CLAUDE_PLUGIN_ROOT}/schemas/collection/keyword-plan.view.md — `KeywordPlan`: the per-persona 3-axis plan. Output MUST validate (`tsx ${CLAUDE_PLUGIN_ROOT}/shared/validators/validate-keyword-plan.ts <path>`).
 - @${CLAUDE_PLUGIN_ROOT}/shared/collect/run-flow.mjs — `--from-keyword-plan <file>` loads `queries[]` and collects. keyword-planner feeds this; it does not collect.
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md — completion is verify-decided, not self-declared.
