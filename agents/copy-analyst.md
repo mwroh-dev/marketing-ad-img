@@ -165,12 +165,7 @@ benefit, and technique words. These feed ad-analyst → keyword-model:
 
 ## Verification checklist — output
 
-The schema validator (`copy-analysis.schema.json`) only checks **shape** — that `copy_elements[]` exist,
-each `text_role` is in the 8-value enum, each `hook_type` is in its enum, and `keywords` is an array. Shape
-conformance does not mean the analysis is *correct*. This is the **logical** gate: a reviewer (or the agent at
-self-review) judges whether each judgement is sound. A schema-valid output that fails this checklist is still a
-defect.
-
+Agent-specific must-NOTs (the discriminating gate; the method is the *how*, this is what a defect looks like):
 
 ## Grounding (no invention)
 - [ ] Every `copy_elements[].content` traces verbatim to a `text_elements[].content` in the read extraction — none invented, paraphrased, re-OCR'd, or corrected.

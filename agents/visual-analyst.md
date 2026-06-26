@@ -95,33 +95,12 @@ orchestrator (do not invent from nothing, do not peek at the image). Bucket choi
 
 ## Verification checklist — output
 
-The schema validator for `${CLAUDE_PLUGIN_ROOT}/schemas/analysis/visual-analysis.schema.json` only checks **shape** — fields
-exist, enums are valid. Shape conformance does not mean the labels are *correct*. This is the **logical** gate: a
-reviewer (or the agent at self-review) judges whether each label traces to a perception fact, the register is
-grounded and look-only, and the read stayed brand-free. A schema-valid output that fails this checklist is still a defect.
-
-
-## Text-only discipline (CRITICAL — the discriminating gate)
-- [ ] The image was NEVER opened — every label is derived from the perception artifact's text alone. (No `.jpg`/`.png` read.)
-- [ ] Every label traces to a specific perception fact (medium/space/subjects/look/colors). A label that would need a fact perception did NOT record is FLAGGED — `confidence` lowered + noted — not guessed, and CERTAINLY not resolved by peeking at the image.
-
-## Derivation correctness (labels follow from the right facts)
-- [ ] `product_state` follows the rule: `product` + `human`/`human_part` ⇒ `in_use`/`held`; product alone ⇒ `standalone`; packaging only ⇒ `packaging_only`; no product ⇒ `none`.
-- [ ] `setting` follows from `space`/`medium`/`depicted` (seamless_backdrop⇒studio_plain, real_room⇒lifestyle_indoor, flat_graphic⇒abstract_graphic, …); an under-determined setting is lower-confidence, not a confident guess.
-- [ ] `palette.temp`/`saturation` follow from `canvas.dominant_colors` hex; `prop_density` from subject spread + absence.
-- [ ] `medium` is carried from perception unchanged.
-
-## Register: grounded ∧ look-only (must NOT invent or fuse)
-- [ ] `register_basis` cites the actual perception look facts the register stands on — no register asserted beyond them.
-- [ ] `register` names what the **look** reads as ONLY. A look↔copy/device mismatch (e.g. clean look + fake-comment slang) is NOT fused into the register — the register stays look-derived, `confidence` is lowered, and the mismatch is left as intent-analyst's signal.
-- [ ] No impression is invented that the perception `look` facts do not support (a `muted + plain + flat light` read is never labeled `premium_refined`).
-
-## Brand-free (ring ② — must NOT judge fit)
-- [ ] No brand/persona FIT judgement anywhere — the ad is labeled on its own terms, not "is this right for us" (that is the brief, ring ③). `persona_id` is carried as an opaque tag, never interpreted.
-
-## Faithfulness & shape
-- [ ] `image_ref` + `persona_id` carried from the perception artifact; the analysis is for THIS image only.
-- [ ] Output is JSON conforming to `${CLAUDE_PLUGIN_ROOT}/schemas/analysis/visual-analysis.schema.json` — no prose.
+Agent-specific must-NOTs (the discriminating gate; method §1–5 is the *how*, this is what a defect looks like):
+- [ ] The image was NEVER opened — every label traces to a specific perception text fact (medium/space/subjects/look/colors). A label needing an unrecorded fact is FLAGGED (`confidence` lowered + noted), never guessed, never resolved by peeking.
+- [ ] Each label follows its derivation rule (§2–4): `product_state`/`setting`/`palette`/`prop_density` from the cited perception facts; `medium` carried unchanged; an under-determined value is lower-confidence, not a confident guess.
+- [ ] `register` is grounded ∧ look-only — `register_basis` cites real perception look facts (nothing beyond them); a look↔copy mismatch lowers `confidence` and is intent-analyst's signal, never fused into the register.
+- [ ] Brand-free (ring ②) — no brand/persona FIT judgement anywhere; `persona_id` stays an opaque carried tag.
+- [ ] `image_ref` + `persona_id` carried for THIS image; output is schema-conformant JSON, no prose.
 
 > Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 

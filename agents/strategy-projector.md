@@ -70,29 +70,13 @@ If a required upstream analysis (intent or copy) is **missing or contradictory**
 
 ## Verification checklist — output
 
-The schema validator (`${CLAUDE_PLUGIN_ROOT}/schemas/analysis/strategy-projection.schema.json`) checks **shape** only.
-This is the **logical** gate: a reviewer (or self-review) judges whether the projection is grounded, projected (not
-re-classified), text-only, on the ad's own-product lens, and arithmetically consistent. Schema-valid but wrong is a defect.
-
-
-## Provenance ∧ projection (CRITICAL)
-- [ ] `grounds_in` cites the actual ad-strategy-taxonomy.md source(s) per dimension — no vague "marketing".
-- [ ] `funnel_intent` is the 1:1 projection of `intent.funnel_stage`; `benefit_vector` coarsens `intent.appeal` + evidence — NOT a fresh re-classification that contradicts the upstream intent.
-- [ ] Every `benefit_vector`/`funnel_intent` carries `{source, reason}` evidence from the analyses.
-
-## first_cognition arithmetic ∧ honesty
-- [ ] `total_score` EQUALS the sum of the eight 0-2 sub-scores (checked arithmetically), and `verdict` matches the band.
-- [ ] `blockers[]` reflect real first-glance obstacles in the evidence, not invented.
-
-## Own-product lens ∧ text-only ∧ no-copy (must NOT)
+Agent-specific must-NOTs (the discriminating gate; the method + projection rule are the *how*, this is what a defect looks like):
+- [ ] `grounds_in` cites the actual ad-strategy-taxonomy.md source(s) per dimension (no vague "marketing"); every `benefit_vector`/`funnel_intent` carries `{source, reason}` evidence.
+- [ ] Projected, not re-classified — `funnel_intent` is the 1:1 projection of `intent.funnel_stage`; `benefit_vector` coarsens `intent.appeal` + evidence; never contradicts the upstream intent or re-classifies execution-style/visual.
+- [ ] `first_cognition.total_score` EQUALS the arithmetic sum of the eight 0–2 sub-scores and `verdict` matches the band; `blockers[]` are real, not invented.
 - [ ] The image was NEVER opened — derived from the text analyses + advertiser metadata only.
-- [ ] The ad is read on ITS OWN product's selling-point (advertiser_context), NOT judged against our product (no "fits us / doesn't fit us" — that is opportunity, ring ③). `persona_id` carried as an opaque tag.
-- [ ] `generation_reusability` names ABSTRACT devices; `avoid_copying` lists the competitor-specific wording/asset/claim — no competitor-specific phrasing is itself copied into `reusable_devices`.
-- [ ] No execution-style re-classification (ad-type owns it), no visual re-interpretation (visual/perception own it), no new creative idea (opportunity/brief own it), no external source file referenced.
-
-## Faithfulness & shape
-- [ ] `image_ref` + `persona_id` carried from the analyses; the projection is for THIS image only.
-- [ ] Output is JSON conforming to the schema — no prose.
+- [ ] Own-product lens (ring ②) — read on the AD'S OWN product selling-point (`advertiser_context`), never judged against our product; `persona_id` is an opaque tag. `generation_reusability` names ABSTRACT devices and `avoid_copying` lists the competitor-specific wording/asset — no competitor-specific phrasing copied into `reusable_devices`.
+- [ ] `image_ref` + `persona_id` carried for THIS image; output is schema-conformant JSON, no prose.
 
 > Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 

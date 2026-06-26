@@ -112,12 +112,7 @@ If a regular underlying grid is visible from aligned bboxes, name it ("2-col",
 
 ## Verification checklist — output
 
-The schema validator (`${CLAUDE_PLUGIN_ROOT}/schemas/analysis/layout-analysis.schema.json`) only checks **shape** — that fields
-exist, enums are members, `whitespace_ratio` is a number in [0,1], `comfort` has its required keys. Shape
-conformance does not mean the layout read is *correct*. This is the **logical** gate: a reviewer (or the agent
-at self-review) judges whether each field was **derived from geometry** — not from what the text means. A
-schema-valid output that fails this checklist is still a defect.
-
+Agent-specific must-NOTs (the discriminating gate; the method is the *how*, this is what a defect looks like):
 
 ## The ⊥ discipline — geometry, not meaning (the discriminating logic)
 - [ ] **CRITICAL — text MEANING is ignored.** Every field would be reached identically with all `content`

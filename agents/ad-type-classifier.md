@@ -56,28 +56,13 @@ If the perception artifact is **missing the text/scene/look needed to type the a
 
 ## Verification checklist — output
 
-The schema validator for `${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-type.schema.json` only checks **shape** — enums valid,
-`grounds_in` present. Shape conformance does not mean the type is *correct*. This is the **logical** gate: a reviewer
-(or the agent at self-review) judges whether the type is right, grounded, text-only, and brand-free. A schema-valid
-output that fails this checklist is still a defect.
-
-
-## Provenance (CRITICAL — every label is traceable)
-- [ ] `grounds_in` cites the actual ad-taxonomy.md row(s) the call rests on (the framework + the chosen value) — not a vague "advertising theory". A label with no traceable source is a defect.
-- [ ] `message_basis` / `execution_style` / `ad_type` are mutually consistent and match the routing table (e.g. `social_proof` ad_type ⇔ a testimonial/review device; `informational` ⇔ demonstration/scientific/comparison/straight_sell).
-
-## Grounded ∧ text-only ∧ brand-free (must NOT)
-- [ ] The image was NEVER opened — the type was read from the perception artifact's text (copy content, medium, scene, look).
-- [ ] No brand/persona FIT judgement — the ad is typed on its own terms (ring ②), not "is this right for us" (ring ③, the brief). `persona_id` is an opaque carried tag.
-- [ ] No analyst work leaked in — no bbox/`text_role`/`composition_type`/hook/ranking; `reason` is a one-line type justification, not an axis breakdown.
-
-## Honest uncertainty
-- [ ] Genuinely mixed/uncertain ads are `message_basis: hybrid` / `ad_type: default` with lowered `confidence` — not forced into a single decisive type.
-- [ ] `confidence` reflects real decision strength; a clear case is high, a true edge case is low (no clear case hedged artificially low).
-
-## Faithfulness
-- [ ] `image_ref` + `persona_id` carried from the perception artifact; the classification is for THIS image only.
-- [ ] Output is JSON conforming to `${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-type.schema.json` — no prose.
+Agent-specific must-NOTs (the discriminating gate; the Classify steps are the *how*, this is what a defect looks like):
+- [ ] `grounds_in` cites the actual ad-taxonomy.md row(s) the call rests on (framework + chosen value), not a vague "advertising theory" — a label with no traceable source is a defect.
+- [ ] `message_basis`/`execution_style`/`ad_type` are mutually consistent and match the routing table (e.g. `social_proof` ⇔ a testimonial/review device; `informational` ⇔ demonstration/scientific/comparison/straight_sell).
+- [ ] The image was NEVER opened — typed from the perception text; no analyst work leaked in (no bbox/`text_role`/`composition_type`/hook/ranking); `reason` is a one-line type justification.
+- [ ] Brand-free (ring ②) — no brand/persona FIT judgement; `persona_id` is an opaque carried tag.
+- [ ] Genuinely mixed/uncertain ads are `hybrid`/`default` with lowered `confidence` — not forced into a decisive type; `confidence` reflects real decision strength.
+- [ ] `image_ref` + `persona_id` carried for THIS image; output is schema-conformant JSON, no prose.
 
 > Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 

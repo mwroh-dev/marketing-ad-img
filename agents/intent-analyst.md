@@ -85,25 +85,12 @@ facts → **resolve**.
 
 ## Verification checklist — output
 
-The schema validator for `${CLAUDE_PLUGIN_ROOT}/schemas/analysis/intent-analysis.schema.json` only checks **shape** — fields
-exist, enums valid. Shape conformance does not mean the read is *correct*. This is the **logical** gate: a reviewer
-(or the agent at self-review) judges whether the appeal is grounded, the read stayed brand-free and text-only, and
-the binding meanings follow from the actual bound pairs. A schema-valid output that fails this checklist is still a defect.
-
-
-## Grounded ∧ text-only (CRITICAL)
-- [ ] The image was NEVER opened — every judgement derives from the copy/layout/visual/bindings text artifacts.
-- [ ] `appeal` (and each `secondary_appeals` entry) traces to a named fact in `evidence` — a copy hook/role, a visual register, or a binding. No appeal asserted without a basis.
-- [ ] `binding_reading` references only `bound_pairs` that exist in the bindings artifact; each `meaning` follows from the actual placement (a meaning invented for a non-existent pair is a defect).
-- [ ] Thin/conflicting inputs LOWER `confidence` (stated), they never trigger a peek at the image or a fabricated certainty.
-
-## Brand-free (ring ② — must NOT judge fit)
-- [ ] No brand/persona FIT judgement and no category-gap claim — the ad's strategy is read on its own terms, not "is this right for us / where's our opening" (that is the brief, ring ③). `persona_id` is an opaque carried tag.
-- [ ] A look↔copy mismatch is read as `look_copy_tension` (strategy), never re-labeled as a register or used to judge brand fit.
-
-## Faithfulness & shape
-- [ ] `image_ref` + `persona_id` carried from the upstream analyses; the read is for THIS image only.
-- [ ] Output is JSON conforming to `${CLAUDE_PLUGIN_ROOT}/schemas/analysis/intent-analysis.schema.json` — no prose.
+Agent-specific must-NOTs (the discriminating gate; method §1–6 is the *how*, this is what a defect looks like):
+- [ ] The image was NEVER opened — every judgement derives from the copy/layout/visual/bindings text artifacts; thin/conflicting inputs LOWER `confidence` (stated), never trigger a peek or fabricated certainty.
+- [ ] `appeal` + each `secondary_appeals` traces to a named fact in `evidence` (a copy hook/role, visual register, or binding) — none asserted without a basis.
+- [ ] `binding_reading` references only `bound_pairs` that exist; each `meaning` follows from the actual placement (a meaning for a non-existent pair is a defect).
+- [ ] Brand-free (ring ②) — no brand/persona FIT judgement and no category-gap claim; a look↔copy mismatch is `look_copy_tension` (strategy), never a re-label or fit judgement; `persona_id` is an opaque carried tag.
+- [ ] `image_ref` + `persona_id` carried for THIS image; output is schema-conformant JSON, no prose.
 
 > Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
