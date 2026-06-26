@@ -39,6 +39,26 @@ test("cardHtml: an un-analysed ad shows a neutral 'not analysed' note, not an al
   assert.match(html, /class="idbtn"/);   // still copyable so the user can ask to analyse it
 });
 
+test("cardHtml: surfaces keyword provenance + raw ad_copy when present, omits them when absent", () => {
+  const withData = cardHtml("r1", "p", { image_file: "images/ad-0.jpg", keywords: ["다이어리", "감정 다이어리"], ad_copy: "촉촉한 보습 크림" }, {});
+  assert.match(withData, /class="kw">🔑 감정 다이어리 · 다이어리</);   // sorted keyword set
+  assert.match(withData, /class="adcopy">촉촉한 보습 크림</);
+  const without = cardHtml("r1", "p", { image_file: "images/ad-1.jpg" }, {});
+  assert.doesNotMatch(without, /class="kw"/);       // older runs: no keyword data → no line
+  assert.doesNotMatch(without, /class="adcopy"/);
+});
+
+test("renderRecipeHtml: within a collection-date group, ads render oldest started_at first (undated last)", () => {
+  const groups = [{ date: "2026-06-23", runs: [{ runId: "2026-06-23-r", personaId: "p", creatives: [
+    { image_file: "images/new.jpg", started_at: "2026-05-01" },
+    { image_file: "images/none.jpg" },
+    { image_file: "images/old.jpg", started_at: "2024-03-10" },
+  ] }] }];
+  const html = renderRecipeHtml({ personaId: "p", groups, stateDir: "/nonexistent-store" }, TEMPLATE);
+  const iOld = html.indexOf("old.jpg"), iNew = html.indexOf("new.jpg"), iNone = html.indexOf("none.jpg");
+  assert.ok(iOld < iNew && iNew < iNone, `expected old < new < none, got ${iOld}, ${iNew}, ${iNone}`);
+});
+
 test("renderRecipeHtml groups by date, fills meta + id buttons; empty persona renders a note", () => {
   const groups = [{ date: "2026-06-23", runs: [{ runId: "2026-06-23-1430-meta-keyword", personaId: "p", creatives: [{ image_file: "images/ad-0.jpg" }] }] }];
   const html = renderRecipeHtml({ personaId: "p", groups, stateDir: "/nonexistent-store" }, TEMPLATE);

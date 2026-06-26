@@ -17,6 +17,7 @@ import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { resolve, dirname, basename, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { safeName } from "./ad-source-helpers.mjs";
+import { sortByStartedAt, keywordSet } from "./select-images.mjs";   // same oldest-first + keyword provenance as the pick viewer
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TEMPLATE = resolve(HERE, "validate-recipe.template.html");
@@ -157,13 +158,18 @@ export function cardHtml(runId, personaId, creative, recipe) {
   // the canonical id the agent can locate — the image_ref carried in the analysis artifacts.
   const fullId = recipe.perception?.image_ref || `runs/${runId}/ad-creatives/${personaId}/${file}`;
   const info = [creative.advertiser_name, creative.started_at, creative.subtype].filter(Boolean).map(esc).join(" · ") || esc(adBase);
+  // keyword provenance (which search keyword(s) surfaced this ad) + the raw ad copy — the same data the pick
+  // viewer surfaces, shown here so the human can compare each to the extracted recipe. Absent on older runs.
+  const kws = keywordSet(creative);
+  const kwLine = kws.length ? `<div class="kw">🔑 ${kws.map(esc).join(" · ")}</div>` : "";
+  const copyLine = creative.ad_copy ? `<div class="adcopy">${esc(creative.ad_copy)}</div>` : "";
   // a NEUTRAL state note only — "analysed yet or not" is a fact, not a quality judgement.
   const body = recipe.perception ? recipeRows(recipe) : `<p class="noanalysis">아직 분석되지 않음</p>`;
   return `
     <div class="card">
       <img src="/img/${esc(runId)}/${esc(basename(file))}" loading="lazy" alt="${esc(adBase)}" />
       <div class="body">
-        <div class="info">${info}</div>
+        <div class="info">${info}</div>${kwLine}${copyLine}
         <button class="idbtn" type="button" data-id="${esc(fullId)}" title="${esc(fullId)}">${esc(adBase)}</button>
         ${body}
       </div>
@@ -183,7 +189,12 @@ export function renderRecipeHtml({ personaId, groups, stateDir = STATE }, templa
   const sections = groups.length
     ? groups.map((g) => {
         const runIds = g.runs.map((r) => r.runId);
-        const cards = g.runs.flatMap((r) => r.creatives.map((c) => cardHtml(r.runId, personaId, c, loadRecipe(personaId, basename(c.image_file).replace(IMG_RE, ""), stateDir)))).join("");
+        // within a collection-date group, order ads OLDEST started_at first (same as the pick viewer); undated
+        // sink to the end. Pair each creative with its runId so the image path stays correct after the sort.
+        const pairs = g.runs.flatMap((r) => r.creatives.map((c) => ({ runId: r.runId, c, started_at: c.started_at })));
+        const cards = sortByStartedAt(pairs)
+          .map((p) => cardHtml(p.runId, personaId, p.c, loadRecipe(personaId, basename(p.c.image_file).replace(IMG_RE, ""), stateDir)))
+          .join("");
         return `<section class="day"><h2>${esc(g.date)}</h2><div class="daysub">run: ${esc(runIds.join(", "))}</div>`
           + `<div class="grid">${cards || `<p class="empty">이미지 없음</p>`}</div></section>`;
       }).join("")
