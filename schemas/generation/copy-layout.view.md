@@ -16,7 +16,7 @@ copy-layout = {
       whitespace?: string
       format?: string
     }
-  }[]  // ≥1 item; one per brief angle, the four distinct (different hook/headline/focal)
+  }[]  // 1.. items; one per brief angle, the four distinct (different hook/headline/focal)
   style?: {
     brand_tone?: string  // non-empty; the brand's voice carried from the brief; the adapter derives mood from it, never premium-by-default
     avoid?: string[]  // visual/claim avoids pushed into the adapter negative_prompt

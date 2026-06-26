@@ -202,7 +202,7 @@ Agent-specific must-NOTs (the discriminating gate; the method §1–6 is the *ho
   height?}`, `verification_checklist[]` (≥1, each `{check, expected}`), `retry_instruction_template`.
 
 ## Input contract (provider-neutral spec)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-candidate.schema.json — `CreativeCandidateSpec`: the single
+- @${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-candidate.view.md — `CreativeCandidateSpec`: the single
   provider-neutral input specialized into both adapter outputs. Carries `copy{language, headline,
   subcopy?, cta}` (Korean copy preserved byte-for-byte), `layout`, `style.avoid[]` (→ encoded into
   `negative_prompt`), product/asset placement, and canvas ratio.

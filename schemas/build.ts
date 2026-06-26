@@ -35,7 +35,8 @@ function tsType(node: any, indent: string): string {
 function constraintNote(v: any): string[] {
   const c: string[] = [];
   if (v.type === "string" && v.minLength) c.push("non-empty");
-  if (v.type === "array" && v.minItems) c.push(`≥${v.minItems} item${v.minItems > 1 ? "s" : ""}`);
+  if (v.type === "string" && v.pattern) c.push(`matches /${v.pattern}/`);
+  if (v.type === "array" && (v.minItems || v.maxItems)) c.push(`${v.minItems ?? 0}..${v.maxItems ?? ""} items`);
   return c;
 }
 function renderObject(node: any, indent: string): string {

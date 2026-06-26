@@ -16,14 +16,14 @@ strategy-projection = {
     evidence: {
       source: "headline"|"subcopy"|"visual"|"review"|"badge"|"price"|"offer"|"layout"|"cta"|"other"
       reason: string  // non-empty
-    }[]  // ≥1 item; ≥1 {source, reason} grounding this from the analyses
+    }[]  // 1.. items; ≥1 {source, reason} grounding this from the analyses
   }
   funnel_intent: {
     stage: "discovery"|"comparison"|"action"|"retention"|"unclear"  // buyer-readiness; 1:1 projection of intent.funnel_stage
     evidence: {
       source: "headline"|"cta"|"offer"|"layout"|"proof"|"visual"|"other"
       reason: string  // non-empty
-    }[]  // ≥1 item; ≥1 {source, reason} grounding this from the analyses
+    }[]  // 1.. items; ≥1 {source, reason} grounding this from the analyses
   }
   first_cognition: {
     target_clarity: int /*0..2*/

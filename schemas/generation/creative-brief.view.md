@@ -12,7 +12,7 @@ creative-brief = {
     angle: "product_usp"|"persona_response"|"compelling_claim"|"visual_hierarchy"
     direction: string  // an actionable creative instruction, not a paraphrase of core_message
     evidence_refs?: string[]
-  }[]  // ≥1 item; the 4 enum angles, each a different lens on core_message (not 4 rewordings)
+  }[]  // 1.. items; the 4 enum angles, each a different lens on core_message (not 4 rewordings)
   forbidden_claims: string[]  // brand list verbatim ∪ derived-implicit; the hard guard the whole chain inherits
   evidence_refs?: string[]
   brand_tone?: string  // non-empty; the brand's voice (e.g. 'honest, energetic, not-luxury'); the adapter derives visual style from it, never premium-by-default

@@ -7,6 +7,6 @@ analyses-envelope = {
   analyses: {
     image_ref: string
     persona_id: string
-  }[]  // ≥1 item
+  }[]  // 1.. items
 }
 ```

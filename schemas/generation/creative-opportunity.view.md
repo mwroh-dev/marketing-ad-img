@@ -10,8 +10,8 @@ creative-opportunity = {
       benefit: "function"|"cost"|"trust"|"symbol"
       funnel: "discovery"|"comparison"|"action"|"retention"
     }
-    reason: string[]  // ≥1 item; ≥1 product/persona-fit reason this position was selected
-    source_matrix_evidence: string[]  // ≥1 item; ≥1 matrix cell/device this rests on — no opportunity without matrix backing
+    reason: string[]  // 1.. items; ≥1 product/persona-fit reason this position was selected
+    source_matrix_evidence: string[]  // 1.. items; ≥1 matrix cell/device this rests on — no opportunity without matrix backing
     recommended_ad_type?: string
     recommended_execution_style?: string[]
     brief_constraints?: {
