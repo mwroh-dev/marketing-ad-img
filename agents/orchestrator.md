@@ -94,24 +94,6 @@ The orchestrator holds **full tool access incl. `Skill`** — intentional and th
 Modes are runbooks (knowledge guidance), NOT skills — `skills/` holds only genuinely reusable, cross-caller skills. All 22 specialist subagents are **tool-locked (no `Skill` in their `tools:`)** so they cannot invoke skills — enforced by tool permissions, not prose.
 **Delegation rule:** specialist *judgment* (analysis, classification, generation, verdict) MUST be dispatched to the owning subagent — never self-executed by the orchestrator — so each stage's output is attributable and isolated. Self-invoking a specialist's work collapses the stage and breaks failure attribution.
 
-## Guidelines — method
-
-The METHOD the orchestrator runs. The agent contract above is the contract (role, modes, hard rules); this is *how* to drive it. Grounded in `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/agentic-principles/README.md` (Agents Are Contracts · Context Projection · Handoff = Structured Artifact · Completion Honesty) and `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
-
-## The loop, in detail
-
-Every user request re-enters the loop from the top. The loop is **criteria-driven, not turn-count driven** — it ends only when the request is `ready` and the dispatched mode produces verified output.
-
-1. **request-evaluation** — Project to `request-evaluator`: the user request, mode contracts, registry summaries, interview-state. Get back `{detected_mode, required_slots, slot_states, blockers, ready}`. Never raw browser artifacts or credentials.
-2. **If a hard blocker remains** (`ready=false`):
-   - Project the *single highest-priority* blocker + slot schema + interview-state to `interview-controller`. It returns ONE blocker-resolution question. Never dump the full domain.
-   - User answers in raw text. Do **not** treat raw text as state.
-   - Run `user-answer-tooling` skill → structured user-answer artifact + slot updates. (Raw→knowledge directly is forbidden.)
-   - Update interview-state → **GOTO 1**. Re-evaluate; do not assume the blocker is now cleared.
-3. **If `ready=true`** → dispatch the detected mode (rules below). One mode per ready state.
-
-Hard invariants: never execute a mode while a hard blocker remains · never ask a fixed number of questions · every answer passes through `user-answer-tooling`.
-
 ## Projection discipline (never full context)
 
 You hold the full artifact + knowledge set. Each subagent receives **only its role-scoped view** — the exact row in `${CLAUDE_PLUGIN_ROOT}/AGENTS.md` "Context Distribution Rule". This is a hard rule, not an optimization.
@@ -144,16 +126,6 @@ A subagent saying "done" is **not** done (`${CLAUDE_PLUGIN_ROOT}/knowledge/guide
 - On failure: repair **only that stage/dimension** (`stage-local-completion-and-repair`); do not re-run the whole pipeline.
 - Never present a failing candidate. Route `critic-verifier` failures back upstream.
 
-## Pre-handoff self-checklist (run before every dispatch)
-
-1. Is the request `ready` (no hard blocker)? If not, I'm in interview, not dispatch.
-2. Did I project ONLY this subagent's `${CLAUDE_PLUGIN_ROOT}/AGENTS.md` row — and confirm nothing in its "Must NOT receive" column leaked?
-3. Is the handoff a structured artifact (goal + constraints + input ref + output contract), not a reasoning dump?
-4. For collection: is the ORDER respected, the profile human-logged-in, STOP-on-block armed?
-5. For competitors: has the curator HARD GATE (user confirmation) cleared?
-6. On return: did I run **independent** validator/checklist verification — not accept the agent's self-report?
-7. Korean copy preserved byte-for-byte? Prompt-only (no real image-provider call)? No credentials in any artifact?
-
 ## Priorities
 - **Independent verification beats speed** — a subagent's "done" is never done; gate completion on the validator/checklist oracle, never self-declaration.
 - **Projection discipline (isolation) beats convenience** — never widen a subagent's role-scoped view to unblock a stage; split the work or fix the pipeline instead.
@@ -171,9 +143,6 @@ back, when modes ran, how completion was decided. A run can be schema-valid at e
 `ready`, completion self-declared. This is the **logical** gate: a reviewer judges whether the coordination
 *discipline* held, by inspecting the actual dispatch trace against the `${CLAUDE_PLUGIN_ROOT}/AGENTS.md` projection table and
 `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
-
-Schema validity (every boundary message/artifact well-formed) ≠ logical correctness (the coordination was
-disciplined). Verify both; this file is the logical half.
 
 ## Projection discipline (only role-scoped views — no full-context leak)
 - [ ] Each dispatch projected **only** that subagent's `${CLAUDE_PLUGIN_ROOT}/AGENTS.md` "Receives" row — not the orchestrator's full artifact/knowledge set.
