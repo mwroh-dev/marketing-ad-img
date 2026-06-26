@@ -160,16 +160,12 @@ export async function downloadVideoFile(fullUrl, destPath, { fetchFn = fetch, wr
   }
 }
 
-// Direct fetch of a signed fbcdn IMAGE url → write to disk if it's a valid, non-trivial image (recon §12a:
-// fbcdn image is token-authed not cookie-authed — same as video §11 — so a bare GET of the FULL signed
-// scontent/t39.35426 url returns the COMPLETE jpg, full 200, content-length == bytes). The modal-driven Meta
-// flow uses this to fetch EACH ad's creative asset by url right after reading it from the open card/modal, so
-// every collected creative is built 1:1 with its own detail (no grid-buffer→drain join). Mirrors
-// downloadVideoFile exactly: BOUNDED (AbortController timeout + maxBytes ceiling), NEVER fabricates a file
-// (any non-200 / short body / wrong magic → saved:false, caller keeps a url-only fallback). `writer`/`fetchFn`
-// are injected so the wiring is unit-testable without real IO/network.
-// Magic-byte validation: JPEG `ffd8ff`, PNG `89504e47`, WEBP `RIFF…WEBP`, GIF `GIF8`. A small size floor
-// (default 2KB) rejects page-chrome icon thumbnails the unscoped <img> sweep can pick up (recon §12a).
+// Direct fetch of a signed fbcdn IMAGE url → write to disk if valid (recon §12a: fbcdn image is token-authed
+// like video §11, so a bare GET of the FULL signed scontent/t39.35426 url returns the COMPLETE jpg). The
+// modal-driven Meta flow fetches EACH ad's creative this way right after reading its url, so every creative is
+// 1:1 with its own detail (no grid-buffer→drain join). Same bounded / injected / never-fabricates contract as
+// downloadVideoFile. Magic-byte validation (JPEG `ffd8ff` / PNG `89504e47` / WEBP `RIFF…WEBP` / GIF `GIF8`) +
+// a size floor (default 2KB) rejects the page-chrome icon thumbnails the unscoped <img> sweep can pick up.
 export async function downloadImageFile(fullUrl, destPath, { fetchFn = fetch, writeFile, timeoutMs = 30000, maxBytes = 25 * 1024 * 1024, minBytes = 2000 } = {}) {
   if (!fullUrl || typeof fullUrl !== "string") return { saved: false, reason: "no url" };
   const ac = new AbortController();
