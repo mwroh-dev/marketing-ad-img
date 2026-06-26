@@ -73,7 +73,7 @@ Agent-specific must-NOTs (the discriminating gate; the method is the *how*, this
 - @${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-opportunity.schema.json — the schema your JSON MUST conform to. `additionalProperties:false`.
 
 ## Upstream (your input)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/market-position-matrix.schema.json — the benefit×funnel matrix (crowded/whitespace/dominant/high_reusability/risks) you select from.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/market-position-matrix.view.md — the benefit×funnel matrix (crowded/whitespace/dominant/high_reusability/risks) you select from.
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/reference/ad-strategy-taxonomy.md — the positioning grounding (Ries & Trout; Kim & Mauborgne whitespace) + the benefit/funnel definitions. `grounds_in` may cite this.
 
 ## Downstream (your constraints feed the brief)
