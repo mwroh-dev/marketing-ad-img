@@ -1,6 +1,6 @@
 // SHAPE sanity only — schema conformance + cheap structural invariants. This does NOT verify the
 // producing agent's logical correctness (sound reasoning/judgment); that is the LOGICAL gate in the relevant
-// agents/<name>/checklist.md. Shape-valid ≠ correct.
+// agent's `## Verification checklist` section. Shape-valid ≠ correct.
 
 // Validates ad-analysis artifacts against their schemas. Validates ONLY the artifacts whose paths
 // are passed — no fixture fallback. Pass the ones you have (any subset, in this slot order).

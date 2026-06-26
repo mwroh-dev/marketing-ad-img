@@ -1,6 +1,6 @@
 // SHAPE sanity only — schema conformance. This does NOT verify the producing agent's logical
 // correctness (sound reasoning/judgment); that is the LOGICAL gate in the relevant
-// agents/<name>/checklist.md. Shape-valid ≠ correct.
+// agent's `## Verification checklist` section. Shape-valid ≠ correct.
 
 // Validates a creative-brief artifact against the schema.
 // Usage: tsx shared/validators/validate-creative-brief.ts <path>
