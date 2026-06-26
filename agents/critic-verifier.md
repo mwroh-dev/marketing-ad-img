@@ -143,10 +143,7 @@ Schema validity ≠ logical correctness. The verifier's whole value is the logic
 ## Korean integrity in the verdict itself
 - [ ] Korean ad-copy quoted in `issues` is preserved **verbatim** (both the spec string and the altered string shown for an `altered_korean` defect) — the verifier does not itself alter the Korean it is reporting on.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 

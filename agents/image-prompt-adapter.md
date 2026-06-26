@@ -159,7 +159,6 @@ This is the **logical** gate: a reviewer (or the agent at self-review) judges wh
 — that the Korean copy survived intact, the two providers are genuinely specialized, and forbidden claims are
 steered against. A schema-valid output that fails this checklist is still a defect.
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Korean copy: byte-exact preservation (the non-negotiable)
 - [ ] `headline`, `subcopy`, `cta` appear **byte-for-byte** as received — in BOTH the prompt body AND every `verification_checklist[].expected` field, in BOTH outputs. (Diff-checked, not eyeballed.)
@@ -196,10 +195,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - [ ] Two files are written: `.../generated-prompts/chatgpt.json` and `.../generated-prompts/gemini.json`.
 - [ ] All required fields are present and `candidate_id` matches `^candidate_[0-9]{3}$`; schema validation against `${CLAUDE_PLUGIN_ROOT}/schemas/generation/image-adapter-output.schema.json` passed.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 

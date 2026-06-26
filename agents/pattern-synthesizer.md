@@ -102,7 +102,6 @@ is a string and the file's fields exist. Shape conformance does not mean the syn
 the **logical** gate: a reviewer (or the agent at self-review) judges whether the narrative is faithful to the
 deterministic aggregate. A schema-valid synthesis that fails this checklist is still a defect.
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Consistency with the aggregate (the discriminating logic)
 - [ ] The synthesis MATCHES the deterministic aggregates — it does NOT contradict the numbers. (e.g. it must NOT claim headlines/CTA dominate when `text_role_distribution` shows review_quote/lifestyle leading; it must NOT name a composition other than the top `composition_top_k.value` as the leader.)
@@ -129,10 +128,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - [ ] `product_id` / `persona_id` match the projected inputs; the synthesis is for THIS persona's aggregate only, not a blend or a global prior.
 - [ ] The `synthesis` output is concise and written in the consumer's target_market language, and validates against `${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-pattern.schema.json`.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 

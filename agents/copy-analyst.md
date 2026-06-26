@@ -171,7 +171,6 @@ conformance does not mean the analysis is *correct*. This is the **logical** gat
 self-review) judges whether each judgement is sound. A schema-valid output that fails this checklist is still a
 defect.
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Grounding (no invention)
 - [ ] Every `copy_elements[].content` traces verbatim to a `text_elements[].content` in the read extraction — none invented, paraphrased, re-OCR'd, or corrected.
@@ -201,10 +200,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 ## Faithfulness
 - [ ] `image_ref` / `persona_id` match the projected inputs; the analysis is for THIS image and persona, not a blend.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 

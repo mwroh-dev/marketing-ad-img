@@ -118,7 +118,6 @@ candidate pool is *correct*. This is the **logical** gate: a reviewer (or the ag
 whether the pool genuinely does the scout's job — maximize recall, stay search/list-only, and flag gaps
 honestly. A schema-valid output that fails this checklist is still a defect.
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Recall, not precision (the role's whole point)
 - [ ] The pool is genuinely **broad** — a generous slice per derived query, unioned across feature/audience/benefit cues, deduped by normalized title only. A tight, clean-looking shortlist is a defect, not a virtue.
@@ -155,10 +154,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - [ ] `product_id` / `persona_id` match the projected inputs; the pool is for THIS (product, persona), not a blend. `captured_at` is a real ISO timestamp.
 - [ ] Handoff is JSON only (no prose log), and the output validates against `competitor-candidate.schema.json`.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 

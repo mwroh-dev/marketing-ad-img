@@ -52,7 +52,6 @@ The schema validator (`${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-opportu
 This is the **logical** gate: a reviewer (or self-review) judges whether the selection is matrix-grounded, fit-justified,
 constraint-level (not a prompt), and honest about thin corpora. Schema-valid but wrong is a defect.
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Matrix-grounded ∧ fit-justified (CRITICAL — must NOT)
 - [ ] Every `selected_opportunities[].source_matrix_evidence` references actual matrix cells/devices (crowded/whitespace/dominant/high_reusability) — no opportunity invented without matrix backing.
@@ -68,9 +67,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - [ ] `persona_id` carried from the matrix; the selection is for THIS persona's product.
 - [ ] Output is JSON conforming to the schema — no prose.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 

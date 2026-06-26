@@ -113,7 +113,6 @@ reasoning is sound and whether the HARD GATE was actually held. A schema-valid o
 is still a defect — most dangerously, a
 fully-valid `competitors.json` whose entries were *auto-confirmed*.
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Fit-driven ranking (the discriminating logic)
 - [ ] Ranking is driven by **per-persona JTBD fit**, not brand-general popularity / sales / traffic. A high-traffic brand with no JTBD overlap is NOT this persona's competitor, however prominent its surface.
@@ -138,10 +137,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - [ ] (Confirm path) The raw confirm/edit answer is structured via `user-answer-tooling`, not hand-parsed; confirmed → `confirmed`, dropped → `rejected` (kept with reason).
 - [ ] (Reject-all path) Nothing is persisted as collectable; rejected statuses + `rejected_note` are recorded and discovery-scout is signalled to widen — no invented replacements.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 

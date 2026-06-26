@@ -207,10 +207,7 @@ disciplined). Verify both; this file is the logical half.
 - [ ] `critic-verifier` failures were routed back to the **specific** upstream stage that owns the defect — the whole pipeline was not re-run, and no failing candidate was presented.
 - [ ] Repair touched **only** the failing stage/dimension (`stage-local-completion-and-repair`); passing stages were left intact.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 

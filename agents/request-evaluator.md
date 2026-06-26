@@ -122,7 +122,6 @@ reviewer (or the agent at self-review) judges whether the *reasoning* is sound. 
 fails this checklist is still a defect — and the defect that matters most here (false-positive `ready=true`)
 is invisible to the schema.
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Mode detection (the right mode, not a plausible one)
 - [ ] `detected_mode` is the mode the request actually intends, judged from intent signals — not keyword-spotting (e.g. "generate ad images" with no registered brand is NOT cleanly image-generation; an unmet prerequisite changes the picture).
@@ -158,10 +157,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 ## Output shape
 - [ ] Output is ONE schema-valid JSON object (see the References section) with no prose outside the JSON.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 

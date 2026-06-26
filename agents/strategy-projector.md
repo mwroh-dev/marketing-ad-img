@@ -74,7 +74,6 @@ The schema validator (`${CLAUDE_PLUGIN_ROOT}/schemas/analysis/strategy-projectio
 This is the **logical** gate: a reviewer (or self-review) judges whether the projection is grounded, projected (not
 re-classified), text-only, on the ad's own-product lens, and arithmetically consistent. Schema-valid but wrong is a defect.
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Provenance ∧ projection (CRITICAL)
 - [ ] `grounds_in` cites the actual ad-strategy-taxonomy.md source(s) per dimension — no vague "marketing".
@@ -95,9 +94,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - [ ] `image_ref` + `persona_id` carried from the analyses; the projection is for THIS image only.
 - [ ] Output is JSON conforming to the schema — no prose.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0. See `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 

@@ -100,7 +100,6 @@ exist, enums are valid. Shape conformance does not mean the labels are *correct*
 reviewer (or the agent at self-review) judges whether each label traces to a perception fact, the register is
 grounded and look-only, and the read stayed brand-free. A schema-valid output that fails this checklist is still a defect.
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Text-only discipline (CRITICAL — the discriminating gate)
 - [ ] The image was NEVER opened — every label is derived from the perception artifact's text alone. (No `.jpg`/`.png` read.)
@@ -124,10 +123,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - [ ] `image_ref` + `persona_id` carried from the perception artifact; the analysis is for THIS image only.
 - [ ] Output is JSON conforming to `${CLAUDE_PLUGIN_ROOT}/schemas/analysis/visual-analysis.schema.json` — no prose.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 

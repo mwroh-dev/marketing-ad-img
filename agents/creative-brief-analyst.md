@@ -133,7 +133,6 @@ are one idea reworded, an angle grounded in nothing, or — worst — a forbidde
 `direction`. This is the **logical** gate: a reviewer (or the agent at self-review) judges whether the
 synthesis is *sound and faithful*, not just well-formed.
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Core message faithfulness (not generic)
 - [ ] `core_message` traces to **≥1 product claim** `evidence_ref` AND **≥1 persona pain/desire** — it is the intersection of "what we can prove" and "what this persona wants", not a slogan that would fit any product in the category.
@@ -169,10 +168,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - [ ] `persona_id` + `product_id` are copied exactly from the projected inputs — the brief is for THIS persona+product, not a blend.
 - [ ] Selected principle matches the persona's awareness state, with rationale recorded; global principles are kept **⊥ brand facts** (never blended in one field).
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 

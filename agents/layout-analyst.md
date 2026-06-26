@@ -118,7 +118,6 @@ conformance does not mean the layout read is *correct*. This is the **logical** 
 at self-review) judges whether each field was **derived from geometry** — not from what the text means. A
 schema-valid output that fails this checklist is still a defect.
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## The ⊥ discipline — geometry, not meaning (the discriminating logic)
 - [ ] **CRITICAL — text MEANING is ignored.** Every field would be reached identically with all `content`
@@ -159,10 +158,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 ## Output shape
 - [ ] Output is the JSON only — no prose — and validates against the schema.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 

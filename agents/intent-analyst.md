@@ -90,7 +90,6 @@ exist, enums valid. Shape conformance does not mean the read is *correct*. This 
 (or the agent at self-review) judges whether the appeal is grounded, the read stayed brand-free and text-only, and
 the binding meanings follow from the actual bound pairs. A schema-valid output that fails this checklist is still a defect.
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Grounded ∧ text-only (CRITICAL)
 - [ ] The image was NEVER opened — every judgement derives from the copy/layout/visual/bindings text artifacts.
@@ -106,10 +105,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - [ ] `image_ref` + `persona_id` carried from the upstream analyses; the read is for THIS image only.
 - [ ] Output is JSON conforming to `${CLAUDE_PLUGIN_ROOT}/schemas/analysis/intent-analysis.schema.json` — no prose.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 

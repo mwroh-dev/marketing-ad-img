@@ -138,7 +138,6 @@ still be a wrong classification. This is the **logical** gate: a reviewer (or th
 whether the TYPE call is *correct* — whether the image was judged by the strict persuasion-copy + designed-visual
 test, not by "text is present." A schema-valid output that fails this checklist is still a defect.
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## The TYPE test (judgment, not text-detection)
 - [ ] `ad_creative` was granted ONLY when **both** halves of the strict test hold: persuasion copy (a hook headline / benefit claim meant to convince) AND a designed visual (copy composed *together* with a styled product/scene — typography, color, layout intent).
@@ -169,10 +168,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 ## Faithfulness
 - [ ] `image_ref` echoes the given path verbatim and `competitor_id` matches the projected input — the classification is for THIS image of THIS competitor, not relabeled or blended.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 

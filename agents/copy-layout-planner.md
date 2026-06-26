@@ -127,7 +127,6 @@ The schema validator (`${CLAUDE_PLUGIN_ROOT}/schemas/generation/copy-layout.sche
 **logical** gate: a reviewer (or the agent at self-review) judges whether the copy is claim-safe, distinct,
 and render-ready. A schema-valid plan that fails this checklist is still a defect.
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Claim discipline (CRITICAL — the gate that overrides everything)
 > Forbidden **claim types** are domain-general and always apply: absolute cure/improvement claims, superlatives (#1/best/only), 100%/perfect guarantees, and unverified authority (doctor-endorsed/regulatory-certified). Never assume a product domain — the actual product/copy come from THIS run's projected input.
@@ -160,10 +159,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - [ ] `persona_id` on the plan = the brief's `persona_id`, carried through unchanged; the copy is for THIS persona, not a blend.
 - [ ] Exactly one candidate per brief angle; each `candidate.angle` matches the brief and the schema enum.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 

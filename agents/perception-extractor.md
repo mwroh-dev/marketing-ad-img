@@ -136,7 +136,6 @@ exist, bbox numbers are in range, enums are valid. Shape conformance does not me
 This is the **logical** gate: a reviewer (or the agent at self-review) judges whether the observation did its job.
 A schema-valid output that fails this checklist is still a defect.
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 perception-extractor is **observational** — there is no reasoning to grade. So its logic is three things only:
 **COMPLETENESS** (nothing observable missed, across geometry+text AND scene+look), **FIDELITY** (verbatim text +
@@ -175,10 +174,7 @@ The surface is wider than OCR, but every new field is still a literal fact. Appl
 ## Output shape
 - [ ] Output is JSON conforming to `${CLAUDE_PLUGIN_ROOT}/schemas/analysis/perception.schema.json` — no prose.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 
