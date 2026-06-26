@@ -1,40 +1,8 @@
 // Platform-agnostic ad-collection harness. Owns the CDP lifecycle, image capture via
-// Network.getResponseBody (CORS/paint-proof), dedup, output schema, finally-close + hard
-// timeout. Per-platform flow is injected by an adapter:
-//   { source, region, acceptModes:string[], imgMatch(url):bool, async collect(ctx):void }
-//
-// ctx primitives given to adapter.collect:
-//   queries                  the (already mode-filtered) query list
-//   evalJs(expr)             in-page Runtime.evaluate, returnByValue
-//   goto(url) -> bool        navigate + wait + STOP-on-block (false if blocked)
-//   scroll(steps)            real wheel scroll loop
-//   type(text)               real keyboard entry into the focused/first <input> (Korean-safe)
-//   clickSuggestion(sel)->bool   hover+real-click first matching element (Angular-overlay safe)
-//   resetBuffer()            clear the seen-image buffer (call before each entry)
-//   sleep(ms)                bounded settle wait (e.g. after a modal-open click, before reading)
-//   esc()                    real ESC key (rawKeyDown+keyUp) — close an open modal/overlay
-//   clickAt(x,y[,postWaitMs]) real mouse click; postWaitMs defaults to 7000 (google nav wait), pass a
-//                            short value for quick clicks that poll their own completion (meta accordion)
-//   pollUntil(expr,opts)     poll an in-page boolean expr until true or timeout (event-driven settle)
-//   collectCreative({imageKey,imageFull,videoKey,videoFull,meta})
-//                            MODAL-DRIVEN per-ad collection (Meta): fetch THIS ad's creative asset(s) by the
-//                            full signed url + write images/ad-N.jpg (+ videos/ad-N.mp4 for video ads), build
-//                            ONE record with this ad's detail attached (1:1 by construction — no join). url-only
-//                            fallback on fetch failure; dedups on imageKey; honors the image budget. (google uses drain.)
-//   drain(meta, metaByKey, metaByAsset)
-//                            getResponseBody on buffered image/video (classifyResponse) responses → save + push.
-//                            `meta` merges into EVERY saved record; `metaByKey` (optional
-//                            { [dedupKey(url)]: extraMeta }) merges per-creative — the PRIMARY
-//                            deterministic image-URL join used to attach detail-modal fields
-//                            to the right creative (network order ≠ card order, so key-join).
-//                            `metaByAsset` (optional { [fbcdnAssetId(url)]: extraMeta }) is an ADDITIVE
-//                            FALLBACK consulted ONLY when the primary key misses — fbcdn serves one asset
-//                            under path/size variants whose dedupKeys differ; the asset-id index already
-//                            dropped any id ≥2 ads claimed, so only a unique non-conflicted detail attaches
-//                            (never another advertiser's, never an override of a primary match).
-//   flag(msg)                push a coverage flag
-//   limitReached() -> bool   image target hit or blocked
-//
+// Network.getResponseBody (CORS/paint-proof), dedup, output schema, finally-close + hard timeout.
+// Per-platform flow is injected by an adapter: { source, region, acceptModes, imgMatch(url), async collect(ctx) }.
+// collect(ctx) gets: queries · evalJs · goto · scroll · type · suggestions · clickAt · pollUntil · esc ·
+// collectCreative · drain · flag · limitReached · resetBuffer · sleep — each documented inline at its definition.
 // Non-intrusive: dedicated headless Chrome (default 9291), never bringToFront/activateTarget.
 import { realScroll, sleep, isBlocked, matchToolEntry } from "./lib.mjs";
 import { dedupKey, fbcdnAssetId, safeName, classifyResponse, buildCreativeRecord, appendKeyword, downloadVideoFile, downloadImageFile } from "./ad-source-helpers.mjs";
@@ -133,11 +101,9 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
         if (isBlocked(bodyText)) { result.blocked = true; return false; }
         return true;
       },
-      // Real keyboard entry. Input.insertText is browser-native and Korean/Unicode-safe
-      // (per-key dispatchKeyEvent drops Hangul via IME); it fires trusted input events that
-      // drive the page's autocomplete. NOT DOM value injection.
-      // Real text entry: focus the SOURCE'S search box (selector from the flow — not a guessed
-      // generic 'input') → Input.insertText (browser-native, Hangul-safe; NOT DOM value injection).
+      // Real text entry: focus the flow's search-box selector (not a guessed generic 'input') → Input.insertText
+      // (browser-native; fires trusted input events that drive autocomplete; Hangul-safe — unlike per-key
+      // dispatchKeyEvent which drops Hangul via IME — and NOT DOM value injection).
       type: async (text, { selector = "input", waitMs = 3000 } = {}) => {
         await evalJs(`document.querySelector(${JSON.stringify(selector)})?.focus()`);
         await sleep(400);
