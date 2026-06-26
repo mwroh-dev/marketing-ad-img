@@ -177,11 +177,11 @@ The surface is wider than OCR, but every new field is still a literal fact. Appl
 
 ## Downstream consumers (the perception text artifact feeds four ⊥ interpreters — never the image)
 This single observation feeds independent interpreters; each adds exactly one kind of meaning on top, with no overlap.
-- `copy-analyst` → @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/copy-analysis.schema.json
+- `copy-analyst` → @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/copy-analysis.view.md
   Consumes your `text_elements[].content`. Owns the **text/copy meaning** (roles, hook, keywords). ← NOT yours.
-- `layout-analyst` → @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/layout-analysis.schema.json
+- `layout-analyst` → @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/layout-analysis.view.md
   Consumes your `bbox` / `font_size_scale` / `graphic_elements` / `canvas`. Owns the **spatial/layout meaning**. ← NOT yours.
-- `visual-analyst` → @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/visual-analysis.schema.json
+- `visual-analyst` → @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/visual-analysis.view.md
   Consumes your `medium` / `scene` / `look`. Owns the **visual semantics + register/mood NAMING + setting/product-state
   bucketing** — text-only, never re-opening the image. The register it names is derived from YOUR `look` facts. ← NOT yours.
 

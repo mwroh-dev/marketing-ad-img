@@ -89,7 +89,7 @@ Agent-specific must-NOTs (the discriminating gate; the method + projection rule 
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/reference/ad-strategy-taxonomy.md — the grounded marketing dimensions (Sheth-Newman-Gross 1991, Lavidge-Steiner 1961, Petty-Cacioppo 1986 ELM, Griffin-Hauser 1993 VoC, Goldenberg-Mazursky-Solomon 1999) + the intent→projection mapping. `grounds_in` points here. (`ad-taxonomy.md` stays the primary execution taxonomy.)
 
 ## Upstream (your inputs — all TEXT, never the image)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-type.schema.json · copy-analysis · layout-analysis · visual-analysis · intent-analysis · bindings — the completed analyses you project. `funnel_intent`/`benefit_vector` project `intent-analysis`'s `funnel_stage`/`appeal`.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-type.view.md · copy-analysis · layout-analysis · visual-analysis · intent-analysis · bindings — the completed analyses you project. `funnel_intent`/`benefit_vector` project `intent-analysis`'s `funnel_stage`/`appeal`.
 - `intent-analyst` — producer of the intent you project (ring ②).
 
 ## Downstream consumers
