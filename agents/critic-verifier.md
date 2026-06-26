@@ -137,7 +137,7 @@ Agent-specific must-NOTs (the discriminating gate). critic-verifier IS the final
 ## References (I/O contract)
 
 ## Output contract (this agent emits)
-- ${CLAUDE_PLUGIN_ROOT}/schemas/generation/critic-verdict.schema.json — `{ verdicts[]{ candidate_id, pass, issues[], risk_flags[] }, overall_pass }`. Default `pass:false`; `overall_pass` = AND of all candidate `pass`.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/generation/critic-verdict.view.md — `{ verdicts[]{ candidate_id, pass, issues[], risk_flags[] }, overall_pass }`. Default `pass:false`; `overall_pass` = AND of all candidate `pass`.
 
 ## Upstream (this agent consumes)
 - ${CLAUDE_PLUGIN_ROOT}/agents/image-prompt-adapter.md — producer of the adapter outputs under review.

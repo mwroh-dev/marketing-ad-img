@@ -1,19 +1,53 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/critic-verdict.schema.json",
   "title": "CriticVerdict",
-  "description": "generation critic output — per-candidate PASS/FAIL + overall verdict.",
+  "description": "per-candidate PASS/FAIL + overall verdict",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["verdicts", "overall_pass"],
+  "required": [
+    "verdicts",
+    "overall_pass"
+  ],
   "properties": {
-    "verdicts": { "type": "array", "minItems": 1, "items": {
-      "type": "object", "additionalProperties": false, "required": ["candidate_id", "pass"],
-      "properties": {
-        "candidate_id": { "type": "string" },
-        "pass": { "type": "boolean" },
-        "issues": { "type": "array", "items": { "type": "string" } },
-        "risk_flags": { "type": "array", "items": { "type": "string" } } } } },
-    "overall_pass": { "type": "boolean" }
+    "verdicts": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "candidate_id",
+          "pass"
+        ],
+        "properties": {
+          "candidate_id": {
+            "type": "string"
+          },
+          "pass": {
+            "description": "true only when EVERY check cleared with nameable evidence (adversarial default false)",
+            "type": "boolean"
+          },
+          "issues": {
+            "description": "one concrete sentence per real defect — never fabricated",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "risk_flags": {
+            "description": "categorical tags: forbidden_claim/overclaim/near_duplicate/brand_mismatch/altered_korean/empty_verification/boundary_violation",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "overall_pass": {
+      "description": "AND of every candidate's pass",
+      "type": "boolean"
+    }
   }
 }
