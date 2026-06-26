@@ -157,7 +157,7 @@ Agent-specific must-NOTs (the discriminating gate). The pool must do the scout's
 ## Contract
 
 ## Output schema (I/O contract)
-- ${CLAUDE_PLUGIN_ROOT}/schemas/collection/competitor-candidate.schema.json — `CompetitorCandidatePool`:
+- @${CLAUDE_PLUGIN_ROOT}/schemas/collection/competitor-candidate.view.md — `CompetitorCandidatePool`:
   per-persona candidate pool, search/list-only fields. The output MUST validate against it.
 
 ## Driver scripts (shared/collect)

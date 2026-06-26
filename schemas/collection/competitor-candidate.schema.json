@@ -1,39 +1,108 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/competitor-candidate.schema.json",
   "title": "CompetitorCandidatePool",
-  "description": "discovery-scout output: a broad, per-persona candidate pool. Search/list only — no deep-collected fields.",
+  "description": "discovery-scout broad candidate pool (search/list only, recall-max)",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["product_id", "persona_id", "source_surfaces", "candidates"],
+  "required": [
+    "product_id",
+    "persona_id",
+    "source_surfaces",
+    "candidates"
+  ],
   "properties": {
-    "product_id": { "type": "string", "minLength": 1 },
-    "persona_id": { "type": "string", "minLength": 1 },
-    "seeds": { "type": "array", "items": { "type": "string" } },
+    "product_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "seeds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "source_surfaces": {
       "type": "array",
-      "items": { "type": "string", "enum": ["meta_ad_library", "google_ads_transparency"] }
+      "items": {
+        "anyOf": [
+          {
+            "const": "meta_ad_library",
+            "type": "string"
+          },
+          {
+            "const": "google_ads_transparency",
+            "type": "string"
+          }
+        ]
+      }
     },
     "candidates": {
       "type": "array",
       "items": {
-        "type": "object",
         "additionalProperties": false,
-        "required": ["name", "source_surface"],
+        "type": "object",
+        "required": [
+          "name",
+          "source_surface"
+        ],
         "properties": {
-          "name": { "type": "string", "minLength": 1 },
-          "seller": { "type": "string" },
-          "url": { "type": "string" },
-          "snippet": { "type": "string" },
-          "source_surface": { "type": "string", "enum": ["meta_ad_library", "google_ads_transparency"] },
-          "why_surfaced": { "type": "string" },
-          "persona_fit_score": { "type": "number" },
-          "is_seed": { "type": "boolean" }
+          "name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "seller": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "snippet": {
+            "type": "string"
+          },
+          "source_surface": {
+            "anyOf": [
+              {
+                "const": "meta_ad_library",
+                "type": "string"
+              },
+              {
+                "const": "google_ads_transparency",
+                "type": "string"
+              }
+            ]
+          },
+          "why_surfaced": {
+            "type": "string"
+          },
+          "persona_fit_score": {
+            "description": "optional curator hint — NEVER a discovery cutoff",
+            "type": "number"
+          },
+          "is_seed": {
+            "type": "boolean"
+          }
         }
       }
     },
-    "coverage_flags": { "type": "array", "items": { "type": "string" } },
-    "blocked_surfaces": { "type": "array", "items": { "type": "string" } },
-    "captured_at": { "type": "string" }
+    "coverage_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "blocked_surfaces": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "captured_at": {
+      "type": "string"
+    }
   }
 }

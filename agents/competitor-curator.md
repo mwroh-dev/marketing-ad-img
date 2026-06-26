@@ -137,14 +137,14 @@ Agent-specific must-NOTs (the discriminating gate). The most dangerous defect is
 ## References (I/O contract)
 
 ## Output contract (what this agent writes)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/collection/competitor.schema.json — `CompetitorSet`: the confirmed per-persona competitor
+- @${CLAUDE_PLUGIN_ROOT}/schemas/collection/competitor.view.md — `CompetitorSet`: the confirmed per-persona competitor
   set. Required `product_id`, `persona_id`, `competitors[]`; per-entry `competitor_id`/`name`/`status`
   (`proposed`|`confirmed`|`rejected`) plus `rationale`, `evidence_refs`, `source_target_ref`,
   `source_surface`, `url`, `relevance_criteria`, `confirmed_at`, `rejected_note`.
 
 ## Upstream (input — discovery-scout)
 - `discovery-scout` — produces the broad candidate pool this agent curates.
-- @${CLAUDE_PLUGIN_ROOT}/schemas/collection/competitor-candidate.schema.json — the candidate pool item contract. Shared
+- @${CLAUDE_PLUGIN_ROOT}/schemas/collection/competitor-candidate.view.md — the candidate pool item contract. Shared
   fields carried forward into the confirmed set: `name`, `seller`, `url`, `source_surface`
   (`meta_ad_library`|`google_ads_transparency`), and the surface+query provenance that becomes
   `source_target_ref`.

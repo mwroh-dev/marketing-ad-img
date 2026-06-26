@@ -1,38 +1,124 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/competitor-collection.schema.json",
   "title": "CompetitorCollection",
-  "description": "Per confirmed competitor (advertiser), the ad creatives collected from a public ad-transparency library (Meta Ad Library / Google Ads Transparency): creative images + meta. Feeds collection slicer → collection refiner. Distinct from competitor-candidate (discovery POOL) and competitor (confirmed set). Public, no login, no third-party-store scraping. Credential-free: never stores cookie/token/password.",
+  "description": "creatives collected from a public ad-transparency library (credential-free)",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["from", "confirmed_targets", "source", "collected", "products", "captured_at"],
+  "required": [
+    "from",
+    "confirmed_targets",
+    "source",
+    "collected",
+    "products",
+    "captured_at"
+  ],
   "properties": {
-    "from": { "type": "string", "minLength": 1 },
-    "confirmed_targets": { "type": "array", "items": { "type": "string" } },
-    "source": { "type": "string", "minLength": 1 },
-    "collected": { "type": "integer", "minimum": 1 },
-    "products": {
+    "from": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "confirmed_targets": {
       "type": "array",
-      "minItems": 1,
       "items": {
-        "type": "object",
+        "type": "string"
+      }
+    },
+    "source": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "collected": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "products": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
         "additionalProperties": false,
-        "required": ["idx", "query", "host", "title", "image_urls", "image_files", "reviews"],
+        "type": "object",
+        "required": [
+          "idx",
+          "query",
+          "host",
+          "title",
+          "image_urls",
+          "image_files",
+          "reviews"
+        ],
         "properties": {
-          "idx": { "type": "integer" },
-          "query": { "type": "string", "minLength": 1 },
-          "host": { "type": "string", "minLength": 1 },
-          "title": { "type": "string", "minLength": 1 },
-          "price": { "type": ["string", "null"] },
-          "rating": { "type": ["string", "null"] },
-          "reviewCount": { "type": ["string", "null"] },
-          "image_urls": { "type": "array", "items": { "type": "string" } },
-          "image_files": { "type": "array", "items": { "type": "string" } },
-          "review_count_collected": { "type": "integer" },
-          "reviews": { "type": "array", "items": { "type": "string" } }
+          "idx": {
+            "type": "integer"
+          },
+          "query": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "host": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reviewCount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "image_files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "review_count_collected": {
+            "type": "integer"
+          },
+          "reviews": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       }
     },
-    "captured_at": { "type": "string" }
+    "captured_at": {
+      "type": "string"
+    }
   }
 }
