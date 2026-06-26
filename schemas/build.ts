@@ -10,14 +10,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const SCHEMAS = dirname(fileURLToPath(import.meta.url));
 
 // ---- typed-view renderer (terse TS-like contract with inline intent comments) ----
-function unionLiterals(node: any): string[] | null {
-  const arr = node.anyOf ?? node.oneOf;
-  if (Array.isArray(arr) && arr.every((x: any) => "const" in x)) return arr.map((x: any) => JSON.stringify(x.const));
-  return null;
-}
 function tsType(node: any, indent: string): string {
-  const lits = unionLiterals(node);
-  if (lits) return lits.join("|");
+  // union (literals → "a"|"b"; types incl. null → string|null)
+  const u = node.anyOf ?? node.oneOf;
+  if (Array.isArray(u)) return u.map((x: any) => ("const" in x ? JSON.stringify(x.const) : tsType(x, indent))).join("|");
+  if (node.type === "null") return "null";
   if (node.type === "array") {
     const item = tsType(node.items, indent);
     return /[|]/.test(item) && !item.startsWith("{") ? `(${item})[]` : `${item}[]`;

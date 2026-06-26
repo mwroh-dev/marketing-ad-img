@@ -62,7 +62,7 @@ The schema validator checks SHAPE only (`synthesis` is a string). This is the LO
 > Apply each criterion to the agent's ACTUAL output on real data, at self-review and independent review. See `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/competitive-trend.schema.json — `CompetitiveTrend`: you fill `synthesis` (+ optional `confidence_note`); all other fields are produced upstream. Output MUST validate.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/competitive-trend.view.md — `CompetitiveTrend`: you fill `synthesis` (+ optional `confidence_note`); all other fields are produced upstream. Output MUST validate.
 - @${CLAUDE_PLUGIN_ROOT}/shared/collect/competitive-trend.mjs — deterministic `aggregateTrend({snapshots, today})`, ground truth; narrate, never overwrite. @${CLAUDE_PLUGIN_ROOT}/shared/harness/run-competitive-trend.ts globs the dated snapshots and writes the file.
 - @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-pattern.schema.json — optional corpus appeals (`copy_keywords_top_k`/`hook_top_k`) to narrate (never as a per-ad link).
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md — completion is verify-judged, real data only.

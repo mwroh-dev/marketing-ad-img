@@ -124,7 +124,7 @@ Agent-specific must-NOTs (the discriminating gate; the method is the *how*, this
 Canonical paths this agent reads or hands off to. Verify before relying.
 
 ## Output contract (what you produce)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/keyword-instance.schema.json — KeywordInstances schema. `{ product_id, persona_id, source_competitors?, instances:[{ canonical, variants?, slot, english_origin? }] }`. `slot` enum = product_category|feature|target|benefit|technique|other. `additionalProperties:false` — **no score/tf/df/rank fields.**
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/keyword-instance.view.md — KeywordInstances (the typed contract you emit). `{ product_id, persona_id, source_competitors?, instances:[{ canonical, variants?, slot, english_origin? }] }`. `slot` enum = product_category|feature|target|benefit|technique|other. `additionalProperties:false` — **no score/tf/df/rank fields.**
 
 ## Downstream consumer (the deterministic ranker — NOT you)
 - @${CLAUDE_PLUGIN_ROOT}/shared/collect/keyword-rank.mjs — pure, no-network, no-LLM ranking. `countOccurrences` → `computeStats` (tf with title ×2, df = distinct competitors) → `scoreKeywords` (weights tf .4 / df .4 / persona cue .2) → `rankByGroup` (per-slot top-k). Consumes your instances + raw corpus. Ranking is **its** job, never yours.

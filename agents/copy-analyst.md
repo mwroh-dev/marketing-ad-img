@@ -224,7 +224,7 @@ Canonical sources for this agent. Paths are repo-root relative and verified.
   meaning vs geometry, no overlap. If your reasoning invokes size/position, it belongs here.
 
 ## Downstream (where keywords go)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/keyword-instance.schema.json — `KeywordInstances`. ad-analyst
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/keyword-instance.view.md — `KeywordInstances`. ad-analyst
   normalizes this agent's `keywords[]` into ranked-later instances (slot enum
   product_category·feature·target·benefit·technique·other). Extract canonical surface forms; do NOT rank here.
 

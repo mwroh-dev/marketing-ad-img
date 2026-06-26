@@ -1,72 +1,198 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/competitive-trend.schema.json",
   "title": "CompetitiveTrend",
-  "description": "L3+ — per-persona competitive trend across DATED collection snapshots. Longevity (running_days = today − started_at, the only single-snapshot signal) + per-advertiser variation, plus cross-snapshot new/disappeared/cadence which appear ONLY with ≥2 dated snapshots. Honesty rule: temporal fields are OMITTED (never null/0-filled) when unsupported; every gap is a coverage_flag. synthesis (+ confidence_note) are added ON TOP by competitive-analyst (it recomputes nothing).",
+  "description": "per-persona competitive trend across dated snapshots (longevity + variation + change); temporal fields omitted when unsupported",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["persona_id", "snapshot_count", "dated_snapshot_count", "total_creatives", "tracked_ads", "ads", "longevity_top_k", "advertisers", "coverage_flags"],
+  "required": [
+    "persona_id",
+    "snapshot_count",
+    "dated_snapshot_count",
+    "total_creatives",
+    "tracked_ads",
+    "ads",
+    "longevity_top_k",
+    "advertisers",
+    "coverage_flags"
+  ],
   "properties": {
-    "persona_id": { "type": ["string", "null"] },
-    "snapshot_count": { "type": "integer", "minimum": 0, "description": "total snapshots aggregated (dated + undated); all contribute to longevity/variation" },
-    "dated_snapshot_count": { "type": "integer", "minimum": 0, "description": "subset with a parseable captured_at — the change-over-time basis (new/disappeared/cadence need ≥2)" },
-    "total_creatives": { "type": "integer", "minimum": 0 },
-    "tracked_ads": { "type": "integer", "minimum": 0, "description": "distinct ads tracked by library_id" },
+    "persona_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "snapshot_count": {
+      "minimum": 0,
+      "description": "total snapshots aggregated (dated + undated)",
+      "type": "integer"
+    },
+    "dated_snapshot_count": {
+      "minimum": 0,
+      "description": "subset with a parseable captured_at — change-over-time needs ≥2",
+      "type": "integer"
+    },
+    "total_creatives": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "tracked_ads": {
+      "minimum": 0,
+      "description": "distinct ads tracked by library_id",
+      "type": "integer"
+    },
     "ads": {
       "type": "array",
       "items": {
-        "type": "object",
         "additionalProperties": false,
-        "required": ["library_id"],
+        "type": "object",
+        "required": [
+          "library_id"
+        ],
         "properties": {
-          "library_id": { "type": "string", "minLength": 1 },
-          "advertiser_name": { "type": "string" },
-          "started_at": { "type": "string" },
-          "running_days": { "type": "integer", "minimum": 0, "description": "today − started_at; present only when started_at was captured" },
-          "platforms": { "type": "array", "items": { "type": "string" } },
-          "subtype": { "type": "string" },
-          "status": { "type": "string" },
-          "still_present": { "type": "boolean", "description": "appeared in the most recent dated snapshot; present only when the ad was seen in ≥1 dated snapshot" },
-          "observed_span_days": { "type": "integer", "minimum": 0, "description": "last_seen − first_seen; present only when the ad spans ≥2 dated snapshots" }
+          "library_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "advertiser_name": {
+            "type": "string"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "running_days": {
+            "minimum": 0,
+            "description": "today − started_at; present only when started_at was captured",
+            "type": "integer"
+          },
+          "platforms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subtype": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "still_present": {
+            "description": "appeared in the most recent dated snapshot; present only when seen in ≥1 dated snapshot",
+            "type": "boolean"
+          },
+          "observed_span_days": {
+            "minimum": 0,
+            "description": "last_seen − first_seen; present only when the ad spans ≥2 dated snapshots",
+            "type": "integer"
+          }
         }
       }
     },
     "longevity_top_k": {
+      "description": "ads with started_at ranked by running_days desc (longevity = winner proxy); ads lacking started_at are excluded, not zero-ranked",
       "type": "array",
-      "description": "ads with started_at ranked by running_days desc (longevity = winner proxy). Ads lacking started_at are excluded, not zero-ranked.",
       "items": {
-        "type": "object",
         "additionalProperties": false,
-        "required": ["library_id", "running_days"],
+        "type": "object",
+        "required": [
+          "library_id",
+          "running_days"
+        ],
         "properties": {
-          "library_id": { "type": "string" },
-          "running_days": { "type": "integer", "minimum": 0 },
-          "advertiser_name": { "type": "string" },
-          "status": { "type": "string" }
+          "library_id": {
+            "type": "string"
+          },
+          "running_days": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "advertiser_name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
         }
       }
     },
     "advertisers": {
+      "description": "per-advertiser creative variation (distinct ads) — available from a single snapshot",
       "type": "array",
-      "description": "per-advertiser creative variation (distinct ads) — available from a single snapshot.",
       "items": {
-        "type": "object",
         "additionalProperties": false,
-        "required": ["advertiser_name", "variation_count"],
+        "type": "object",
+        "required": [
+          "advertiser_name",
+          "variation_count"
+        ],
         "properties": {
-          "advertiser_name": { "type": "string", "minLength": 1 },
-          "variation_count": { "type": "integer", "minimum": 0 },
-          "platform_mix": { "type": "array", "items": { "type": "string" } }
+          "advertiser_name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "variation_count": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "platform_mix": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       }
     },
-    "new_since_last": { "type": "array", "items": { "type": "string" }, "description": "library_ids present in the latest dated snapshot but not the previous one. Absent (not []) when <2 dated snapshots." },
-    "disappeared_since_last": { "type": "array", "items": { "type": "string" }, "description": "library_ids in the previous dated snapshot but gone from the latest (turned off / ended). Absent when <2 dated snapshots." },
-    "cadence_new_ads_per_week": { "type": "number", "minimum": 0, "description": "new distinct ads first seen after the earliest snapshot, normalized per week. Absent when <2 dated snapshots or zero span." },
-    "today": { "type": ["string", "null"] },
-    "generated_at": { "type": "string" },
-    "coverage_flags": { "type": "array", "items": { "type": "string" } },
-    "synthesis": { "type": "string", "description": "Korean interpretive narrative added by competitive-analyst ON TOP of the deterministic numbers (recomputes nothing)." },
-    "confidence_note": { "type": "string" }
+    "new_since_last": {
+      "description": "library_ids in the latest dated snapshot but not the previous; ABSENT (not []) when <2 dated snapshots",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "disappeared_since_last": {
+      "description": "library_ids in the previous but gone from the latest; absent when <2 dated snapshots",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cadence_new_ads_per_week": {
+      "minimum": 0,
+      "description": "new distinct ads per week; absent when <2 dated snapshots or zero span",
+      "type": "number"
+    },
+    "today": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "coverage_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "synthesis": {
+      "description": "Korean interpretive narrative competitive-analyst adds ON TOP of the numbers (recomputes nothing)",
+      "type": "string"
+    },
+    "confidence_note": {
+      "type": "string"
+    }
   }
 }
