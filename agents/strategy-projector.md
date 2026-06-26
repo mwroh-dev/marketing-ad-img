@@ -83,7 +83,7 @@ Agent-specific must-NOTs (the discriminating gate; the method + projection rule 
 ## References (I/O contract)
 
 ## Output contract (this agent)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/strategy-projection.schema.json — the schema your JSON MUST conform to. `additionalProperties:false`; `grounds_in` REQUIRED.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/strategy-projection.view.md — the typed contract your output MUST match (validated against strategy-projection.schema.json; `grounds_in` REQUIRED).
 
 ## The basis (every dimension cites this)
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/reference/ad-strategy-taxonomy.md — the grounded marketing dimensions (Sheth-Newman-Gross 1991, Lavidge-Steiner 1961, Petty-Cacioppo 1986 ELM, Griffin-Hauser 1993 VoC, Goldenberg-Mazursky-Solomon 1999) + the intent→projection mapping. `grounds_in` points here. (`ad-taxonomy.md` stays the primary execution taxonomy.)
