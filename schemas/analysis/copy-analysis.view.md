@@ -1,9 +1,9 @@
-<!-- GENERATED from copy-analysis.ts by schemas/build.ts — do not edit by hand -->
+<!-- GENERATED from copy-analysis.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
 // text-role + hook + keywords, from L1 text content only
 copy-analysis = {
-  image_ref: string
-  persona_id: string
+  image_ref: string  // non-empty
+  persona_id: string  // non-empty
   copy_elements: {
     content: string  // verbatim from the perception text element it came from
     source_id?: string  // the perception text element id (t#) this came from — makes the role traceable without the image; omit only if no single element maps

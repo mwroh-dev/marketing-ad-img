@@ -1,9 +1,9 @@
-<!-- GENERATED from visual-analysis.ts by schemas/build.ts — do not edit by hand -->
+<!-- GENERATED from visual-analysis.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
 // visual semantics + register, derived from perception (text-only), ring 2 brand-free
 visual-analysis = {
-  image_ref: string
-  persona_id: string
+  image_ref: string  // non-empty
+  persona_id: string  // non-empty
   medium: "photo"|"illustration"|"render_3d"|"flat_graphic"|"composite"|"other"  // carried from perception.medium (the gate)
   scene_class: {
     setting: "studio_plain"|"lifestyle_indoor"|"lifestyle_outdoor"|"surface_flatlay"|"in_situ_use"|"abstract_graphic"|"other"

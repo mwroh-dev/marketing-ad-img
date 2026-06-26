@@ -23,22 +23,29 @@ function tsType(node: any, indent: string): string {
     return /[|]/.test(item) && !item.startsWith("{") ? `(${item})[]` : `${item}[]`;
   }
   if (node.type === "object") return renderObject(node, indent);
-  if (node.type === "number") return `number${node.minimum !== undefined || node.maximum !== undefined ? ` /*${node.minimum ?? ""}..${node.maximum ?? ""}*/` : ""}`;
+  if (node.type === "number" || node.type === "integer") return `${node.type === "integer" ? "int" : "number"}${node.minimum !== undefined || node.maximum !== undefined ? ` /*${node.minimum ?? ""}..${node.maximum ?? ""}*/` : ""}`;
   if (node.type === "boolean") return "boolean";
   return "string";
+}
+// surface validation constraints the model needs to FILL correctly (non-empty, min items) into the comment.
+function constraintNote(v: any): string[] {
+  const c: string[] = [];
+  if (v.type === "string" && v.minLength) c.push("non-empty");
+  if (v.type === "array" && v.minItems) c.push(`≥${v.minItems} item${v.minItems > 1 ? "s" : ""}`);
+  return c;
 }
 function renderObject(node: any, indent: string): string {
   const req = new Set<string>(node.required ?? []);
   const inner = indent + "  ";
   const lines = Object.entries(node.properties ?? {}).map(([k, v]: [string, any]) => {
-    const desc = v.description ? `  // ${v.description}` : "";
-    return `${inner}${k}${req.has(k) ? "" : "?"}: ${tsType(v, inner)}${desc}`;
+    const note = [...constraintNote(v), v.description].filter(Boolean).join("; ");
+    return `${inner}${k}${req.has(k) ? "" : "?"}: ${tsType(v, inner)}${note ? `  // ${note}` : ""}`;
   });
   return `{\n${lines.join("\n")}\n${indent}}`;
 }
 function viewMd(node: any, title: string): string {
   const head = node.description ? `// ${node.description}\n` : "";
-  return `<!-- GENERATED from ${title}.ts by schemas/build.ts — do not edit by hand -->\n\`\`\`ts\n${head}${title} = ${renderObject(node, "")}\n\`\`\`\n`;
+  return `<!-- GENERATED from ${title}.ts — the contract your output must match; regenerate via schemas/build.ts -->\n\`\`\`ts\n${head}${title} = ${renderObject(node, "")}\n\`\`\`\n`;
 }
 
 // ---- consumer projection (field-level: pick sub-fields, carry join keys) ----

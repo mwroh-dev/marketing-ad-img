@@ -1,8 +1,8 @@
-<!-- GENERATED from copy-analyst.text.ts by schemas/build.ts — do not edit by hand -->
+<!-- GENERATED from copy-analyst.text.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
 copy-analyst.text = {
-  image_ref: string
-  persona_id: string
+  image_ref: string  // non-empty
+  persona_id: string  // non-empty
   competitor_id?: string
   text_elements: {
     id?: string  // stable handle (t1,t2…) so downstream can reference it

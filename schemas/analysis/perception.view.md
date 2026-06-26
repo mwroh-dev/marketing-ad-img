@@ -1,9 +1,9 @@
-<!-- GENERATED from perception.ts by schemas/build.ts — do not edit by hand -->
+<!-- GENERATED from perception.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
 // literal observation of ONE ad image (axes 1-4), observe-only
 perception = {
-  image_ref: string
-  persona_id: string
+  image_ref: string  // non-empty
+  persona_id: string  // non-empty
   competitor_id?: string
   medium: "photo"|"illustration"|"render_3d"|"flat_graphic"|"composite"|"other"  // axis-3 GATE; gates the photo-only fields (omit them unless photo)
   canvas: {

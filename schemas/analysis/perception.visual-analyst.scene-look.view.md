@@ -1,8 +1,8 @@
-<!-- GENERATED from visual-analyst.scene-look.ts by schemas/build.ts — do not edit by hand -->
+<!-- GENERATED from visual-analyst.scene-look.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
 visual-analyst.scene-look = {
-  image_ref: string
-  persona_id: string
+  image_ref: string  // non-empty
+  persona_id: string  // non-empty
   competitor_id?: string
   medium: "photo"|"illustration"|"render_3d"|"flat_graphic"|"composite"|"other"  // axis-3 GATE; gates the photo-only fields (omit them unless photo)
   scene: {

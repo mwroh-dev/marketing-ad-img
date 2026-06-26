@@ -1,42 +1,225 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/ad-type.schema.json",
   "title": "AdType",
-  "description": "DRAFT v0 — the ad-type-classifier's output for ONE ad. TEXT-ONLY: derived from a perception artifact (never the image), ring 2 brand-free. Classifies the ad on established advertising theory and records the BASIS (grounds_in) so every classification is traceable to knowledge/reference/ad-taxonomy.md. message_basis = Puto & Wells (1984); execution_style = Belch & Belch / Kotler & Armstrong; ad_type = the routed seed adapter.",
+  "description": "the ad-type classification for ONE ad (text-only, ring 2), with grounds_in provenance",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["image_ref", "persona_id", "message_basis", "execution_style", "ad_type", "grounds_in"],
+  "required": [
+    "image_ref",
+    "persona_id",
+    "message_basis",
+    "execution_style",
+    "ad_type",
+    "grounds_in"
+  ],
   "properties": {
-    "image_ref": { "type": "string", "minLength": 1 },
-    "persona_id": { "type": "string", "minLength": 1 },
+    "image_ref": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
     "message_basis": {
-      "description": "Layer 1 — what carries the message (Puto & Wells, 1984).",
-      "type": "string",
-      "enum": ["informational", "transformational", "hybrid", "other"]
+      "description": "layer 1 — what carries the message (Puto & Wells 1984)",
+      "anyOf": [
+        {
+          "const": "informational",
+          "type": "string"
+        },
+        {
+          "const": "transformational",
+          "type": "string"
+        },
+        {
+          "const": "hybrid",
+          "type": "string"
+        },
+        {
+          "const": "other",
+          "type": "string"
+        }
+      ]
     },
     "execution_style": {
-      "description": "Layer 2 — the observable execution style (Belch & Belch; Kotler & Armstrong).",
-      "type": "string",
-      "enum": ["straight_sell", "scientific_evidence", "demonstration", "comparison", "testimonial", "slice_of_life", "lifestyle", "mood_image", "fantasy", "personality_symbol", "dramatization", "humor", "animation", "musical", "other"]
+      "description": "layer 2 — observable execution style (Belch & Belch; Kotler & Armstrong)",
+      "anyOf": [
+        {
+          "const": "straight_sell",
+          "type": "string"
+        },
+        {
+          "const": "scientific_evidence",
+          "type": "string"
+        },
+        {
+          "const": "demonstration",
+          "type": "string"
+        },
+        {
+          "const": "comparison",
+          "type": "string"
+        },
+        {
+          "const": "testimonial",
+          "type": "string"
+        },
+        {
+          "const": "slice_of_life",
+          "type": "string"
+        },
+        {
+          "const": "lifestyle",
+          "type": "string"
+        },
+        {
+          "const": "mood_image",
+          "type": "string"
+        },
+        {
+          "const": "fantasy",
+          "type": "string"
+        },
+        {
+          "const": "personality_symbol",
+          "type": "string"
+        },
+        {
+          "const": "dramatization",
+          "type": "string"
+        },
+        {
+          "const": "humor",
+          "type": "string"
+        },
+        {
+          "const": "animation",
+          "type": "string"
+        },
+        {
+          "const": "musical",
+          "type": "string"
+        },
+        {
+          "const": "other",
+          "type": "string"
+        }
+      ]
     },
     "secondary_execution_styles": {
       "type": "array",
-      "items": { "type": "string", "enum": ["straight_sell", "scientific_evidence", "demonstration", "comparison", "testimonial", "slice_of_life", "lifestyle", "mood_image", "fantasy", "personality_symbol", "dramatization", "humor", "animation", "musical", "other"] }
+      "items": {
+        "anyOf": [
+          {
+            "const": "straight_sell",
+            "type": "string"
+          },
+          {
+            "const": "scientific_evidence",
+            "type": "string"
+          },
+          {
+            "const": "demonstration",
+            "type": "string"
+          },
+          {
+            "const": "comparison",
+            "type": "string"
+          },
+          {
+            "const": "testimonial",
+            "type": "string"
+          },
+          {
+            "const": "slice_of_life",
+            "type": "string"
+          },
+          {
+            "const": "lifestyle",
+            "type": "string"
+          },
+          {
+            "const": "mood_image",
+            "type": "string"
+          },
+          {
+            "const": "fantasy",
+            "type": "string"
+          },
+          {
+            "const": "personality_symbol",
+            "type": "string"
+          },
+          {
+            "const": "dramatization",
+            "type": "string"
+          },
+          {
+            "const": "humor",
+            "type": "string"
+          },
+          {
+            "const": "animation",
+            "type": "string"
+          },
+          {
+            "const": "musical",
+            "type": "string"
+          },
+          {
+            "const": "other",
+            "type": "string"
+          }
+        ]
+      }
     },
     "ad_type": {
-      "description": "The routed seed adapter (knowledge/reference/ad-taxonomy.md routing table).",
-      "type": "string",
-      "enum": ["informational", "transformational", "social_proof", "default"]
+      "description": "the routed seed adapter (ad-taxonomy.md routing table)",
+      "anyOf": [
+        {
+          "const": "informational",
+          "type": "string"
+        },
+        {
+          "const": "transformational",
+          "type": "string"
+        },
+        {
+          "const": "social_proof",
+          "type": "string"
+        },
+        {
+          "const": "default",
+          "type": "string"
+        }
+      ]
     },
     "grounds_in": {
-      "description": "REQUIRED provenance — the citation(s) into ad-taxonomy.md this classification rests on (e.g. 'Puto & Wells (1984) informational; Belch & Belch demonstration'). A classification with no basis is a defect.",
-      "type": "string",
-      "minLength": 1
-    },
-    "reason": {
-      "description": "Which perception facts drove the call (text/scene/look evidence). Anti-hallucination trace.",
+      "minLength": 1,
+      "description": "REQUIRED provenance — the ad-taxonomy.md citation(s) this rests on; a classification with no basis is a defect",
       "type": "string"
     },
-    "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+    "reason": {
+      "description": "which perception facts drove the call (anti-hallucination trace)",
+      "type": "string"
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "const": "high",
+          "type": "string"
+        },
+        {
+          "const": "medium",
+          "type": "string"
+        },
+        {
+          "const": "low",
+          "type": "string"
+        }
+      ]
+    }
   }
 }

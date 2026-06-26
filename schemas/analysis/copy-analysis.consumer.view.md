@@ -1,8 +1,8 @@
-<!-- GENERATED from consumer.ts by schemas/build.ts — do not edit by hand -->
+<!-- GENERATED from consumer.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
 consumer = {
-  image_ref: string
-  persona_id: string
+  image_ref: string  // non-empty
+  persona_id: string  // non-empty
   copy_elements: {
     content: string  // verbatim from the perception text element it came from
     text_role: "headline"|"subcopy"|"CTA"|"badge"|"price"|"review_quote"|"spec_label"|"other"  // what the line DOES (function), not a keyword match

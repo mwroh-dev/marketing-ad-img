@@ -69,7 +69,7 @@ Agent-specific must-NOTs (the discriminating gate; the Classify steps are the *h
 ## References (I/O contract)
 
 ## Output contract (this agent)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-type.schema.json — the schema your JSON MUST conform to. `additionalProperties: false`; `grounds_in` REQUIRED.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-type.view.md — the typed contract your output MUST match (validated against ad-type.schema.json; `grounds_in` REQUIRED).
 
 ## The basis (every label cites this)
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/reference/ad-taxonomy.md — the grounded taxonomy: message_basis (Puto & Wells 1984), execution_style (Belch & Belch; Kotler & Armstrong), the Frazer (1983) strategy layer, the FCB (Vaughn 1980) exclusion, and the ad_type routing table. `grounds_in` points here.

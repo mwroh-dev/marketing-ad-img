@@ -1,8 +1,8 @@
-<!-- GENERATED from intent-analyst.ts by schemas/build.ts — do not edit by hand -->
+<!-- GENERATED from intent-analyst.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
 intent-analyst = {
-  image_ref: string
-  persona_id: string
+  image_ref: string  // non-empty
+  persona_id: string  // non-empty
   composition_type: "product_only"|"lifestyle"|"comparison_table"|"review_capture"|"spec_list"|"usage"|"price_emphasis"|"other"  // from GEOMETRY (bbox grid/placement/size), never from what the text says
   focal_point?: string  // the single highest visual-weight element (bbox area × size rank), named by geometry/position
   visual_hierarchy?: string[]  // elements ordered by descending geometric weight (size+position)

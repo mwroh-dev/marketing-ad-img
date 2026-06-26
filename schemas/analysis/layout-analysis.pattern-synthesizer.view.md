@@ -1,8 +1,8 @@
-<!-- GENERATED from pattern-synthesizer.ts by schemas/build.ts — do not edit by hand -->
+<!-- GENERATED from pattern-synthesizer.ts — the contract your output must match; regenerate via schemas/build.ts -->
 ```ts
 pattern-synthesizer = {
-  image_ref: string
-  persona_id: string
+  image_ref: string  // non-empty
+  persona_id: string  // non-empty
   composition_type: "product_only"|"lifestyle"|"comparison_table"|"review_capture"|"spec_list"|"usage"|"price_emphasis"|"other"  // from GEOMETRY (bbox grid/placement/size), never from what the text says
   text_density: "low"|"medium"|"high"  // summed text-bbox coverage + element count, not semantic heaviness
   whitespace_ratio?: number  // 1 − (element-bbox union / canvas), in [0,1]
