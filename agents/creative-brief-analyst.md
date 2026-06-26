@@ -177,7 +177,7 @@ Agent-specific must-NOTs (the discriminating gate). A schema-valid brief can sti
   forbidden-claims guard + principle selection + self-checklist.
 
 ## Upstream — your projected inputs (role-scoped, never the full set)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-opportunity.schema.json — **your PRIMARY gap source.** The
+- @${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-opportunity.view.md — **your PRIMARY gap source.** The
   precomputed `selected_opportunities[]` (strategic `selected_position` benefit×funnel + `source_matrix_evidence` +
   `brief_constraints`) from creative-opportunity-mapper. `differentiation` is taken from here; do not re-derive the gap.
 - ${CLAUDE_PLUGIN_ROOT}/schemas/setup/persona.schema.json — the chosen persona: `pains` / `desires` / `objections` /

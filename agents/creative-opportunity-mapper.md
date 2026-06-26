@@ -70,7 +70,7 @@ Agent-specific must-NOTs (the discriminating gate; the method is the *how*, this
 ## References (I/O contract)
 
 ## Output contract (this agent)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-opportunity.schema.json — the schema your JSON MUST conform to. `additionalProperties:false`.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-opportunity.view.md — the typed contract your output MUST match (validated against creative-opportunity.schema.json).
 
 ## Upstream (your input)
 - @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/market-position-matrix.view.md — the benefit×funnel matrix (crowded/whitespace/dominant/high_reusability/risks) you select from.
