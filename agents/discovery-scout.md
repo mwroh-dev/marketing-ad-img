@@ -112,11 +112,7 @@ Write the schema-conformant pool to
 
 ## Verification checklist — output
 
-The schema validator (`competitor-candidate.schema.json`) only checks **shape** — that fields exist, the
-`source_surface` enum holds, and no key outside the allowed set appears. Shape conformance does not mean the
-candidate pool is *correct*. This is the **logical** gate: a reviewer (or the agent at self-review) judges
-whether the pool genuinely does the scout's job — maximize recall, stay search/list-only, and flag gaps
-honestly. A schema-valid output that fails this checklist is still a defect.
+Agent-specific must-NOTs (the discriminating gate). The pool must do the scout's job — maximize recall, stay search/list-only, flag gaps honestly:
 
 
 ## Recall, not precision (the role's whole point)

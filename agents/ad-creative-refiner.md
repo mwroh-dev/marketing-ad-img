@@ -132,11 +132,7 @@ Emit exactly one JSON object, no prose:
 
 ## Verification checklist — output
 
-The schema validator (`validate-ad-creative.ts` against `ad-creative.schema.json`) only checks **shape** —
-that `type` is in the 6-value enum, `confidence` is in [0,1], and the fields exist. A shape-valid object can
-still be a wrong classification. This is the **logical** gate: a reviewer (or the agent at self-review) judges
-whether the TYPE call is *correct* — whether the image was judged by the strict persuasion-copy + designed-visual
-test, not by "text is present." A schema-valid output that fails this checklist is still a defect.
+Agent-specific must-NOTs (the discriminating gate). The TYPE call is judged by the strict persuasion-copy ∧ designed-visual test, never by "text is present":
 
 
 ## The TYPE test (judgment, not text-detection)

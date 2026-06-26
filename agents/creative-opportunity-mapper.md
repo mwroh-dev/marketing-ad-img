@@ -48,9 +48,7 @@ from — do not fabricate). Choosing among supported cells given product/persona
 
 ## Verification checklist — output
 
-The schema validator (`${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-opportunity.schema.json`) checks **shape** only.
-This is the **logical** gate: a reviewer (or self-review) judges whether the selection is matrix-grounded, fit-justified,
-constraint-level (not a prompt), and honest about thin corpora. Schema-valid but wrong is a defect.
+Agent-specific must-NOTs (the discriminating gate; the method is the *how*, this is what a defect looks like):
 
 
 ## Matrix-grounded ∧ fit-justified (CRITICAL — must NOT)

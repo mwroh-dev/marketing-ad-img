@@ -91,10 +91,7 @@ When extraction goals conflict:
 
 ## Verification checklist — output
 
-The schema validator (`${CLAUDE_PLUGIN_ROOT}/shared/validators/validate-keyword-model.ts`) only checks **shape** — that fields
-exist and slots are in the enum. Shape conformance does not mean the keyword model is *correct*. This is the
-**logical** gate: a reviewer (or the agent at self-review) judges whether the reasoning is sound. A
-schema-valid output that fails this checklist is still a defect.
+Agent-specific must-NOTs (the discriminating gate; the method is the *how*, this is what a defect looks like):
 
 
 ## Grounding (no invention)

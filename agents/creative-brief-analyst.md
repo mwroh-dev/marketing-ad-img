@@ -126,12 +126,7 @@ If persona JTBD / top objection or product USP+claims is **missing or contradict
 
 ## Verification checklist — output
 
-The schema validator (`creative-brief.schema.json`, `additionalProperties: false`) only checks **shape** —
-that `core_message`, the 4 angles, `evidence_refs`, `forbidden_claims`, `persona_id`/`product_id` exist and
-the `angle` enum is respected. A schema-valid brief can still be wrong: a generic core message, 4 angles that
-are one idea reworded, an angle grounded in nothing, or — worst — a forbidden claim smuggled into a
-`direction`. This is the **logical** gate: a reviewer (or the agent at self-review) judges whether the
-synthesis is *sound and faithful*, not just well-formed.
+Agent-specific must-NOTs (the discriminating gate). A schema-valid brief can still be wrong — a generic core message, 4 angles that are one idea reworded, an angle grounded in nothing, or (worst) a forbidden claim smuggled into a `direction`:
 
 
 ## Core message faithfulness (not generic)

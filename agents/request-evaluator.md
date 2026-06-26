@@ -115,12 +115,7 @@ Soft blocks alone never flip `ready` to false.
 
 ## Verification checklist — output
 
-The schema validator (`${CLAUDE_PLUGIN_ROOT}/schemas/evaluation/request-evaluation.schema.json`) only checks **shape** — that
-`detected_mode` is in the enum, every slot state is a valid token, `ready` is a boolean, blockers have the
-required fields. Shape conformance does not mean the evaluation is *correct*. This is the **logical** gate: a
-reviewer (or the agent at self-review) judges whether the *reasoning* is sound. A schema-valid output that
-fails this checklist is still a defect — and the defect that matters most here (false-positive `ready=true`)
-is invisible to the schema.
+Agent-specific must-NOTs (the discriminating gate). The defect that matters most here — a false-positive `ready=true` — is invisible to the schema:
 
 
 ## Mode detection (the right mode, not a plausible one)

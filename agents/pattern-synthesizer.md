@@ -97,10 +97,7 @@ Shape example (illustrative, not a template to paste; written in the consumer's 
 
 ## Verification checklist — output
 
-The schema validator (`${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-pattern.schema.json`) only checks **shape** — that `synthesis`
-is a string and the file's fields exist. Shape conformance does not mean the synthesis is *correct*. This is
-the **logical** gate: a reviewer (or the agent at self-review) judges whether the narrative is faithful to the
-deterministic aggregate. A schema-valid synthesis that fails this checklist is still a defect.
+Agent-specific must-NOTs (the discriminating gate; the method is the *how*, this is what a defect looks like):
 
 
 ## Consistency with the aggregate (the discriminating logic)

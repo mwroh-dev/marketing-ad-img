@@ -106,12 +106,7 @@ entries are collectable.
 
 ## Verification checklist — output
 
-The schema validator (`${CLAUDE_PLUGIN_ROOT}/schemas/collection/competitor.schema.json`) only checks **shape** — that fields
-exist, statuses are in the enum, required keys are present. Shape conformance does not mean the curation is
-*correct*. This is the **logical** gate: a reviewer (or the agent at self-review) judges whether the selection
-reasoning is sound and whether the HARD GATE was actually held. A schema-valid output that fails this checklist
-is still a defect — most dangerously, a
-fully-valid `competitors.json` whose entries were *auto-confirmed*.
+Agent-specific must-NOTs (the discriminating gate). The most dangerous defect is a fully-valid `competitors.json` whose entries were *auto-confirmed* — verify the selection reasoning AND that the HARD GATE held:
 
 
 ## Fit-driven ranking (the discriminating logic)

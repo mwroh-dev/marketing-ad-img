@@ -151,12 +151,7 @@ never invent asset IDs. Validate each output against
 
 ## Verification checklist — output
 
-The schema validator (`${CLAUDE_PLUGIN_ROOT}/schemas/generation/image-adapter-output.schema.json` + `${CLAUDE_PLUGIN_ROOT}/shared/validators/validate-candidate.ts`)
-only checks **shape** — that the required fields exist, `candidate_id` matches `^candidate_[0-9]{3}$`, and
-the two adapters are not byte-identical. Shape conformance does not mean the two artifacts are *correct*.
-This is the **logical** gate: a reviewer (or the agent at self-review) judges whether the conversion is sound
-— that the Korean copy survived intact, the two providers are genuinely specialized, and forbidden claims are
-steered against. A schema-valid output that fails this checklist is still a defect.
+Agent-specific must-NOTs (the discriminating gate; the method §1–6 is the *how*, this is what a defect looks like):
 
 
 ## Korean copy: byte-exact preservation (the non-negotiable)

@@ -131,13 +131,7 @@ Allowed = record it. Forbidden = omit it; it belongs downstream.
 
 ## Verification checklist — output
 
-The schema validator for `${CLAUDE_PLUGIN_ROOT}/schemas/analysis/perception.schema.json` only checks **shape** — that fields
-exist, bbox numbers are in range, enums are valid. Shape conformance does not mean the observation is *correct*.
-This is the **logical** gate: a reviewer (or the agent at self-review) judges whether the observation did its job.
-A schema-valid output that fails this checklist is still a defect.
-
-
-perception-extractor is **observational** — there is no reasoning to grade. So its logic is three things only:
+Agent-specific must-NOTs (the discriminating gate). perception-extractor is **observational** — there is no reasoning to grade, so its logic is three things only:
 **COMPLETENESS** (nothing observable missed, across geometry+text AND scene+look), **FIDELITY** (verbatim text +
 plausibly-measured geometry + literal scene/look facts), and **OBSERVE-ONLY** (zero impression / meaning). The
 first two are about not under-doing; the third about not over-doing. Both directions are failures.

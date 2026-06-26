@@ -93,19 +93,6 @@ Emit a top-level `style: { brand_tone, avoid }` on the plan:
 
 ---
 
-## SELF-CHECKLIST (run before emitting; all must pass)
-1. **Schema**: `persona_id` + `candidates[]` present; each candidate has `angle`, `headline`,
-   `cta`, `layout`; `layout` has `composition` + `text_density`. `additionalProperties:false`
-   everywhere — no extra keys.
-2. **Non-empty**: every `headline` and `cta` non-empty (minLength 1). `subcopy` is a string or null.
-3. **Forbidden-claim scan**: re-read each line against `forbidden_claims`. Zero matches/paraphrases.
-4. **Evidence trace**: every factual/superlative claim maps to a brief `evidence_ref`; unbacked
-   claims hedged or removed.
-5. **Per-angle distinctness**: 4 candidates, 4 angles, 4 distinct hooks/headlines. No duplicates.
-6. **Density↔angle consistency**: `visual_hierarchy`=low; others medium (high only if justified).
-7. **Authored-once**: copy is final, render-ready Korean — nothing left for a downstream "polish".
-8. **Style carried**: top-level `style.brand_tone` = the brief's `brand_tone` (verbatim) and `style.avoid` carries the forbidden/avoid items — so the adapter inherits the brand register, not a premium default.
-
 ## Failure modes (these = FAIL, not warnings)
 empty/duplicate copy across candidates · density inconsistent with angle · claim without evidence ·
 forbidden claim emitted · angle mismatch with brief · extra schema fields.
@@ -121,11 +108,7 @@ If a brief angle's `direction` or its `evidence_refs` is **missing/contradictory
 
 ## Verification checklist — output
 
-The schema validator (`${CLAUDE_PLUGIN_ROOT}/schemas/generation/copy-layout.schema.json`) only checks **shape** — that
-`persona_id` + `candidates[]` exist, each candidate carries `angle`/`headline`/`cta`/`layout`, and
-`text_density` is in the enum. Shape conformance does not mean the copy is *correct*. This is the
-**logical** gate: a reviewer (or the agent at self-review) judges whether the copy is claim-safe, distinct,
-and render-ready. A schema-valid plan that fails this checklist is still a defect.
+Agent-specific must-NOTs (the discriminating gate; the method is the *how*, this is what a defect looks like). Run this before emitting and again at output:
 
 
 ## Claim discipline (CRITICAL — the gate that overrides everything)

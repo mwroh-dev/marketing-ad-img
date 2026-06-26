@@ -97,18 +97,7 @@ If an `evidence_ref` is **missing, placeholder, or mismatched**, the Korean diff
 
 ## Verification checklist — output
 
-The schema validator (`critic-verdict.schema.json`) only checks **shape** — that each verdict has a
-`candidate_id`, a boolean `pass`, `issues[]`, `risk_flags[]`, and that `overall_pass` exists. A
-schema-valid verdict can still be *wrong*: it can approve a candidate that smuggles a forbidden claim,
-miss a near-duplicate, or invent a defect on a clean candidate. This is the **logical** gate — a
-reviewer (or the agent at self-review) judges whether the verdict's *judgment* is sound.
-
-critic-verifier IS the final gate of the whole system, so this checklist verifies the **verifier
-itself**: not "did it emit a well-formed verdict" but "did it catch what it exists to catch, and did
-it refrain from failing what is clean." A verdict that conforms to the schema but mis-judges any
-candidate is still a defect.
-
-Schema validity ≠ logical correctness. The verifier's whole value is the logical half; this file is it.
+Agent-specific must-NOTs (the discriminating gate). critic-verifier IS the final gate, so this verifies the **verifier itself** — not "did it emit a well-formed verdict" but "did it catch what it exists to catch, and refrain from failing what is clean":
 
 ## Catch-rate (the planted defects — must be 100%)
 - [ ] **Forbidden claim** caught: any `forbidden_claims` entry appearing anywhere — headline, subcopy, CTA, **or the embedded adapter `prompt`** — is FAILed with `risk_flag: forbidden_claim`, even when paraphrased or only present in the prompt surface (not just the spec).
