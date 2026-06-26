@@ -151,7 +151,7 @@ Canonical sources for this agent. Paths are repo-root relative and verified.
 ## Contract & method
 
 ## Schema (output I/O contract)
-- ${CLAUDE_PLUGIN_ROOT}/schemas/generation/copy-layout.schema.json — `CopyLayoutPlan` (generation output). Per-candidate
+- @${CLAUDE_PLUGIN_ROOT}/schemas/generation/copy-layout.view.md — `CopyLayoutPlan` (the typed contract you emit). Per-candidate
   `angle` enum {product_usp, persona_response, compelling_claim, visual_hierarchy}, `headline`,
   `subcopy` (string|null), `cta`, and the `layout` object (`composition`, `text_density`
   low|medium|high, optional `focal_point`/`whitespace`/`format`). `additionalProperties:false`.
