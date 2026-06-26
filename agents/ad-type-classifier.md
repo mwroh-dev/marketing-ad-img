@@ -95,7 +95,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 
 ## Upstream (your ONLY input — text, never the image)
 - @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/perception.schema.json — the perception artifact you read (text_elements content, medium, scene, look). You never open the image it describes.
-- @${CLAUDE_PLUGIN_ROOT}/agents/perception-extractor.md — the producer (ring ①, observe-only).
+- `perception-extractor` — the producer (ring ①, observe-only).
 
 ## Downstream (the routed adapter)
 - @${CLAUDE_PLUGIN_ROOT}/shared/collect/ad-type-registry.mjs — `getAdType(ad_type)` resolves the adapter whose `requires`/`gates` drive the deterministic `ad-type-gate` check. Each adapter's `grounds_in` cites the same taxonomy.

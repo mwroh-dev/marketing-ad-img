@@ -137,8 +137,8 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 ## References (I/O contract)
 
 ## Contract
-- @${CLAUDE_PLUGIN_ROOT}/agents/pattern-synthesizer.md — role, projected inputs/outputs, forbidden actions, handoff format.
-- @${CLAUDE_PLUGIN_ROOT}/agents/pattern-synthesizer.md — METHOD: narrate-the-numbers, no-recompute discipline, what a
+- `pattern-synthesizer` — role, projected inputs/outputs, forbidden actions, handoff format.
+- `pattern-synthesizer` — METHOD: narrate-the-numbers, no-recompute discipline, what a
   good per-persona pattern statement contains, thin/conflicting handling,
   self-checklist.
 

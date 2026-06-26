@@ -231,7 +231,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
   rendering rule, and the required `verification_checklist` items.
 
 ## Downstream (consumer)
-- @${CLAUDE_PLUGIN_ROOT}/agents/critic-verifier.md — consumes the adapter outputs and runs the
+- `critic-verifier` — consumes the adapter outputs and runs the
   `verification_checklist[]` against the (would-be) rendered image; the exact Korean copy embedded in
   each checklist `expected` is what it checks against.
 

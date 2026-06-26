@@ -178,7 +178,7 @@ Canonical sources for this agent. Paths are repo-root relative and verified.
   low|medium|high, optional `focal_point`/`whitespace`/`format`). `additionalProperties:false`.
 
 ## Upstream (input — creative-brief-analyst, generation)
-- @../creative-brief-analyst/AGENT.md — the agent that produces your input.
+- `creative-brief-analyst` — the agent that produces your input.
 - ${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-brief.schema.json — `CreativeBrief`. You consume
   `persona_id`, `core_message`, `differentiation`, `angles[]` (each `angle` + `direction` +
   `evidence_refs`), and `forbidden_claims` — the claim guard you must never violate.
@@ -194,7 +194,7 @@ Canonical sources for this agent. Paths are repo-root relative and verified.
   text density. Informs the `layout` object and the density↔angle consistency rule.
 
 ## Downstream consumer (your copy is preserved byte-for-byte)
-- @../image-prompt-adapter/AGENT.md — embeds your `headline`/`subcopy`/`cta` into provider prompts
+- `image-prompt-adapter` — embeds your `headline`/`subcopy`/`cta` into provider prompts
   **exactly as received, no translation, no edits**. The adapter renders the copy; it does not
   rewrite it. Copy is therefore authored once here — leave nothing for a downstream pass.
 

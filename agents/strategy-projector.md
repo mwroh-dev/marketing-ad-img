@@ -109,7 +109,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 
 ## Upstream (your inputs — all TEXT, never the image)
 - @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-type.schema.json · copy-analysis · layout-analysis · visual-analysis · intent-analysis · bindings — the completed analyses you project. `funnel_intent`/`benefit_vector` project `intent-analysis`'s `funnel_stage`/`appeal`.
-- @${CLAUDE_PLUGIN_ROOT}/agents/intent-analyst.md — producer of the intent you project (ring ②).
+- `intent-analyst` — producer of the intent you project (ring ②).
 
 ## Downstream consumers
 - @${CLAUDE_PLUGIN_ROOT}/shared/collect/market-position-aggregate.mjs — crosses your per-ad `(benefit_vector, funnel_intent)` into the persona's benefit×funnel matrix.

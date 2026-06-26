@@ -183,7 +183,7 @@ Canonical sources this agent reads and writes against. Paths are repo-root relat
   `text_elements[].bbox/font_size_scale/align`, `graphic_elements[].kind/bbox/border/
   placement`. You carry `image_ref` and `persona_id` through unchanged. Treat
   `text_elements[].content` as opaque — never interpret its meaning.
-- Producer: @${CLAUDE_PLUGIN_ROOT}/agents/perception-extractor.md
+- Producer: `perception-extractor`
   Mechanical extractor; emits standardized geometry+text with NO interpretation. Trust
   its bboxes/scales — do not re-extract geometry yourself.
 
@@ -195,15 +195,15 @@ Canonical sources this agent reads and writes against. Paths are repo-root relat
   mobile-first density caps.
 
 ## The ⊥ split (sibling — do NOT cross into)
-- @${CLAUDE_PLUGIN_ROOT}/agents/copy-analyst.md
+- `copy-analyst`
   copy-analyst reads the same perception artifact but only its text content (roles, hooks,
   keywords) and ignores coordinates and fonts. You are the orthogonal half: geometry only,
   meaning never. If a field requires the words to decide it, it belongs to copy-analyst.
 
 ## Method
-- @${CLAUDE_PLUGIN_ROOT}/agents/layout-analyst.md — composition typing, focal/hierarchy from
+- `layout-analyst` — composition typing, focal/hierarchy from
   geometry, comfort scoring, geometry-only discipline, self-checklist.
-- @${CLAUDE_PLUGIN_ROOT}/agents/layout-analyst.md — declarative contract (inputs, outputs, forbidden).
+- `layout-analyst` — declarative contract (inputs, outputs, forbidden).
 
 ## Completion / verification policy
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md

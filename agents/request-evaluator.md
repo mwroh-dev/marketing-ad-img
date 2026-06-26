@@ -187,11 +187,11 @@ Canonical sources this agent reads and writes against. Paths are repo-root relat
   evaluation output. Defines that a mode must not execute with any hard blocker.
 
 ## Method
-- @${CLAUDE_PLUGIN_ROOT}/agents/request-evaluator.md — step-by-step detection/classification/ready method.
-- @${CLAUDE_PLUGIN_ROOT}/agents/request-evaluator.md — declarative contract (inputs, what you do, forbidden).
+- `request-evaluator` — step-by-step detection/classification/ready method.
+- `request-evaluator` — declarative contract (inputs, what you do, forbidden).
 
 ## Downstream (who consumes your output)
-- @${CLAUDE_PLUGIN_ROOT}/agents/interview-controller.md
+- `interview-controller`
   When `ready = false`, interview-controller takes `next_interview_target` and turns the
   highest-priority hard blocker into a user-answerable question. After each answer is
   structured, request-evaluator re-runs. You never ask questions yourself.

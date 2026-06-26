@@ -206,7 +206,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
   and credibility cautions. Select by the persona's awareness state; keep principle text ⊥ brand facts.
 
 ## Downstream consumer
-- @../copy-layout-planner/AGENT.md — consumes your brief. It authors the final render-ready Korean copy
+- `copy-layout-planner` — consumes your brief. It authors the final render-ready Korean copy
   (`headline` / `subcopy` / `cta`) and the layout per format from your `angles` + `core_message` +
   `forbidden_claims`. You set message + direction + guard; it writes the strings. Do **not** pre-write
   headlines or translate/transliterate Korean — that is authored once, there.

@@ -224,11 +224,11 @@ Canonical sources for this agent. Paths are repo-root relative and verified.
   perception-extractor. You consume `text_elements[].content` ONLY. Ignore `bbox`,
   `font_size_scale`, `color_hex`, `bold`, `shadow`, `align`, `line_breaks` — those
   are geometry/typography for layout-analyst.
-- @../perception-extractor/AGENT.md — the upstream extractor's contract (mechanical, no
+- `perception-extractor` — the upstream extractor's contract (mechanical, no
   interpretation; tall detail-cuts may be split into multiple extractions).
 
 ## Sibling (the ⊥ split — geometry, not yours)
-- @../layout-analyst/AGENT.md — analyzes the SAME perception artifact's GEOMETRY only
+- `layout-analyst` — analyzes the SAME perception artifact's GEOMETRY only
   (composition, focal point, hierarchy, density, comfort). copy-analyst ⊥ layout-analyst:
   meaning vs geometry, no overlap. If your reasoning invokes size/position, it belongs here.
 

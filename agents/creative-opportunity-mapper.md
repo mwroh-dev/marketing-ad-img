@@ -82,6 +82,6 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/reference/ad-strategy-taxonomy.md — the positioning grounding (Ries & Trout; Kim & Mauborgne whitespace) + the benefit/funnel definitions. `grounds_in` may cite this.
 
 ## Downstream (your constraints feed the brief)
-- @${CLAUDE_PLUGIN_ROOT}/agents/creative-brief-analyst.md — consumes `selected_opportunities` (the precomputed gap/whitespace + `brief_constraints`) instead of re-deriving the category gap from `ad-pattern`. Your `brief_constraints` map into its `differentiation` / `forbidden_claims` / `key_messages` / angle `direction`s.
+- `creative-brief-analyst` — consumes `selected_opportunities` (the precomputed gap/whitespace + `brief_constraints`) instead of re-deriving the category gap from `ad-pattern`. Your `brief_constraints` map into its `differentiation` / `forbidden_claims` / `key_messages` / angle `direction`s.
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/reference/modes/image-generation.md — the runbook (this is generation stage-0, before the brief).
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md — completion = verify-decided. An ungrounded opportunity, a whitespace with no fit, or emitting a final prompt → FAIL.

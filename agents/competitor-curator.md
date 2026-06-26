@@ -152,7 +152,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
   `source_surface`, `url`, `relevance_criteria`, `confirmed_at`, `rejected_note`.
 
 ## Upstream (input — discovery-scout)
-- @${CLAUDE_PLUGIN_ROOT}/agents/discovery-scout.md — produces the broad candidate pool this agent curates.
+- `discovery-scout` — produces the broad candidate pool this agent curates.
 - @${CLAUDE_PLUGIN_ROOT}/schemas/collection/competitor-candidate.schema.json — the candidate pool item contract. Shared
   fields carried forward into the confirmed set: `name`, `seller`, `url`, `source_surface`
   (`meta_ad_library`|`google_ads_transparency`), and the surface+query provenance that becomes

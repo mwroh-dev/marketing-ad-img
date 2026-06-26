@@ -136,15 +136,15 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 
 ## Upstream (your ONLY input — text, never the image)
 - @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/perception.schema.json — the perception artifact you read: `medium`, `scene` (subjects/depicted/space/shot), `look` (lighting/brightness/finish), `canvas.dominant_colors`. You consume the text; you never open the image it describes.
-- @${CLAUDE_PLUGIN_ROOT}/agents/perception-extractor.md — the producer (ring ①, observe-only). The register you name is derived from the `look` facts it recorded.
+- `perception-extractor` — the producer (ring ①, observe-only). The register you name is derived from the `look` facts it recorded.
 
 ## Method & model
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/reference/axis-model.md — the axis model + context-rings (you are ring ②, brand-free) + the register-is-look-only decision.
 
 ## Siblings (⊥ lanes off the same perception artifact)
-- @${CLAUDE_PLUGIN_ROOT}/agents/copy-analyst.md — text meaning. @${CLAUDE_PLUGIN_ROOT}/agents/layout-analyst.md — spatial meaning. You own visual semantics + register; no overlap.
+- `copy-analyst` — text meaning. `layout-analyst` — spatial meaning. You own visual semantics + register; no overlap.
 
 ## Downstream consumers
 - @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-pattern.schema.json — the deterministic aggregator counts your enum labels (setting/register/palette) across the persona's images.
-- @${CLAUDE_PLUGIN_ROOT}/agents/intent-analyst.md — consumes your visual labels AND the look↔copy mismatch you flagged as a strategy signal (ring ②).
+- `intent-analyst` — consumes your visual labels AND the look↔copy mismatch you flagged as a strategy signal (ring ②).
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md — completion = verify-decided, not self-declaration. Peeking at the image, an ungrounded register, or a brand-fit judgement → FAIL.

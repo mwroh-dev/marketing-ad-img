@@ -166,7 +166,7 @@ Canonical contracts and neighbors for Flow B. Read these; do not duplicate their
 
 ## Upstream agent (supplies the blocker)
 
-- @${CLAUDE_PLUGIN_ROOT}/agents/request-evaluator.md
+- `request-evaluator`
   Produces the projected input: the single highest-priority blocker (`{slot, type}`), that slot's schema, and the current `interview-state`. When it reports `ready=false`, you run; when `ready`, the loop ends.
 
 ## Canonical docs
