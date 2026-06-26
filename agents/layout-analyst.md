@@ -169,7 +169,7 @@ Canonical sources this agent reads and writes against. Paths are repo-root relat
   `visual_hierarchy`, `whitespace_ratio`, `grid_pattern`.
 
 ## Upstream input (what you read)
-- Schema: @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/perception.schema.json
+- Schema: @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/perception.layout-analyst.geometry.view.md
   The L1 extraction you consume. You use geometry only: `canvas.aspect_ratio`,
   `text_elements[].bbox/font_size_scale/align`, `graphic_elements[].kind/bbox/border/
   placement`. You carry `image_ref` and `persona_id` through unchanged. Treat

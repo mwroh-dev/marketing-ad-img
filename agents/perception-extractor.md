@@ -168,7 +168,7 @@ The surface is wider than OCR, but every new field is still a literal fact. Appl
 ## References (I/O contract)
 
 ## Output contract (this agent)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/perception.schema.json — the schema your JSON MUST conform to.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/perception.view.md — the typed contract your output MUST match (validated against perception.schema.json).
   Literal observation only (geometry+text + scene+look + absence + confidence). `additionalProperties: false` everywhere — no extra fields.
 
 ## Method & model

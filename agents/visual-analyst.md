@@ -110,7 +110,7 @@ Agent-specific must-NOTs (the discriminating gate; method §1–5 is the *how*, 
 - @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/visual-analysis.schema.json — the schema your JSON MUST conform to. `additionalProperties: false` — no extra fields.
 
 ## Upstream (your ONLY input — text, never the image)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/perception.schema.json — the perception artifact you read: `medium`, `scene` (subjects/depicted/space/shot), `look` (lighting/brightness/finish), `canvas.dominant_colors`. You consume the text; you never open the image it describes.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/perception.visual-analyst.scene-look.view.md — the perception artifact you read: `medium`, `scene` (subjects/depicted/space/shot), `look` (lighting/brightness/finish), `canvas.dominant_colors`. You consume the text; you never open the image it describes.
 - `perception-extractor` — the producer (ring ①, observe-only). The register you name is derived from the `look` facts it recorded.
 
 ## Method & model

@@ -75,7 +75,7 @@ Agent-specific must-NOTs (the discriminating gate; the Classify steps are the *h
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/reference/ad-taxonomy.md — the grounded taxonomy: message_basis (Puto & Wells 1984), execution_style (Belch & Belch; Kotler & Armstrong), the Frazer (1983) strategy layer, the FCB (Vaughn 1980) exclusion, and the ad_type routing table. `grounds_in` points here.
 
 ## Upstream (your ONLY input — text, never the image)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/perception.schema.json — the perception artifact you read (text_elements content, medium, scene, look). You never open the image it describes.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/perception.ad-type-classifier.text-scene-look.view.md — the perception artifact you read (text_elements content, medium, scene, look). You never open the image it describes.
 - `perception-extractor` — the producer (ring ①, observe-only).
 
 ## Downstream (the routed adapter)

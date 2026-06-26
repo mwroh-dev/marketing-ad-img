@@ -211,7 +211,7 @@ Canonical sources for this agent. Paths are repo-root relative and verified.
   {question·contrast·result·empathy·number·other}, plus `sentence_patterns` and `keywords[]`.
 
 ## Upstream (input — read its CONTENT only)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/perception.schema.json — `Perception` from
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/perception.copy-analyst.text.view.md — your text projection of `Perception` from
   perception-extractor. You consume `text_elements[].content` ONLY. Ignore `bbox`,
   `font_size_scale`, `color_hex`, `bold`, `shadow`, `align`, `line_breaks` — those
   are geometry/typography for layout-analyst.
