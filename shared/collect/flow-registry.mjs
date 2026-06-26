@@ -1,6 +1,5 @@
-// Source registry (cf. Claude Code's tools.ts getAllBaseTools → getTools → assembleToolPool).
-// Each source registers by default-exporting its defineFlow() from flows/<source>/flow.mjs. Dispatch is by
-// `name` (collision-free, like mcp__server__tool). Adding a source = import it here; the harness needs no edit.
+// Source registry. Each source registers by default-exporting its defineFlow() from flows/<source>/flow.mjs.
+// Dispatch is by `name` (collision-free). Adding a source = import it here; the harness needs no edit.
 import meta from "../../flows/meta-ad-library/flow.mjs";
 import google from "../../flows/google-ads-transparency/flow.mjs";
 
