@@ -18,7 +18,7 @@ The image-prompt-adapter for `marketing-img` (generation stage).
 - exact Korean copy (`headline`, `subcopy`, `cta`)
 
 ## Outputs
-For each provider (`chatgpt_image`, `gemini_image`), one adapter output produced via the matching conventions (see the ChatGPT adapter conventions and Gemini adapter conventions sections below). Each output contains all of: `provider`, `candidate_id`, `prompt`, `negative_prompt`, `provider_notes`, `input_assets`, `expected_output`, `verification_checklist`, `retry_instruction_template`.
+For each provider (`chatgpt_image`, `gemini_image`), one adapter output produced via the per-platform differentiation (§1 below). Each output contains all of: `provider`, `candidate_id`, `prompt`, `negative_prompt`, `provider_notes`, `input_assets`, `expected_output`, `verification_checklist`, `retry_instruction_template`.
 
 Written to `.generate-ads-img/runs/{run_id}/generated-prompts/chatgpt.json` and `.../gemini.json`, each conforming to `${CLAUDE_PLUGIN_ROOT}/schemas/generation/image-adapter-output.schema.json`. Returns the paths.
 
@@ -47,8 +47,7 @@ Altered Korean text; missing required field; provider/format mismatch; checklist
 Convert one provider-neutral `CreativeCandidateSpec` into two provider-specific
 image-prompt artifacts (`chatgpt.json`, `gemini.json`). Prompt-only — no real image
 provider call. This file is the method; the contract lives in the agent body above, the
-per-provider conventions in the ChatGPT adapter conventions and Gemini adapter conventions
-sections below.
+per-provider conventions in §1 (the differentiation table) below.
 
 ## 1. Provider-neutral in → two differentiated outputs
 The input spec is provider-agnostic; specialize it twice. The two outputs MUST differ
@@ -214,10 +213,9 @@ steered against. A schema-valid output that fails this checklist is still a defe
   `negative_prompt`), product/asset placement, and canvas ratio.
 
 ## Implementation conventions (per-provider)
-- See the ChatGPT adapter conventions section below — `chatgpt_image` variant: natural-language scene paragraph,
-  negatives folded into the prompt body ("Do NOT include: …"), gpt-image sizes + crop note.
-- See the Gemini adapter conventions section below — `gemini_image` variant: descriptor stack, real
-  `negativePrompt` param, Imagen `aspectRatio` mapping, extra Korean-glyph-legibility check.
+- The per-provider DIFFERENCES live in §1 (the differentiation table) — `chatgpt_image`: natural-language
+  paragraph · folded negatives · gpt-image sizes; `gemini_image`: descriptor stack · real `negativePrompt` ·
+  Imagen `aspectRatio` · extra Korean-glyph check. The shared rules are the method (§2–6).
 - The two outputs MUST differ (`prompt`/`negative_prompt`/`provider_notes`) — `${CLAUDE_PLUGIN_ROOT}/shared/validators/validate-candidate.ts`
   fails byte-identical adapters.
 
@@ -235,150 +233,3 @@ steered against. A schema-valid output that fails this checklist is still a defe
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md — completion is judged by verify, not self-declaration;
   hollow/smoke artifacts FAIL. Byte-exact Korean copy, two differentiated outputs, and a non-hollow
   checklist are part of this lane's done criteria.
-
-## Bundle contract (pre-finalize)
-
-## ChatGPT adapter conventions
-
-## Purpose
-
-Translate a `CreativeCandidateSpec` (from `${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-candidate.schema.json`) into a ChatGPT-specific image prompt artifact conforming to `${CLAUDE_PLUGIN_ROOT}/schemas/generation/image-adapter-output.schema.json`. This is Flow G, adapter variant `chatgpt_image`. PROMPT GENERATION ONLY — these conventions never call the ChatGPT API.
-
-## Inputs
-
-| Field | Source |
-|---|---|
-| `creative_candidate_spec` | .generate-ads-img/runs/{run_id}/candidates/{candidate_id}.json |
-| `product_asset_metadata` | .generate-ads-img/registry/product-assets.yaml → ${CLAUDE_PLUGIN_ROOT}/schemas/setup/product-asset.schema.json |
-| `exact_korean_copy` | `{headline, subcopy, cta}` — taken verbatim from candidate spec |
-| `style` | `{brand_tone, avoid[]}` — the brand's actual voice (drives the visual register) + things to steer away from |
-| `run_id` | Current run context |
-
-All inputs are required.
-
-## Outputs
-
-Written to `.generate-ads-img/runs/{run_id}/generated-prompts/chatgpt.json`, conforming to `${CLAUDE_PLUGIN_ROOT}/schemas/generation/image-adapter-output.schema.json`:
-
-```
-adapter_id: chatgpt_image
-provider: chatgpt
-run_id: <run_id>
-outputs[]:
-  provider, candidate_id, prompt, negative_prompt, provider_notes,
-  input_assets[], expected_output{format, ratio, width?, height?},
-  verification_checklist[], retry_instruction_template
-```
-
-One output object per `candidate_id` (pattern `candidate_NNN`).
-
-## Rules
-
-1. PROMPT ONLY — never call, invoke, or simulate the ChatGPT API.
-2. Preserve exact Korean `headline`, `subcopy`, and `cta` byte-for-byte — no paraphrase, no translation, no truncation.
-3. `verification_checklist` MUST include ALL of the following checks:
-   - Korean headline text accuracy (exact character match)
-   - Korean subcopy text accuracy (exact character match)
-   - Korean CTA text accuracy (exact character match)
-   - Product visibility and prominence
-   - Layout and aspect ratio match (`expected_output.ratio`)
-   - No unsupported claims or fabricated product attributes
-   - Visual register matches `style.brand_tone` (NOT a defaulted premium/luxury/clean-commercial look — a critic would flag brand_mismatch otherwise)
-4. `retry_instruction_template` must be non-empty and include a placeholder for the specific failed check.
-5. `input_assets[]` must reference `asset_id` values from `.generate-ads-img/registry/product-assets.yaml`; never invent asset IDs.
-6. Validate output against `${CLAUDE_PLUGIN_ROOT}/schemas/generation/image-adapter-output.schema.json` before emitting.
-7. `candidate_id` must match pattern `candidate_[0-9]{3}`.
-
-## Platform conventions (tailor the prompt to ChatGPT, do NOT emit a generic prompt)
-
-The ChatGPT and Gemini outputs MUST differ — `${CLAUDE_PLUGIN_ROOT}/shared/validators/validate-candidate.ts` fails identical adapters. Apply gpt-image-1 / DALL·E 3 conventions:
-- **Visual register from `style.brand_tone`**: derive mood, lighting, finish, set-design, and color from `style.brand_tone` (the brand's actual voice). **NEVER default to a "premium / luxury / high-end / clean commercial / sophisticated / editorial" aesthetic unless `brand_tone` explicitly calls for it** — a premium framing on a non-premium brand is the `brand_mismatch` the critic fails. Honest → plain/natural/unstaged; energetic/playful → bright/dynamic; budget/raw → simple real-world set. Encode `style.avoid[]` + the brief's `forbidden_claims` into `negative_prompt` (and mirror into the "Do NOT include: …" clause), including wrong-register negatives (e.g. "no luxury/premium styling") for a non-premium brand.
-- **Style**: one flowing natural-language descriptive paragraph (scene narration), not a comma descriptor stack.
-- **Negatives**: gpt-image has NO native negative-prompt parameter → fold avoidances INTO the prompt body ("Do NOT include: …"). Still populate `negative_prompt` (the same avoid list) for the record.
-- **Size**: gpt-image supports 1024×1024 (1:1), 1024×1536 (2:3 portrait), 1536×1024 (3:2 landscape). Map the Meta ratio to the nearest supported size and note "generate at <size> then crop to <meta ratio>" in `provider_notes`; set `expected_output.width/height` to the generated size.
-- **Korean text**: gpt-image renders text fairly reliably; still instruct "render EXACTLY, character-for-character" and verify after.
-- Contract: the `image-prompt-adapter` agent + these conventions define the chatgpt output shape (schema `${CLAUDE_PLUGIN_ROOT}/schemas/generation/image-adapter-output.schema.json`).
-
-## Failure Modes
-
-| Failure | Action |
-|---|---|
-| Missing `exact_korean_copy` fields | Abort; do not substitute English or invent Korean text |
-| Output identical to the Gemini adapter | Abort; apply gpt-image conventions above |
-| `candidate_id` pattern mismatch | Abort; report invalid candidate ID |
-| Asset ID not found in registry | Abort; do not fabricate asset references |
-| Output fails schema validation | Fix violations; do not emit invalid artifact |
-| `verification_checklist` missing required checks | Add missing checks before emitting |
-
-## Gemini adapter conventions
-
-## Purpose
-
-Translate a `CreativeCandidateSpec` (from `${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-candidate.schema.json`) into a Gemini-specific image prompt artifact conforming to `${CLAUDE_PLUGIN_ROOT}/schemas/generation/image-adapter-output.schema.json`. This is Flow G, adapter variant `gemini_image`. PROMPT GENERATION ONLY — these conventions never call the Gemini API.
-
-## Inputs
-
-| Field | Source |
-|---|---|
-| `creative_candidate_spec` | .generate-ads-img/runs/{run_id}/candidates/{candidate_id}.json |
-| `product_asset_metadata` | .generate-ads-img/registry/product-assets.yaml → ${CLAUDE_PLUGIN_ROOT}/schemas/setup/product-asset.schema.json |
-| `exact_korean_copy` | `{headline, subcopy, cta}` — taken verbatim from candidate spec |
-| `style` | `{brand_tone, avoid[]}` — the brand's actual voice (drives the visual register) + things to steer away from |
-| `run_id` | Current run context |
-
-All inputs are required.
-
-## Outputs
-
-Written to `.generate-ads-img/runs/{run_id}/generated-prompts/gemini.json`, conforming to `${CLAUDE_PLUGIN_ROOT}/schemas/generation/image-adapter-output.schema.json`:
-
-```
-adapter_id: gemini_image
-provider: gemini
-run_id: <run_id>
-outputs[]:
-  provider, candidate_id, prompt, negative_prompt, provider_notes,
-  input_assets[], expected_output{format, ratio, width?, height?},
-  verification_checklist[], retry_instruction_template
-```
-
-One output object per `candidate_id` (pattern `candidate_NNN`).
-
-## Rules
-
-1. PROMPT ONLY — never call, invoke, or simulate the Gemini API.
-2. Preserve exact Korean `headline`, `subcopy`, and `cta` byte-for-byte — no paraphrase, no translation, no truncation.
-3. `verification_checklist` MUST include ALL of the following checks:
-   - Korean headline text accuracy (exact character match)
-   - Korean subcopy text accuracy (exact character match)
-   - Korean CTA text accuracy (exact character match)
-   - Product visibility and prominence
-   - Layout and aspect ratio match (`expected_output.ratio`)
-   - No unsupported claims or fabricated product attributes
-   - Visual register matches `style.brand_tone` (NOT a defaulted premium/luxury/clean-commercial look — a critic would flag brand_mismatch otherwise)
-4. `retry_instruction_template` must be non-empty and include a placeholder for the specific failed check.
-5. `input_assets[]` must reference `asset_id` values from `.generate-ads-img/registry/product-assets.yaml`; never invent asset IDs.
-6. Validate output against `${CLAUDE_PLUGIN_ROOT}/schemas/generation/image-adapter-output.schema.json` before emitting.
-7. `candidate_id` must match pattern `candidate_[0-9]{3}`.
-8. Note Gemini-specific constraints in `provider_notes` (e.g. image input formats, resolution limits, text rendering behavior).
-
-## Platform conventions (tailor the prompt to Gemini, do NOT emit a generic prompt)
-
-The Gemini and ChatGPT outputs MUST differ — `${CLAUDE_PLUGIN_ROOT}/shared/validators/validate-candidate.ts` fails identical adapters. Apply Imagen 3 / Gemini-native conventions:
-- **Visual register from `style.brand_tone`**: derive mood, lighting, finish, set-design, and color from `style.brand_tone` (the brand's actual voice). **NEVER default to a "premium / luxury / high-end / clean commercial / sophisticated / editorial" aesthetic unless `brand_tone` explicitly calls for it** — a premium framing on a non-premium brand is the `brand_mismatch` the critic fails. Honest → plain/natural/unstaged; energetic/playful → bright/dynamic; budget/raw → simple real-world set. Encode `style.avoid[]` + the brief's `forbidden_claims` into the real `negativePrompt` payload, including wrong-register negatives (e.g. "no luxury/premium styling") for a non-premium brand.
-- **Style**: concise, subject-first descriptor stack with photographic terms (e.g. "soft studio lighting, high detail"), not a long narrative paragraph.
-- **Negatives**: Imagen supports a real `negativePrompt` parameter → keep `negative_prompt` as the param payload; note in `provider_notes` that it is passed as `negativePrompt`.
-- **Aspect ratio**: Imagen supports `aspectRatio` of 1:1, 3:4, 4:3, 9:16, 16:9. Map the Meta ratio to the nearest (4:5 → 3:4, 1.91:1 → 16:9) and note "<aspectRatio> → crop to <meta ratio>" in `provider_notes`.
-- **Korean text**: Imagen text rendering is weaker → add an extra checklist item for Korean glyph legibility (no broken/merged strokes) and make `retry_instruction_template` emphasize enlarging text / simplifying background / separate text layer.
-- Contract: the `image-prompt-adapter` agent + these conventions define the gemini output shape (schema `${CLAUDE_PLUGIN_ROOT}/schemas/generation/image-adapter-output.schema.json`).
-
-## Failure Modes
-
-| Failure | Action |
-|---|---|
-| Missing `exact_korean_copy` fields | Abort; do not substitute English or invent Korean text |
-| Output identical to the ChatGPT adapter | Abort; apply Imagen conventions above |
-| `candidate_id` pattern mismatch | Abort; report invalid candidate ID |
-| Asset ID not found in registry | Abort; do not fabricate asset references |
-| Output fails schema validation | Fix violations; do not emit invalid artifact |
-| `verification_checklist` missing required checks | Add missing checks before emitting |
