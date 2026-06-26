@@ -1,80 +1,162 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/image-adapter-output.schema.json",
   "title": "Image adapter output file",
-  "description": "Provider-specific prompt artifacts. Written to .generate-ads-img/runs/{run_id}/generated-prompts/{provider}.json. Prompt-only; no real provider call.",
+  "description": "provider-specific prompt artifacts (prompt-only; no real provider call)",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["adapter_id", "provider", "run_id", "outputs"],
+  "required": [
+    "adapter_id",
+    "provider",
+    "run_id",
+    "outputs"
+  ],
   "properties": {
-    "adapter_id": { "type": "string", "enum": ["chatgpt_image", "gemini_image"] },
-    "provider": { "type": "string", "enum": ["chatgpt", "gemini"] },
-    "run_id": { "type": "string", "minLength": 1 },
+    "adapter_id": {
+      "anyOf": [
+        {
+          "const": "chatgpt_image",
+          "type": "string"
+        },
+        {
+          "const": "gemini_image",
+          "type": "string"
+        }
+      ]
+    },
+    "provider": {
+      "anyOf": [
+        {
+          "const": "chatgpt",
+          "type": "string"
+        },
+        {
+          "const": "gemini",
+          "type": "string"
+        }
+      ]
+    },
+    "run_id": {
+      "minLength": 1,
+      "type": "string"
+    },
     "outputs": {
-      "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/adapterOutput" }
-    }
-  },
-  "$defs": {
-    "adapterOutput": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "provider",
-        "candidate_id",
-        "prompt",
-        "negative_prompt",
-        "provider_notes",
-        "input_assets",
-        "expected_output",
-        "verification_checklist",
-        "retry_instruction_template"
-      ],
-      "properties": {
-        "provider": { "type": "string", "enum": ["chatgpt", "gemini"] },
-        "candidate_id": { "type": "string", "pattern": "^candidate_[0-9]{3}$" },
-        "prompt": { "type": "string", "minLength": 1 },
-        "negative_prompt": { "type": "string" },
-        "provider_notes": { "type": "string" },
-        "input_assets": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["asset_id", "role"],
-            "properties": {
-              "asset_id": { "type": "string" },
-              "role": { "type": "string" },
-              "path": { "type": "string" }
+      "description": "one per candidate",
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "description": "the 9-field per-candidate provider output",
+        "type": "object",
+        "required": [
+          "provider",
+          "candidate_id",
+          "prompt",
+          "negative_prompt",
+          "provider_notes",
+          "input_assets",
+          "expected_output",
+          "verification_checklist",
+          "retry_instruction_template"
+        ],
+        "properties": {
+          "provider": {
+            "anyOf": [
+              {
+                "const": "chatgpt",
+                "type": "string"
+              },
+              {
+                "const": "gemini",
+                "type": "string"
+              }
+            ]
+          },
+          "candidate_id": {
+            "pattern": "^candidate_[0-9]{3}$",
+            "type": "string"
+          },
+          "prompt": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "negative_prompt": {
+            "type": "string"
+          },
+          "provider_notes": {
+            "type": "string"
+          },
+          "input_assets": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "asset_id",
+                "role"
+              ],
+              "properties": {
+                "asset_id": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": "string"
+                }
+              }
             }
-          }
-        },
-        "expected_output": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["format", "ratio"],
-          "properties": {
-            "format": { "type": "string" },
-            "ratio": { "type": "string" },
-            "width": { "type": "integer" },
-            "height": { "type": "integer" }
-          }
-        },
-        "verification_checklist": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "object",
+          },
+          "expected_output": {
             "additionalProperties": false,
-            "required": ["check", "expected"],
+            "type": "object",
+            "required": [
+              "format",
+              "ratio"
+            ],
             "properties": {
-              "check": { "type": "string" },
-              "expected": { "type": "string" }
+              "format": {
+                "type": "string"
+              },
+              "ratio": {
+                "type": "string"
+              },
+              "width": {
+                "type": "integer"
+              },
+              "height": {
+                "type": "integer"
+              }
             }
+          },
+          "verification_checklist": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "check",
+                "expected"
+              ],
+              "properties": {
+                "check": {
+                  "type": "string"
+                },
+                "expected": {
+                  "description": "the literal copy string to verify — never a hollow 'headline correct'",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "retry_instruction_template": {
+            "minLength": 1,
+            "description": "with a placeholder for the specific failed check",
+            "type": "string"
           }
-        },
-        "retry_instruction_template": { "type": "string", "minLength": 1 }
+        }
       }
     }
   }

@@ -194,7 +194,7 @@ Agent-specific must-NOTs (the discriminating gate; the method §1–6 is the *ho
 ## References (I/O contract)
 
 ## Output contract (what this agent writes)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/generation/image-adapter-output.schema.json — the per-provider artifact file written to
+- @${CLAUDE_PLUGIN_ROOT}/schemas/generation/image-adapter-output.view.md — the per-provider artifact file written to
   `.generate-ads-img/runs/{run_id}/generated-prompts/{provider}.json`. Top-level `adapter_id`
   (`chatgpt_image`|`gemini_image`), `provider` (`chatgpt`|`gemini`), `run_id`, `outputs[]`. Each
   `outputs[]` item requires `provider`, `candidate_id` (`^candidate_[0-9]{3}$`), `prompt`,
