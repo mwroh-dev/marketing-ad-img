@@ -1,39 +1,95 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/user-answer.schema.json",
   "title": "User answer artifact",
-  "description": "Every interview answer becomes one of these. Raw text is preserved verbatim; normalized slot updates are derived. One answer may update multiple slots.",
+  "description": "an interview answer — raw text verbatim + derived normalized slot updates",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["answer_id", "run_id", "raw_answer", "for_blocker", "normalized_slot_updates"],
+  "required": [
+    "answer_id",
+    "run_id",
+    "raw_answer",
+    "for_blocker",
+    "normalized_slot_updates"
+  ],
   "properties": {
-    "answer_id": { "type": "string", "minLength": 1 },
-    "run_id": { "type": "string", "minLength": 1 },
-    "raw_answer": { "type": "string" },
-    "for_blocker": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["slot"],
-      "properties": {
-        "slot": { "type": "string" },
-        "question": { "type": "string" }
-      }
+    "answer_id": {
+      "minLength": 1,
+      "type": "string"
     },
-    "normalized_slot_updates": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["slot", "value", "resulting_state"],
-        "properties": {
-          "slot": { "type": "string" },
-          "value": {},
-          "resulting_state": { "type": "string", "enum": ["missing", "insufficient", "filled", "confirmed"] },
-          "evidence_refs": { "type": "array", "items": { "type": "string" } }
+    "run_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "raw_answer": {
+      "description": "preserved VERBATIM — never paraphrased",
+      "type": "string"
+    },
+    "for_blocker": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "slot"
+      ],
+      "properties": {
+        "slot": {
+          "type": "string"
+        },
+        "question": {
+          "type": "string"
         }
       }
     },
-    "notes": { "type": "string" }
+    "normalized_slot_updates": {
+      "minItems": 1,
+      "description": "one answer may update multiple slots",
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "slot",
+          "value",
+          "resulting_state"
+        ],
+        "properties": {
+          "slot": {
+            "type": "string"
+          },
+          "value": {
+            "description": "the structured value (any shape)"
+          },
+          "resulting_state": {
+            "anyOf": [
+              {
+                "const": "missing",
+                "type": "string"
+              },
+              {
+                "const": "insufficient",
+                "type": "string"
+              },
+              {
+                "const": "filled",
+                "type": "string"
+              },
+              {
+                "const": "confirmed",
+                "type": "string"
+              }
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
   }
 }

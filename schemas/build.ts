@@ -29,6 +29,7 @@ function tsType(node: any, indent: string): string {
   }
   if (node.type === "number" || node.type === "integer") return `${node.type === "integer" ? "int" : "number"}${node.minimum !== undefined || node.maximum !== undefined ? ` /*${node.minimum ?? ""}..${node.maximum ?? ""}*/` : ""}`;
   if (node.type === "boolean") return "boolean";
+  if (!node.type && !node.$ref) return "any"; // empty/unconstrained schema (e.g. value: {})
   return "string";
 }
 // surface validation constraints the model needs to FILL correctly (non-empty, min items) into the comment.

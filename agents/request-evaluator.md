@@ -159,7 +159,7 @@ Agent-specific must-NOTs (the discriminating gate). The defect that matters most
 Canonical sources this agent reads and writes against. Paths are repo-root relative.
 
 ## Output contract (what you emit)
-- Schema: @${CLAUDE_PLUGIN_ROOT}/schemas/evaluation/request-evaluation.schema.json
+- Schema: @${CLAUDE_PLUGIN_ROOT}/schemas/evaluation/request-evaluation.view.md
   The single JSON object you return must validate against this. Required keys:
   `run_id, detected_mode, required_slots, slot_states, blockers, ready,
   next_interview_target`. Enums: `detected_mode`, `slot_states[].state`

@@ -149,10 +149,10 @@ Canonical contracts and neighbors for Flow B. Read these; do not duplicate their
 
 ## Schemas (I/O contracts)
 
-- @${CLAUDE_PLUGIN_ROOT}/schemas/evaluation/interview-state.schema.json
+- @${CLAUDE_PLUGIN_ROOT}/schemas/evaluation/interview-state.view.md
   The loop state you read each turn: `status` (`in_progress`/`ready`/`cancelled`/`stopped`), per-slot `state` (`missing`/`insufficient`/`filled`/`confirmed`), and `active_blocker` (`{slot, type: hard_block|soft_block, question?}`). Loop while `active_blocker` is non-null and `status: in_progress`.
 
-- @${CLAUDE_PLUGIN_ROOT}/schemas/evaluation/user-answer.schema.json
+- @${CLAUDE_PLUGIN_ROOT}/schemas/evaluation/user-answer.view.md
   The structured artifact produced from each raw reply. Raw text is preserved verbatim; normalized slot updates are derived. **You do not write this** — `user-answer-tooling` does. Referenced so you know what shape the answer becomes downstream.
 
 ## Downstream skill (structures the answer)

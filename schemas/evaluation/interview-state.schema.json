@@ -1,41 +1,124 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/interview-state.schema.json",
   "title": "Interview state",
-  "description": "Criteria-driven interview loop state. Not question-count based; tracks slot resolution until hard blockers clear.",
+  "description": "criteria-driven interview loop state — tracks slot resolution until hard blockers clear",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["run_id", "mode", "status", "slots"],
+  "required": [
+    "run_id",
+    "mode",
+    "status",
+    "slots"
+  ],
   "properties": {
-    "run_id": { "type": "string", "minLength": 1 },
-    "mode": { "type": "string" },
-    "status": { "type": "string", "enum": ["in_progress", "ready", "cancelled", "stopped"] },
+    "run_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "mode": {
+      "type": "string"
+    },
+    "status": {
+      "anyOf": [
+        {
+          "const": "in_progress",
+          "type": "string"
+        },
+        {
+          "const": "ready",
+          "type": "string"
+        },
+        {
+          "const": "cancelled",
+          "type": "string"
+        },
+        {
+          "const": "stopped",
+          "type": "string"
+        }
+      ]
+    },
     "slots": {
       "type": "array",
       "items": {
-        "type": "object",
         "additionalProperties": false,
-        "required": ["name", "state"],
+        "type": "object",
+        "required": [
+          "name",
+          "state"
+        ],
         "properties": {
-          "name": { "type": "string" },
-          "state": { "type": "string", "enum": ["missing", "insufficient", "filled", "confirmed"] },
+          "name": {
+            "type": "string"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "const": "missing",
+                "type": "string"
+              },
+              {
+                "const": "insufficient",
+                "type": "string"
+              },
+              {
+                "const": "filled",
+                "type": "string"
+              },
+              {
+                "const": "confirmed",
+                "type": "string"
+              }
+            ]
+          },
           "value": {},
-          "evidence_refs": { "type": "array", "items": { "type": "string" } },
-          "answer_refs": { "type": "array", "items": { "type": "string" } }
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "answer_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       }
     },
     "active_blocker": {
-      "oneOf": [
-        { "type": "null" },
+      "anyOf": [
         {
-          "type": "object",
+          "type": "null"
+        },
+        {
           "additionalProperties": false,
-          "required": ["slot", "type"],
+          "type": "object",
+          "required": [
+            "slot",
+            "type"
+          ],
           "properties": {
-            "slot": { "type": "string" },
-            "type": { "type": "string", "enum": ["hard_block", "soft_block"] },
-            "question": { "type": "string" }
+            "slot": {
+              "type": "string"
+            },
+            "type": {
+              "anyOf": [
+                {
+                  "const": "hard_block",
+                  "type": "string"
+                },
+                {
+                  "const": "soft_block",
+                  "type": "string"
+                }
+              ]
+            },
+            "question": {
+              "type": "string"
+            }
           }
         }
       ]
@@ -43,12 +126,22 @@
     "history": {
       "type": "array",
       "items": {
-        "type": "object",
         "additionalProperties": false,
-        "required": ["answer_ref", "slots_updated"],
+        "type": "object",
+        "required": [
+          "answer_ref",
+          "slots_updated"
+        ],
         "properties": {
-          "answer_ref": { "type": "string" },
-          "slots_updated": { "type": "array", "items": { "type": "string" } }
+          "answer_ref": {
+            "type": "string"
+          },
+          "slots_updated": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       }
     }
