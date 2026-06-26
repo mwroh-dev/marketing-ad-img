@@ -1,59 +1,172 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/artifact-envelope.schema.json",
   "title": "ArtifactEnvelope",
-  "description": "Lineage envelope wrapping ONE analysis or generation artifact in the global, persona-keyed store (STATE_DIR/store/{persona_id}/...). It records what produced the artifact — its chain (derived_from), the shared pattern it belongs to (pattern_tag = its peers), and which version of the shared logic stamped it (logic_version) — so a human review can ask 'why is this like this?', compare it to siblings, and tell what a logic change makes stale. See knowledge/reference/provenance-lineage.md.",
+  "description": "lineage envelope: chain + pattern_tag + logic_version stamping ONE stored artifact",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["kind", "key", "pattern_tag", "derived_from", "logic_version", "produced_by", "stamped_at", "payload"],
+  "required": [
+    "kind",
+    "key",
+    "pattern_tag",
+    "derived_from",
+    "logic_version",
+    "produced_by",
+    "stamped_at",
+    "payload"
+  ],
   "properties": {
     "kind": {
-      "type": "string",
-      "enum": ["perception", "copy", "layout", "visual", "intent", "strategy", "ad-type", "ad-type-gate", "bindings", "opportunity", "brief", "candidate"]
+      "anyOf": [
+        {
+          "const": "perception",
+          "type": "string"
+        },
+        {
+          "const": "copy",
+          "type": "string"
+        },
+        {
+          "const": "layout",
+          "type": "string"
+        },
+        {
+          "const": "visual",
+          "type": "string"
+        },
+        {
+          "const": "intent",
+          "type": "string"
+        },
+        {
+          "const": "strategy",
+          "type": "string"
+        },
+        {
+          "const": "ad-type",
+          "type": "string"
+        },
+        {
+          "const": "ad-type-gate",
+          "type": "string"
+        },
+        {
+          "const": "bindings",
+          "type": "string"
+        },
+        {
+          "const": "opportunity",
+          "type": "string"
+        },
+        {
+          "const": "brief",
+          "type": "string"
+        },
+        {
+          "const": "candidate",
+          "type": "string"
+        }
+      ]
     },
     "key": {
-      "type": "object",
       "additionalProperties": false,
-      "required": ["persona_id"],
-      "description": "Identity (persona + image/candidate) + provenance of where it came from (run). The run is provenance only — the identity is the ad or the candidate.",
+      "description": "identity (persona + image/candidate) + provenance (run)",
+      "type": "object",
+      "required": [
+        "persona_id"
+      ],
       "properties": {
-        "persona_id": { "type": "string", "minLength": 1 },
-        "image_ref": { "type": "string", "description": "analysis artifacts — the ad's stable image join key" },
-        "candidate_id": { "type": "string", "description": "generation artifacts — the candidate id" },
-        "run_id": { "type": "string", "description": "the collection/generation run this came from (provenance, NOT the directory key)" }
+        "persona_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "image_ref": {
+          "description": "analysis — the ad's stable image join key",
+          "type": "string"
+        },
+        "candidate_id": {
+          "description": "generation — the candidate id",
+          "type": "string"
+        },
+        "run_id": {
+          "description": "provenance, NOT the directory key",
+          "type": "string"
+        }
       }
     },
     "pattern_tag": {
-      "type": "string",
       "minLength": 1,
-      "description": "The shared pattern this item belongs to → its peers (same pattern_tag = made the same way). Analysis: \"{ad_type}:{benefit}×{funnel}\". Generation: the opportunity position. Used to compare an item against siblings to localize a fault."
+      "description": "shared pattern → peers. analysis: {ad_type}:{benefit}×{funnel}; generation: the opportunity position",
+      "type": "string"
     },
     "derived_from": {
+      "description": "the chain — parent envelopes this was built from (machine-resolvable)",
       "type": "array",
-      "description": "The chain — the parent envelopes this artifact was built from (machine-resolvable lineage). perception is a root (empty or [image]); copy/layout/visual/ad-type ← perception; intent ← copy+layout+visual+bindings; strategy ← ad-type+intent+visual+copy; ad-type-gate ← ad-type+the analyses.",
       "items": {
-        "type": "object",
         "additionalProperties": false,
-        "required": ["kind", "ref"],
+        "type": "object",
+        "required": [
+          "kind",
+          "ref"
+        ],
         "properties": {
-          "kind": { "type": "string" },
-          "ref": { "type": "string", "minLength": 1, "description": "store-relative path of the parent envelope, e.g. \"{persona}/{image_ref}/perception.json\"" }
+          "kind": {
+            "type": "string"
+          },
+          "ref": {
+            "minLength": 1,
+            "description": "store-relative path of the parent envelope",
+            "type": "string"
+          }
         }
       }
     },
     "logic_version": {
-      "type": "object",
       "additionalProperties": false,
-      "required": ["version", "method"],
-      "description": "Which version of the shared logic produced this. git sha of the plugin (method=git) or a content-hash of the logic dirs for a shipped non-git plugin (method=content). A change here marks prior artifacts in scope stale.",
+      "description": "which version of the shared logic produced this (a change marks prior artifacts stale)",
+      "type": "object",
+      "required": [
+        "version",
+        "method"
+      ],
       "properties": {
-        "version": { "type": "string", "minLength": 1 },
-        "method": { "type": "string", "enum": ["git", "content"] },
-        "dirty": { "type": "boolean", "description": "git only — uncommitted logic changes were present at stamp time" }
+        "version": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "method": {
+          "anyOf": [
+            {
+              "const": "git",
+              "type": "string"
+            },
+            {
+              "const": "content",
+              "type": "string"
+            }
+          ]
+        },
+        "dirty": {
+          "description": "git only — uncommitted logic changes at stamp time",
+          "type": "boolean"
+        }
       }
     },
-    "produced_by": { "type": "string", "minLength": 1, "description": "the agent or script that emitted the payload" },
-    "stamped_at": { "type": "string", "minLength": 1, "description": "ISO timestamp when persisted" },
-    "payload": { "type": "object", "description": "the artifact itself — conforms to its own schemas/analysis|generation/*.schema.json" }
+    "produced_by": {
+      "minLength": 1,
+      "description": "the agent or script that emitted the payload",
+      "type": "string"
+    },
+    "stamped_at": {
+      "minLength": 1,
+      "description": "ISO timestamp when persisted",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": true,
+      "description": "the artifact itself — conforms to its own schema",
+      "type": "object",
+      "properties": {}
+    }
   }
 }

@@ -1,48 +1,135 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/logic-change.schema.json",
   "title": "LogicChange",
-  "description": "A global audit record of a change to the SHARED analysis/generation logic, triggered by a human review finding in validate-recipe. The as-is/to-be/diff of the logic IS the git commit (commit_sha) — this record adds the human-provenance (which ad exposed it, the finding, the Q&A) + the impact (what the change makes stale). Append-only at STATE_DIR/audit/logic-changes.jsonl. See knowledge/reference/provenance-lineage.md.",
+  "description": "audit record of a shared-logic change — human provenance + staleness impact",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["change_id", "at", "trigger", "finding", "commit_sha", "scope", "impact"],
+  "required": [
+    "change_id",
+    "at",
+    "trigger",
+    "finding",
+    "commit_sha",
+    "scope",
+    "impact"
+  ],
   "properties": {
-    "change_id": { "type": "string", "minLength": 1 },
-    "at": { "type": "string", "minLength": 1, "description": "ISO timestamp" },
+    "change_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "at": {
+      "minLength": 1,
+      "description": "ISO timestamp",
+      "type": "string"
+    },
     "trigger": {
-      "type": "object",
       "additionalProperties": false,
-      "required": ["persona_id"],
       "description": "the ad that EXPOSED the flaw (the symptom)",
-      "properties": {
-        "persona_id": { "type": "string", "minLength": 1 },
-        "slot": { "type": "string" },
-        "image_ref": { "type": "string" },
-        "pattern_tag": { "type": "string" }
-      }
-    },
-    "finding": { "type": "string", "minLength": 1, "description": "what the human judged wrong (from the conversation)" },
-    "qa_log": {
-      "type": "array",
-      "description": "the user↔agent exchange that drove the change — a STRUCTURED record the agent authored at correction time (not a raw transcript dump); mark it as such, do not fabricate fidelity",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["role", "text"],
-        "properties": { "role": { "type": "string", "enum": ["user", "agent"] }, "text": { "type": "string" } }
-      }
-    },
-    "commit_sha": { "type": "string", "minLength": 1, "description": "the git commit that IS the logic fix (reuses git as as-is/to-be/diff)" },
-    "scope": { "type": "string", "enum": ["pattern", "slot", "persona", "global"], "description": "the human's verdict scope — whole pattern / only this ad / whole persona / everything" },
-    "impact": {
       "type": "object",
-      "additionalProperties": false,
-      "required": ["stale_count"],
-      "description": "what the change makes stale (flag only — re-run is the human's choice)",
+      "required": [
+        "persona_id"
+      ],
       "properties": {
-        "stale_count": { "type": "integer", "minimum": 0 },
-        "stale_refs": { "type": "array", "items": { "type": "string" } },
-        "pattern_tags": { "type": "array", "items": { "type": "string" } }
+        "persona_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "slot": {
+          "type": "string"
+        },
+        "image_ref": {
+          "type": "string"
+        },
+        "pattern_tag": {
+          "type": "string"
+        }
+      }
+    },
+    "finding": {
+      "minLength": 1,
+      "description": "what the human judged wrong",
+      "type": "string"
+    },
+    "qa_log": {
+      "description": "STRUCTURED record the agent authored (not a raw transcript dump)",
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "role",
+          "text"
+        ],
+        "properties": {
+          "role": {
+            "anyOf": [
+              {
+                "const": "user",
+                "type": "string"
+              },
+              {
+                "const": "agent",
+                "type": "string"
+              }
+            ]
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "commit_sha": {
+      "minLength": 1,
+      "description": "the git commit that IS the logic fix",
+      "type": "string"
+    },
+    "scope": {
+      "anyOf": [
+        {
+          "const": "pattern",
+          "type": "string"
+        },
+        {
+          "const": "slot",
+          "type": "string"
+        },
+        {
+          "const": "persona",
+          "type": "string"
+        },
+        {
+          "const": "global",
+          "type": "string"
+        }
+      ]
+    },
+    "impact": {
+      "additionalProperties": false,
+      "description": "what the change makes stale (flag only — re-run is the human's choice)",
+      "type": "object",
+      "required": [
+        "stale_count"
+      ],
+      "properties": {
+        "stale_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "stale_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "pattern_tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       }
     }
   }

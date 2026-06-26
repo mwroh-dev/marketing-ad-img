@@ -146,7 +146,7 @@ Agent-specific must-NOTs (the discriminating gate). critic-verifier IS the final
 - @${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-brief.view.md — brief + `evidence_refs` claims trace back to.
 
 ## Brand constraints (defect source)
-- ${CLAUDE_PLUGIN_ROOT}/schemas/setup/brand.schema.json — `forbidden_claims` (array) and `tone` live here; scan all copy against `forbidden_claims`, match voice to `tone`.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/setup/brand.view.md — `forbidden_claims` (array) and `tone` live here; scan all copy against `forbidden_claims`, match voice to `tone`.
 
 ## Knowledge / guidelines
 - ${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/marketing-techniques/README.md — marketing-technique reference for judging overclaim vs. legitimate persuasion.

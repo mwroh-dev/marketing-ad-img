@@ -1,19 +1,59 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/product-asset.schema.json",
   "title": "Product asset",
-  "description": "References raw and cutout product images plus cleanup status. A cutout PNG may not exist yet.",
+  "description": "raw + cutout product image refs + cleanup status (cutout may not exist yet)",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["asset_id", "product_id", "raw_image_path", "cutout_status"],
+  "required": [
+    "asset_id",
+    "product_id",
+    "raw_image_path",
+    "cutout_status"
+  ],
   "properties": {
-    "asset_id": { "type": "string", "minLength": 1 },
-    "product_id": { "type": "string", "minLength": 1 },
-    "raw_image_path": { "type": "string" },
-    "cutout_path": { "type": "string" },
-    "preview_path": { "type": "string" },
-    "mask_path": { "type": "string" },
-    "cutout_status": { "type": "string", "enum": ["missing", "pending", "passed", "failed"] },
-    "cleanup_report_ref": { "type": "string" }
+    "asset_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "product_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "raw_image_path": {
+      "type": "string"
+    },
+    "cutout_path": {
+      "type": "string"
+    },
+    "preview_path": {
+      "type": "string"
+    },
+    "mask_path": {
+      "type": "string"
+    },
+    "cutout_status": {
+      "anyOf": [
+        {
+          "const": "missing",
+          "type": "string"
+        },
+        {
+          "const": "pending",
+          "type": "string"
+        },
+        {
+          "const": "passed",
+          "type": "string"
+        },
+        {
+          "const": "failed",
+          "type": "string"
+        }
+      ]
+    },
+    "cleanup_report_ref": {
+      "type": "string"
+    }
   }
 }

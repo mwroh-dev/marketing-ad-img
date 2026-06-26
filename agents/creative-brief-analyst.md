@@ -180,9 +180,9 @@ Agent-specific must-NOTs (the discriminating gate). A schema-valid brief can sti
 - @${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-opportunity.view.md — **your PRIMARY gap source.** The
   precomputed `selected_opportunities[]` (strategic `selected_position` benefit×funnel + `source_matrix_evidence` +
   `brief_constraints`) from creative-opportunity-mapper. `differentiation` is taken from here; do not re-derive the gap.
-- ${CLAUDE_PLUGIN_ROOT}/schemas/setup/persona.schema.json — the chosen persona: `pains` / `desires` / `objections` /
+- @${CLAUDE_PLUGIN_ROOT}/schemas/setup/persona.view.md — the chosen persona: `pains` / `desires` / `objections` /
   `language_cues`. Drives `core_message` register and the `persona_response` angle.
-- ${CLAUDE_PLUGIN_ROOT}/schemas/setup/brand.schema.json — brand `goal` / `positioning` / `tone` and especially
+- @${CLAUDE_PLUGIN_ROOT}/schemas/setup/brand.view.md — brand `goal` / `positioning` / `tone` and especially
   `forbidden_claims` (the hard guard you copy verbatim into the brief).
 - @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ad-pattern.view.md — abstracted competitor/category pattern:
   `composition_top_k`, `hook_top_k`, `copy_keywords_top_k`, `comfort`. **Supporting evidence** to ground the
