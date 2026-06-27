@@ -62,14 +62,21 @@ per-persona outputs the generation pipeline reads. **Done when** every KEPT imag
 ### Persistence is MECHANICAL — run the deterministic tail (do NOT hand-summarize in-context)
 The analysts persist their per-image output to disk in the **per-kind layout** the pipeline already uses:
 `runs/{run_id}/analysis/{kind_dir}/{kind_dir}-{N}.json` (N = ad index; perception → `ocr/`, ad-type → `type/`,
-the rest match their kind). After the analysts finish, run the two deterministic glues on that analysis dir —
-neither has an LLM step, and **both must run** or the store stays empty and the orchestrator improvises a
-non-conformant aggregate (which the generation conformance gate then rejects):
-- `node ${CLAUDE_PLUGIN_ROOT}/shared/collect/build-market-position.mjs runs/{run_id}/analysis {persona_id}` →
-  the `market-position-matrix.schema.json`-conformant matrix (a pure function of the per-ad strategy projections —
-  the generation bridge reads this; never hand-summarize it).
-- `node ${CLAUDE_PLUGIN_ROOT}/shared/lineage/persist-analysis-run.mjs runs/{run_id}/analysis` → the per-ad lineage
-  store envelopes above (`persistAnalysisRun`, the chain map: perception→ocr, ad-type→type) + the index rollup.
+the rest match their kind). After the analysts finish, the persistence is **one deterministic command + one gate**
+— the orchestrator does NOT hand-write the store (it does so inconsistently: raw payloads, partial envelopes,
+missing provenance):
+- **close-analysis** (the easy-correct path): `node ${CLAUDE_PLUGIN_ROOT}/shared/harness/close-analysis.mjs {run_id}`
+  → reads the per-kind staging, persists the per-ad lineage store envelopes (`persistAnalysisRun`, chain map
+  perception→ocr / ad-type→type, provenance-stamped) + the index rollup, and advances the ledger to `analyzed`.
+  FAILS LOUDLY if the staging is empty (the store is never silently improvised).
+- **validate-store** (the teeth): `node ${CLAUDE_PLUGIN_ROOT}/node_modules/.bin/tsx ${CLAUDE_PLUGIN_ROOT}/shared/harness/validate-store.ts {persona_id}`
+  → every store envelope must conform to `artifact-envelope.schema.json` (complete + provenance-stamped). A raw or
+  hand-written partial → `STORE FAIL` (exit 1); the persona must NOT enter generation until it passes. We can't
+  force the orchestrator to run close-analysis, but an improvised store CANNOT proceed. On FAIL, re-run
+  close-analysis (it needs the per-kind staging present).
+
+`market-position-matrix` is a generation-time input (`build-market-position.mjs`, enforced by the generation
+conformance gate), not persisted here.
 
 Launch the per-ad analysts in **small batches (≤3 parallel), not one large fan-out** — a big parallel
 background-agent batch can leave the loop waiting after the agents have already finished; small batches keep
