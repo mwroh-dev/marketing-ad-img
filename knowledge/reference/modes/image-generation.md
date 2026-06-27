@@ -47,6 +47,7 @@ creative-opportunity-mapper  →  creative-brief-analyst  →  copy-layout-plann
 - **image-prompt-adapter** — turn the plan into a provider-shaped image prompt, pulling the product cutout via the asset registry (`product_asset_id`) and the adapter via `image_adapter_id`.
 - **critic-verifier** — critique candidates against brief + non-negotiable rules.
 - **finalize-candidates** (`${CLAUDE_PLUGIN_ROOT}/shared/harness/finalize-candidates`) — select and emit the final candidate set + selection log.
+- **conformance gate (code, before presenting)** — `node ${CLAUDE_PLUGIN_ROOT}/node_modules/.bin/tsx ${CLAUDE_PLUGIN_ROOT}/shared/harness/validate-gen-run.ts <run_dir>`. Validates EVERY artifact the run produced (opportunity · brief · copy-layout · market-position-matrix · critic-verdict · adapter outputs · candidates · selection-log) against its schema. A `GEN-RUN FAIL` (exit 1) means an agent or the orchestrator emitted a non-conformant artifact (extra field on a closed object, a missing required field, an improvised shape instead of the deterministic producer's). Do NOT present candidates on FAIL: repair the *named* offending artifact at its source — re-dispatch that one agent with the schema view, or run the deterministic producer (e.g. `market-position-aggregate.mjs` for the matrix) — then re-run the gate until it passes. The gate is the runtime enforcement of the schemas; conformance is not assumed from an agent's self-report.
 
 ## Candidate count
 
