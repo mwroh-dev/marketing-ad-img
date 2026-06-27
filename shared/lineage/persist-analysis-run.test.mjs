@@ -5,16 +5,21 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { persistAnalysisRun } from "./persist-analysis-run.mjs";
 
-test("persistAnalysisRun: persists a staging dir's per-ad chain into the store", () => {
+// the analysts' real on-disk layout: one dir per KIND, file `{dir}-{N}.json` (N = ad index). perception → ocr/.
+function writeKind(analysisDir, dir, i, obj) {
+  const d = resolve(analysisDir, dir);
+  mkdirSync(d, { recursive: true });
+  writeFileSync(resolve(d, `${dir}-${i}.json`), JSON.stringify(obj));
+}
+
+test("persistAnalysisRun: persists the per-kind run layout into the per-ad store chain", () => {
   const stateDir = mkdtempSync(resolve(tmpdir(), "par-state-"));
   const analysisDir = mkdtempSync(resolve(tmpdir(), "par-stg-"));
-  const ad = resolve(analysisDir, "ad-0");
-  mkdirSync(ad, { recursive: true });
   const ir = "runs/collect-x/ad-creatives/exam-study/images/ad-0.jpg";
-  writeFileSync(resolve(ad, "perception.json"), JSON.stringify({ image_ref: ir, persona_id: "exam-study", medium: "flat_graphic" }));
-  writeFileSync(resolve(ad, "ad-type.json"), JSON.stringify({ image_ref: ir, persona_id: "exam-study", ad_type: "informational", message_basis: "informational", confidence: "high" }));
-  writeFileSync(resolve(ad, "copy.json"), JSON.stringify({ image_ref: ir, persona_id: "exam-study", copy_elements: [{ content: "Time Management Made Easy", text_role: "headline" }] }));
-  writeFileSync(resolve(ad, "strategy.json"), JSON.stringify({ image_ref: ir, persona_id: "exam-study", benefit_vector: { primary: "function" }, funnel_intent: { stage: "discovery" } }));
+  writeKind(analysisDir, "ocr", 0, { image_ref: ir, persona_id: "exam-study", medium: "flat_graphic" });          // perception
+  writeKind(analysisDir, "type", 0, { image_ref: ir, persona_id: "exam-study", ad_type: "informational", message_basis: "informational", confidence: "high" });
+  writeKind(analysisDir, "copy", 0, { image_ref: ir, persona_id: "exam-study", copy_elements: [{ content: "Time Management Made Easy", text_role: "headline" }] });
+  writeKind(analysisDir, "strategy", 0, { image_ref: ir, persona_id: "exam-study", benefit_vector: { primary: "function" }, funnel_intent: { stage: "discovery" } });
 
   const lv = () => ({ version: "live1", method: "git", dirty: false });
   const persisted = persistAnalysisRun({ analysisDir, stateDir, logicVersionFn: lv });
@@ -28,10 +33,10 @@ test("persistAnalysisRun: persists a staging dir's per-ad chain into the store",
   assert.ok(existsSync(resolve(stateDir, "store", "exam-study", "index.json")));
 });
 
-test("persistAnalysisRun: skips an ad with no perception (no identity to key it)", () => {
+test("persistAnalysisRun: skips an index whose perception has no identity (nothing to key it)", () => {
   const stateDir = mkdtempSync(resolve(tmpdir(), "par-state2-"));
   const analysisDir = mkdtempSync(resolve(tmpdir(), "par-stg2-"));
-  mkdirSync(resolve(analysisDir, "ad-bad"), { recursive: true });
-  writeFileSync(resolve(analysisDir, "ad-bad", "copy.json"), JSON.stringify({ copy_elements: [] }));
+  writeKind(analysisDir, "ocr", 0, { medium: "flat_graphic" }); // perception present but no image_ref/persona_id
+  writeKind(analysisDir, "copy", 0, { copy_elements: [] });
   assert.deepEqual(persistAnalysisRun({ analysisDir, stateDir, logicVersionFn: () => ({ version: "v", method: "content" }) }), []);
 });

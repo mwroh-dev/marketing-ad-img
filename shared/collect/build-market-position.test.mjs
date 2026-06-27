@@ -11,21 +11,22 @@ const TMP = join(tmpdir(), "gai-build-mp-test");
 const reset = () => rmSync(TMP, { recursive: true, force: true });
 after(reset);
 
-function ad(slot, benefit, funnel) {
-  const dir = join(TMP, "analysis", slot);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "strategy.json"), JSON.stringify({
+// the analysts' real per-kind layout: analysis/strategy/strategy-{i}.json + analysis/type/type-{i}.json
+function ad(i, benefit, funnel) {
+  const sdir = join(TMP, "analysis", "strategy"); const tdir = join(TMP, "analysis", "type");
+  mkdirSync(sdir, { recursive: true }); mkdirSync(tdir, { recursive: true });
+  writeFileSync(join(sdir, `strategy-${i}.json`), JSON.stringify({
     benefit_vector: { primary: benefit }, funnel_intent: { stage: funnel },
     generation_reusability: { usable: true, reusable_devices: ["device-a"] },
   }));
-  writeFileSync(join(dir, "ad-type.json"), JSON.stringify({ ad_type: "lifestyle", execution_style: "in_situ" }));
+  writeFileSync(join(tdir, `type-${i}.json`), JSON.stringify({ ad_type: "lifestyle", execution_style: "in_situ" }));
 }
 
 test("buildMarketPosition produces a schema-conformant matrix from per-ad strategy files", () => {
   reset();
-  ad("ad-0", "function", "discovery");
-  ad("ad-1", "trust", "comparison");
-  const out = buildMarketPosition({ analysisDir: join(TMP, "analysis"), personaId: "exam-study", productId: "pomodoro-timer", now: "2026-06-27T00:00:00.000Z" });
+  ad(0, "function", "discovery");
+  ad(1, "trust", "comparison");
+  const out = buildMarketPosition({ analysisDir: join(TMP, "analysis"), personaId: "exam-study", now: "2026-06-27T00:00:00.000Z" });
 
   assert.equal(out.persona_id, "exam-study");
   assert.equal(out.total_ads, 2);
@@ -38,10 +39,12 @@ test("buildMarketPosition produces a schema-conformant matrix from per-ad strate
   assert.ok(ok, "matrix must conform to market-position-matrix.schema.json — " + JSON.stringify(ajv.errors));
 });
 
-test("ads without a strategy projection are skipped (no fake data)", () => {
+test("ad indices without a strategy projection are skipped (no fake data)", () => {
   reset();
-  ad("ad-0", "function", "discovery");
-  mkdirSync(join(TMP, "analysis", "ad-1"), { recursive: true }); // no strategy.json
+  ad(0, "function", "discovery");
+  // index 1 has a type but no strategy → not a record (indices come from the strategy dir)
+  mkdirSync(join(TMP, "analysis", "type"), { recursive: true });
+  writeFileSync(join(TMP, "analysis", "type", "type-1.json"), JSON.stringify({ ad_type: "lifestyle" }));
   const out = buildMarketPosition({ analysisDir: join(TMP, "analysis"), personaId: "p", now: "2026-06-27T00:00:00.000Z" });
   assert.equal(out.total_ads, 1);
 });

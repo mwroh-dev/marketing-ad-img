@@ -59,17 +59,17 @@ aggregates (`ad-pattern.json` / `keyword-model.json` / `market-position-matrix.j
 per-persona outputs the generation pipeline reads. **Done when** every KEPT image has its store envelopes
 (shape PASS + logic PASS), the index lists them, and `run.json` stage = `analyzed`.
 
-### Persistence is MECHANICAL — stage to disk, then run the deterministic tail (do NOT keep in-context)
-The analysts return their JSON to the orchestrator; that is NOT persistence. As each analyst returns, **write its
-output verbatim** to the staging dir `runs/{run_id}/analysis/{ad}/{kind}.json` (`{kind}` ∈ perception · ad-type ·
-copy · layout · visual · intent · strategy · ad-type-gate). Then run the two deterministic glues on that dir —
-neither has an LLM step, and both **starve (→ the orchestrator improvises a non-conformant file)** if the staging
-write is skipped:
+### Persistence is MECHANICAL — run the deterministic tail (do NOT hand-summarize in-context)
+The analysts persist their per-image output to disk in the **per-kind layout** the pipeline already uses:
+`runs/{run_id}/analysis/{kind_dir}/{kind_dir}-{N}.json` (N = ad index; perception → `ocr/`, ad-type → `type/`,
+the rest match their kind). After the analysts finish, run the two deterministic glues on that analysis dir —
+neither has an LLM step, and **both must run** or the store stays empty and the orchestrator improvises a
+non-conformant aggregate (which the generation conformance gate then rejects):
 - `node ${CLAUDE_PLUGIN_ROOT}/shared/collect/build-market-position.mjs runs/{run_id}/analysis {persona_id}` →
   the `market-position-matrix.schema.json`-conformant matrix (a pure function of the per-ad strategy projections —
   the generation bridge reads this; never hand-summarize it).
 - `node ${CLAUDE_PLUGIN_ROOT}/shared/lineage/persist-analysis-run.mjs runs/{run_id}/analysis` → the per-ad lineage
-  store envelopes above (`persistAnalysisRun`, the chain map) + the index rollup.
+  store envelopes above (`persistAnalysisRun`, the chain map: perception→ocr, ad-type→type) + the index rollup.
 
 Launch the per-ad analysts in **small batches (≤3 parallel), not one large fan-out** — a big parallel
 background-agent batch can leave the loop waiting after the agents have already finished; small batches keep

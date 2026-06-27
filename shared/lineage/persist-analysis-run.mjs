@@ -1,7 +1,7 @@
 // Live glue: persist a completed analysis run's per-image artifacts into the global lineage store, each wrapped
 // with its correct derived_from chain + pattern_tag + logic_version. The orchestrator runs this after the analysis
-// stage (the analysts write per-ad artifacts to a staging dir `{analysisDir}/{ad}/{kind}.json`); this turns the
-// documented persist step (modes/analysis.md) into a real call. migrate-pilot.mjs is the pilot-specific caller.
+// stage; it reads the analysts' real per-KIND output layout `{analysisDir}/{dir}/{dir}-{N}.json` (N = ad index),
+// turning the documented persist step (modes/analysis.md) into a real call. migrate-pilot.mjs is the pilot caller.
 //
 // Usage: node shared/lineage/persist-analysis-run.mjs <analysisDir> [stateDir]
 import { readFileSync, existsSync, readdirSync } from "node:fs";
@@ -20,28 +20,33 @@ export const CHAIN = {
   strategy: ["ad-type", "intent", "visual", "copy"],
   "ad-type-gate": ["ad-type", "strategy", "visual", "copy"],
 };
-export const KIND_FILE = { perception: "perception.json", "ad-type": "ad-type.json", copy: "copy.json", layout: "layout.json", visual: "visual.json", intent: "intent.json", strategy: "strategy.json", "ad-type-gate": "ad-type-gate.json" };
+// store kind → the analyst's on-disk dir (= file prefix): perception is written to `ocr/`, ad-type to `type/`,
+// the rest match their kind. File name is `{dir}-{N}.json`. A kind whose dir is absent (e.g. ad-type-gate when
+// the gate did not run) is simply skipped — no fake data.
+export const KIND_DIR = { perception: "ocr", "ad-type": "type", copy: "copy", layout: "layout", visual: "visual", intent: "intent", strategy: "strategy", "ad-type-gate": "ad-type-gate" };
 const PRODUCER = { perception: "perception-extractor", "ad-type": "ad-type-classifier", copy: "copy-analyst", layout: "layout-analyst", visual: "visual-analyst", intent: "intent-analyst", strategy: "strategy-projector", "ad-type-gate": "ad-type-gate" };
 
-// analysisDir holds one subdir per ad: {analysisDir}/{ad}/{kind}.json (raw artifacts). Returns the persisted refs.
+// Ad indices come from the perception (ocr) dir — perception is the chain root and carries the identity we key on.
 export function persistAnalysisRun({ analysisDir, stateDir, now, logicVersionFn } = {}) {
-  const ads = existsSync(analysisDir) ? readdirSync(analysisDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name) : [];
+  const ocrDir = resolve(analysisDir, KIND_DIR.perception);
+  const indices = existsSync(ocrDir)
+    ? readdirSync(ocrDir).map((f) => /-(\d+)\.json$/.exec(f)?.[1]).filter((x) => x != null).map(Number).sort((a, b) => a - b)
+    : [];
+  const readKind = (k, i) => { const d = KIND_DIR[k]; const p = resolve(analysisDir, d, `${d}-${i}.json`); return existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : undefined; };
   const persisted = [];
-  for (const ad of ads) {
-    const dir = resolve(analysisDir, ad);
-    const read = (k) => { const p = resolve(dir, KIND_FILE[k]); return existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : undefined; };
-    const perception = read("perception");
+  for (const i of indices) {
+    const perception = readKind("perception", i);
     if (!perception?.image_ref || !perception?.persona_id) continue;        // need identity to key it
-    const m = String(perception.image_ref).match(/^runs\/([^/]+)\//);
+    const m = String(perception.image_ref).match(/runs\/([^/]+)\//);
     const key = { persona_id: perception.persona_id, image_ref: perception.image_ref, run_id: m ? m[1] : undefined };
     const slot = slotOf(key);
-    const pattern_tag = analysisPatternTag(read("strategy"), read("ad-type"));
+    const pattern_tag = analysisPatternTag(readKind("strategy", i), readKind("ad-type", i));
     for (const kind of Object.keys(CHAIN)) {
-      const payload = read(kind);
+      const payload = readKind(kind, i);
       if (!payload) continue;
-      const derived_from = CHAIN[kind].filter((pk) => read(pk)).map((pk) => ({ kind: pk, ref: refOf(key.persona_id, slot, pk) }));
+      const derived_from = CHAIN[kind].filter((pk) => readKind(pk, i)).map((pk) => ({ kind: pk, ref: refOf(key.persona_id, slot, pk) }));
       const { ref } = persistArtifact({ kind, key, payload, derived_from, pattern_tag, produced_by: PRODUCER[kind] }, { stateDir, now, logicVersionFn });
-      persisted.push({ ad, slot, kind, ref, pattern_tag });
+      persisted.push({ ad: `ad-${i}`, slot, kind, ref, pattern_tag });
     }
   }
   return persisted;
