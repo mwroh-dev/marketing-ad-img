@@ -11,8 +11,8 @@
 // Usage:
 //   import { acquirePort } from "./acquire-port.mjs";
 //   import { launchChrome } from "./launch-chrome.mjs";
-//   const port = acquirePort("adlib-collect");           // public ad-library collection (Meta/Google)
-//   const chrome = await launchChrome({ port, userDataDir: "/tmp/gai-adlib" });
+//   const { port } = acquirePort("adlib-collect");        // public ad-library collection (Meta/Google)
+//   const chrome = await launchChrome({ port, userDataDir: `/tmp/gai-adlib-${port}` });
 //   try { const client = await connect(port); /* collect */ } finally { await chrome.close(); }
 import { spawn, execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";

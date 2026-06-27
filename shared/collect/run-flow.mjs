@@ -11,6 +11,8 @@ import { runCollection, makeResult } from "./ad-collect-harness.mjs";
 import { buildAdQueries } from "./ad-search-queries.mjs";
 import { filterQueriesByModes, safeName } from "./ad-source-helpers.mjs";
 import { datedRunId, buildCollectedManifest, writeRunManifest } from "./run-manifest.mjs";
+import { acquirePort } from "./acquire-port.mjs";
+import { launchChrome, endpointReady } from "./launch-chrome.mjs";
 import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import { fileURLToPath } from "url";
 
@@ -22,7 +24,6 @@ const argVal = (flag) => { const i = argv.indexOf(flag); return i > -1 ? argv[i 
 const FLAG_TAKES_VALUE = new Set(["--from-model", "--from-keyword-plan", "--competitors", "--names", "--images", "--images-per-keyword"]);
 const positional = argv.filter((a, i) => !a.startsWith("--") && !FLAG_TAKES_VALUE.has(argv[i - 1]));
 const [flowName, personaId, mode = "keyword", query = "", runIdArg = "", portArg] = positional;
-const PORT = Number(portArg) || 9291;
 const dry = argv.includes("--dry");
 
 if (!flowName || !personaId) {
@@ -81,7 +82,17 @@ if (dry) {
   writeFileSync(`${outDir}/ad-creative.json`, JSON.stringify(result, null, 2) + "\n");
   console.log(`SAVED ${result.creatives.length} creatives from ${flow.source} (dry) → ${outDir}/ad-creative.json`);
 } else {
-  result = await runCollection({ adapter: flow, queries, personaId, runId, port: PORT, totalImages, imagesPerQuery });
+  // run-flow owns the full CDP lifecycle — the runbook's "every collection run owns its browser through code,
+  // no manual Chrome launch" contract (data-collection.md). Acquire a probed-free port, launch a dedicated
+  // headless Chrome on it (non-intrusive: --headless=new + isolated --user-data-dir), collect, ALWAYS close.
+  // An explicit [port] positional — or a Chrome already answering CDP on it — is honored: connect, don't relaunch.
+  const port = Number(portArg) || acquirePort("adlib-collect").port;
+  const chrome = endpointReady(port) ? null : await launchChrome({ port, userDataDir: `/tmp/gai-adlib-${port}` });
+  try {
+    result = await runCollection({ adapter: flow, queries, personaId, runId, port, totalImages, imagesPerQuery });
+  } finally {
+    if (chrome) await chrome.close();
+  }
 }
 
 // per-run progress ledger — dated id + stage. The human keep/delete gate, the deterministic screen, and
