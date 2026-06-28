@@ -112,13 +112,8 @@ Write the schema-conformant pool to
 
 ## Verification checklist — output
 
-The schema validator (`competitor-candidate.schema.json`) only checks **shape** — that fields exist, the
-`source_surface` enum holds, and no key outside the allowed set appears. Shape conformance does not mean the
-candidate pool is *correct*. This is the **logical** gate: a reviewer (or the agent at self-review) judges
-whether the pool genuinely does the scout's job — maximize recall, stay search/list-only, and flag gaps
-honestly. A schema-valid output that fails this checklist is still a defect.
+Agent-specific must-NOTs (the discriminating gate). The pool must do the scout's job — maximize recall, stay search/list-only, flag gaps honestly:
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Recall, not precision (the role's whole point)
 - [ ] The pool is genuinely **broad** — a generous slice per derived query, unioned across feature/audience/benefit cues, deduped by normalized title only. A tight, clean-looking shortlist is a defect, not a virtue.
@@ -155,17 +150,14 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - [ ] `product_id` / `persona_id` match the projected inputs; the pool is for THIS (product, persona), not a blend. `captured_at` is a real ISO timestamp.
 - [ ] Handoff is JSON only (no prose log), and the output validates against `competitor-candidate.schema.json`.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 
 ## Contract
 
 ## Output schema (I/O contract)
-- ${CLAUDE_PLUGIN_ROOT}/schemas/collection/competitor-candidate.schema.json — `CompetitorCandidatePool`:
+- @${CLAUDE_PLUGIN_ROOT}/schemas/collection/competitor-candidate.view.md — `CompetitorCandidatePool`:
   per-persona candidate pool, search/list-only fields. The output MUST validate against it.
 
 ## Driver scripts (shared/collect)

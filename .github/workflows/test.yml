@@ -1,0 +1,18 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      # `npm test` = `node --test shared flows` — includes the reference-integrity linter
+      # (shared/check-refs.test.mjs), so a broken ${CLAUDE_PLUGIN_ROOT} path ref fails CI.
+      - run: npm test

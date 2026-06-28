@@ -26,8 +26,8 @@ export function probePort(port) {
   } catch { return "busy"; }
 }
 
-// In-process init-once memo (cf. Claude Code's `init = memoize(...)`): a lane resolves to its port ONCE per
-// process, so repeated source runs in one process reuse it without re-probing.
+// In-process init-once memo: a lane resolves to its port ONCE per process, so repeated source runs in one
+// process reuse it without re-probing.
 const _laneMemo = new Map();
 
 // Return a port that is currently FREE (nothing listening). `lane` only scopes the per-process memo.

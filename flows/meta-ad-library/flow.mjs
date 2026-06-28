@@ -1,5 +1,5 @@
 import { defineFlow } from "../../shared/collect/define-flow.mjs";
-import { normalizeDetail } from "./detail-normalize.mjs";
+import { normalizeDetail, normalizeAdCopy } from "./detail-normalize.mjs";
 
 // Meta uses the public FILTER URL directly (the documented public-ad-transparency carve-out) — there is
 // NO search-box/mouse interaction; the query is a URL parameter, and the assembled URL is still validated
@@ -14,17 +14,12 @@ import { normalizeDetail } from "./detail-normalize.mjs";
 //                 ctx.collectCreative per asset: FETCH the asset by its full signed url, save images/ad-N.jpg
 //                 (+ videos/ad-N.mp4 for video ads), build ONE record with THIS ad's detail attached.
 //
-// MODAL-DRIVEN REARCHITECTURE (recon §11/§12): the OLD design ran two passes (grid scroll buffered creative
-// NETWORK responses; a separate modal pass built a metaByKey and drain() joined the two by image-url key).
-// That left ~3/24 creatives detail-less because the buffered-creative set and the opened-modal set did not
-// perfectly overlap (CDN size-variant url mismatches + occasional modal-open misses). The fix UNIFIES the
-// passes: collection is DRIVEN from the modal pass. For each ad we open its modal, extract its detail, AND
-// fetch that ad's creative asset(s) DIRECTLY by the full signed fbcdn url (proven token-authed: a bare Node
-// GET returns the complete jpg/mp4 — recon §12a images, §11a video). Each collected creative is therefore
-// 1:1 with its detail BY CONSTRUCTION — no join, no mis-join (two ads reselling one asset = two records, each
-// from its own modal pass with its own detail). The Network buffer/drain path is RETIRED for Meta (it stays
-// in the harness for Google, which still uses scroll→buffer→drain). Modal-open/extract failure FALLS BACK to
-// collecting the card's grid <img> with detail_captured:false, so creative coverage is never worse than before.
+// MODAL-DRIVEN: collection is driven from the per-ad modal pass — for each ad we open its modal, extract its
+// detail, AND fetch that ad's creative asset(s) directly by the full signed fbcdn url (token-authed; a bare GET
+// returns the bytes — recon §11/§12). So each creative is 1:1 with its detail BY CONSTRUCTION — no join, no
+// mis-join. Modal-open/extract failure falls back to the card grid <img> with detail_captured:false (coverage
+// never worse). The buffer→drain path is retired for Meta, kept for Google.
+// (Why this replaced the old two-pass buffer+drain join: recon-notes.md "Modal-driven rearchitecture".)
 export default defineFlow({
   name: "meta",
   source: "meta_ad_library",
@@ -81,7 +76,7 @@ export default defineFlow({
         else stale = 0;
         continue;
       }
-      const r = await this.collectOneCard(ctx, i);
+      const r = await this.collectOneCard(ctx, i, q);
       i++;
       if (r.collected) { total++; if (r.isVideo) videos++; else images++; if (r.detail) withDetail++; else fallback++; }
     }
@@ -92,11 +87,14 @@ export default defineFlow({
   // collect EXACTLY ONE creative — VIDEO ad → one video record (no poster in images/); IMAGE ad → one
   // representative image (modal preferred, card fallback; renditions not re-collected). Modal/extract failure →
   // grid card img, detail false. Returns { collected, isVideo, detail } so the keyword loop counts img vs video.
-  async collectOneCard(ctx, i) {
+  async collectOneCard(ctx, i, q = null) {
     // card image assets (full signed + stripped key) read BEFORE opening the modal — the modal-fail FALLBACK.
     let cardAssets = [];
     try { cardAssets = await ctx.evalJs(CARD_IMG_ASSETS(i)); } catch { cardAssets = []; }
     if (!Array.isArray(cardAssets) || !cardAssets.length) return { collected: false };
+    // ad copy (best-effort, live-unverified) — read from the grid card before the modal opens.
+    let cardText = "";
+    try { cardText = await ctx.evalJs(CARD_PRIMARY_TEXT(i)); } catch { cardText = ""; }
 
     let detail = null, video = null, modalAssets = [];
     try {
@@ -120,14 +118,16 @@ export default defineFlow({
     try { await this.closeModal(ctx); } catch { /* best-effort */ }
 
     const meta = detail ? { ...detail } : {};
+    const copy = normalizeAdCopy(cardText);
+    if (copy && !meta.ad_copy) meta.ad_copy = copy;   // card primary text; detail modal has no copy field
     if (video && video.key) {
-      const res = await ctx.collectCreative({ videoKey: video.key, videoFull: video.full, meta });
+      const res = await ctx.collectCreative({ videoKey: video.key, videoFull: video.full, meta, keyword: q });
       return { collected: res.collected, isVideo: true, detail: !!detail };
     }
     const assets = (Array.isArray(modalAssets) && modalAssets.length) ? modalAssets : cardAssets;
     const primary = assets.find((a) => a && a.key);   // the ad's primary creative (modal preferred, card fallback)
     if (primary) {
-      const res = await ctx.collectCreative({ imageKey: primary.key, imageFull: primary.full, meta });
+      const res = await ctx.collectCreative({ imageKey: primary.key, imageFull: primary.full, meta, keyword: q });
       return { collected: res.collected, isVideo: false, detail: !!detail };
     }
     return { collected: false };
@@ -200,6 +200,23 @@ const CARD_IMG_ASSETS = (i) => `(() => {
     p=p.parentElement;
   }
   return [];
+})()`;
+
+// the i-th card's advertiser PRIMARY TEXT (the ad copy). VERIFIED against live Meta Ad Library (KR): Meta renders
+// the primary text in a `._7jyr` block — clean, separate from the "<advertiser> Sponsored" header (._8nsi) and
+// from all the detail chrome (Library ID / dates / platforms). We climb from the detail trigger to the nearest
+// ancestor that holds this ad's ._7jyr (text-length-bounded so we never swallow a neighbouring ad's copy) and
+// return it. No ._7jyr → "" (honest absence; e.g. image-only ads with no body text).
+const CARD_PRIMARY_TEXT = (i) => `(() => {
+  const b=${TRIG}[${i}]; if(!b) return "";
+  let p=b;
+  for(let k=0;k<16 && p;k++){
+    if((p.innerText||'').length>2600) break;                 // climbed past one ad → stop before grabbing a neighbour's copy
+    const t=p.querySelector && p.querySelector('._7jyr');     // Meta primary-text block (the ad copy)
+    if(t && (t.innerText||'').trim()) return (t.innerText||'').trim();   // keep newlines; normalizeAdCopy normalizes whitespace
+    p=p.parentElement;
+  }
+  return "";
 })()`;
 
 // the OPEN modal's own creative image assets — { full, key } — the ad's actual creative as shown in the modal

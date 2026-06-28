@@ -11,7 +11,7 @@ run in ChatGPT/Gemini together with your own product photo. It never generates a
 | **How decisions are grounded** | **user pointers + parallel real-data research** (the product page, public reviews, real category ads) — never a guess. |
 | **Ad data sources** | public ad-transparency libraries only: **Meta Ad Library + Google Ads Transparency** (no login). Commerce stores = public review reading only, never scraping. |
 | **Entry** | the `/marketing-img:start` command → the `orchestrator` agent routes to the right mode. |
-| **Verification** | every stage is gated by independent verification (schema shape + the agent's logical checklist on real output); self-declaration is never accepted. |
+| **Verification** | every stage is gated by independent verification (schema shape + the agent's logical checklist on real output); self-declaration is never accepted. **Runtime conformance gates** (`validate-store`, `validate-gen-run`) refuse an improvised / un-provenanced / drifted artifact before it proceeds — schemas are enforced, not just declared. |
 
 ## Entry
 
@@ -28,8 +28,8 @@ only — it is NOT loaded for consumers.)
 |---|---|---|---|
 | **initial-setup** | brand · product · product URL · **target market (domestic/overseas)** | data-first synergy: collect pointers → announce "Now researching in parallel" → fan out `brand-researcher` (page / reviews / positioning) → present data-derived category + persona **candidates as choices** (never free-form). | confirmed brand / product / persona state |
 | **data-collection** | persona · target market | **Track 1 (primary, ungated)**: broad category/keyword ad corpus (Meta keyword search). **Track 2 (optional)**: competitor enrichment (`discovery-scout` → `competitor-curator` HARD GATE). After collection: **human keep/delete review** (1st-pass) → deterministic `screen-images.mjs` (size/dup) before analysis. Real CDP · non-intrusive · STOP-on-block. | collected ad images + manifest (provenance: source · query · counts · gaps) |
-| **analysis** | screened ad images | `ocr-extractor` → `copy-analyst` ⊥ `layout-analyst` → `ad-analyst` → `pattern-synthesizer`. | ad-pattern + keyword model on the persona |
-| **image-prompt generation** | brand/product/persona · analysis signals · the product photo | `creative-brief-analyst` → `copy-layout-planner` → `image-prompt-adapter` → `critic-verifier` → finalize. Composes WITH the product photo; Korean copy preserved byte-for-byte. | **4 prompt candidates** (ChatGPT + Gemini) |
+| **analysis** | screened ad images | `perception-extractor` → (stitch+bind) → `ad-type-classifier` → `copy-analyst` ⊥ `layout-analyst` ⊥ `visual-analyst` → `intent-analyst` → `strategy-projector` → `ad-analyst` → (market-position-aggregate) → `pattern-synthesizer`. | ad-pattern + market-position matrix + keyword model |
+| **image-prompt generation** | brand/product/persona · analysis signals · the product photo | `creative-opportunity-mapper` (ring 3) → `creative-brief-analyst` → `copy-layout-planner` → `image-prompt-adapter` → `critic-verifier` → finalize. Composes WITH the product photo; Korean copy preserved byte-for-byte. | **4 prompt candidates** (ChatGPT + Gemini) |
 
 ## Install
 
@@ -57,23 +57,23 @@ npm install     # ajv, ajv-formats, yaml, chrome-remote-interface, tsx (+ option
 .claude-plugin/{plugin.json, marketplace.json}    plugin manifest + marketplace
 settings.json                                     "agent": "orchestrator" (default/entry agent)
 commands/start.md                                 /marketing-img:start — the single entry command
-agents/ (17 flat .md)                             orchestrator + 16 role-scoped subagents
+agents/ (flat .md)                                orchestrator + 22 role-scoped subagents
 skills/ (2)                                       reusable skills (agent-browser-exploration, user-answer-tooling)
 knowledge/  guidelines ⊥ experience ⊥ reference   principles · learned patterns · mode runbooks + design refs
-schemas/ (26, JSON Schema 2020-12)                I/O contracts per stage
-shared/  collect · harness · validators · _lib    CDP collection, deterministic logic, schema validators
+schemas/ (39, single-sourced from TypeBox)        I/O contracts per stage — `<name>.ts` → `build.ts` → `.schema.json` (validator) + lean `.view.md` (agents read)
+shared/  collect · harness · validators · _lib    CDP collection (run-flow self-launches Chrome), deterministic glue (close-analysis · build-market-position · normalize-artifact), schema validators + runtime gates (validate-store · validate-gen-run)
 flows/ (meta-ad-library, google-ads-transparency) per-source CDP collection adapters (defineFlow)
 config/ (cdp-ports, image-adapters, tool-entrypoints)
 AGENTS.md                                         subagent projection table (what each receives / must not)
 CLAUDE.md                                         DEV reference — NOT shipped/loaded for consumers
 ```
 
-### The 16 subagents (by stage)
+### The 22 subagents (by stage)
 - **evaluation** — `request-evaluator`, `interview-controller`
 - **setup** — `brand-researcher`
 - **collection** — `discovery-scout`, `competitor-curator`, `ad-creative-refiner` (post-collection keep/drop is a human review + deterministic `screen-images.mjs`, no LLM)
-- **analysis** — `ocr-extractor`, `copy-analyst`, `layout-analyst`, `ad-analyst`, `pattern-synthesizer`
-- **generation** — `creative-brief-analyst`, `copy-layout-planner`, `image-prompt-adapter`, `critic-verifier`
+- **analysis** — `perception-extractor`, `ad-type-classifier`, `copy-analyst`, `layout-analyst`, `visual-analyst`, `intent-analyst`, `strategy-projector`, `ad-analyst`, `pattern-synthesizer`
+- **generation** — `creative-opportunity-mapper`, `creative-brief-analyst`, `copy-layout-planner`, `image-prompt-adapter`, `critic-verifier`
 
 ## Hard rules (single-owner: `knowledge/reference/non-negotiable-rules.md`)
 - **Prompt-only** — never generate an image or call a provider.

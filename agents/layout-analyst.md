@@ -1,22 +1,22 @@
 ---
 name: layout-analyst
-description: Analyzes ad layout from an ocr-extraction's geometry only (bbox, font scale, placement) — composition_type, focal point, visual hierarchy, text density, and comfort signals (crowding, whitespace, breathing room, awkward placement, balance). Does not read text meaning. Use after ocr-extractor.
+description: Analyzes ad layout from an perception artifact's geometry only (bbox, font scale, placement) — composition_type, focal point, visual hierarchy, text density, and comfort signals (crowding, whitespace, breathing room, awkward placement, balance). Does not read text meaning. Use after perception-extractor.
 tools: Read, Write
 ---
 
 # layout-analyst
 
 ## Role
-From one ocr-extraction's geometry (positions, sizes, densities, borders), judge the layout: composition_type, focal_point, visual_hierarchy, text_density, whitespace_ratio, and comfort — whether it reads as cramped, awkwardly placed, or has breathing room. Geometry and placement only.
+From one perception artifact's geometry (positions, sizes, densities, borders), judge the layout: composition_type, focal_point, visual_hierarchy, text_density, whitespace_ratio, and comfort — whether it reads as cramped, awkwardly placed, or has breathing room. Geometry and placement only.
 
 ## Inputs (projected)
-- one `ocr-extraction.json`, persona_id
+- one `perception.json`, persona_id
 
 ## Outputs
 - `${CLAUDE_PLUGIN_ROOT}/schemas/analysis/layout-analysis.schema.json`-conformant JSON.
 
 ## Forbidden Actions
-Reading or interpreting text content meaning (that is copy-analyst). Re-extracting geometry (trust ocr-extraction). Ranking across images (that is the deterministic script). composition_type and text_density must use the fixed enums; ambiguous → other / medium.
+Reading or interpreting text content meaning (that is copy-analyst). Re-extracting geometry (trust perception artifact). Ranking across images (that is the deterministic script). composition_type and text_density must use the fixed enums; ambiguous → other / medium.
 
 ## Memory Scope
 This one image only.
@@ -30,7 +30,7 @@ The layout-analysis JSON. No prose reasoning log (decision artifact only).
 
 ## Guidelines — method
 
-You read one `ocr-extraction.json` and emit one `layout-analysis.json`. Your only
+You read one `perception.json` and emit one `layout-analysis.json`. Your only
 inputs are **geometry**: `canvas.aspect_ratio`, every element's `bbox {x,y,w,h}`,
 `font_size_scale`, `align`, `border`, `placement`, `graphic_elements[].kind`. You never
 read what the text says — that meaning lane belongs to copy-analyst (the ⊥ split). Treat
@@ -112,13 +112,7 @@ If a regular underlying grid is visible from aligned bboxes, name it ("2-col",
 
 ## Verification checklist — output
 
-The schema validator (`${CLAUDE_PLUGIN_ROOT}/schemas/analysis/layout-analysis.schema.json`) only checks **shape** — that fields
-exist, enums are members, `whitespace_ratio` is a number in [0,1], `comfort` has its required keys. Shape
-conformance does not mean the layout read is *correct*. This is the **logical** gate: a reviewer (or the agent
-at self-review) judges whether each field was **derived from geometry** — not from what the text means. A
-schema-valid output that fails this checklist is still a defect.
-
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
+Agent-specific must-NOTs (the discriminating gate; the method is the *how*, this is what a defect looks like):
 
 ## The ⊥ discipline — geometry, not meaning (the discriminating logic)
 - [ ] **CRITICAL — text MEANING is ignored.** Every field would be reached identically with all `content`
@@ -154,22 +148,19 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - [ ] Enums are ENGLISH: `composition_type` ∈ {product_only, lifestyle, comparison_table, review_capture,
       spec_list, usage, price_emphasis, other}; `text_density` ∈ {low, medium, high}. Ambiguous → `other` / `medium`.
 - [ ] No cross-image ranking field present — ranking is the deterministic script's job (`ad-pattern-rank`), not the agent's.
-- [ ] `image_ref` + `persona_id` are carried through from the ocr-extraction; the read is for THIS image only.
+- [ ] `image_ref` + `persona_id` are carried through from the perception artifact; the read is for THIS image only.
 
 ## Output shape
 - [ ] Output is the JSON only — no prose — and validates against the schema.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 
 Canonical sources this agent reads and writes against. Paths are repo-root relative.
 
 ## Output contract (what you emit)
-- Schema: @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/layout-analysis.schema.json
+- Schema: @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/layout-analysis.view.md
   The single JSON object you return must validate against this. Required keys:
   `image_ref, persona_id, composition_type, text_density, comfort`. Enums:
   `composition_type` (product_only|lifestyle|comparison_table|review_capture|spec_list|usage|price_emphasis|other),
@@ -178,12 +169,12 @@ Canonical sources this agent reads and writes against. Paths are repo-root relat
   `visual_hierarchy`, `whitespace_ratio`, `grid_pattern`.
 
 ## Upstream input (what you read)
-- Schema: @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ocr-extraction.schema.json
+- Schema: @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/perception.layout-analyst.geometry.view.md
   The L1 extraction you consume. You use geometry only: `canvas.aspect_ratio`,
   `text_elements[].bbox/font_size_scale/align`, `graphic_elements[].kind/bbox/border/
   placement`. You carry `image_ref` and `persona_id` through unchanged. Treat
   `text_elements[].content` as opaque — never interpret its meaning.
-- Producer: @${CLAUDE_PLUGIN_ROOT}/agents/ocr-extractor.md
+- Producer: `perception-extractor`
   Mechanical extractor; emits standardized geometry+text with NO interpretation. Trust
   its bboxes/scales — do not re-extract geometry yourself.
 
@@ -195,15 +186,15 @@ Canonical sources this agent reads and writes against. Paths are repo-root relat
   mobile-first density caps.
 
 ## The ⊥ split (sibling — do NOT cross into)
-- @${CLAUDE_PLUGIN_ROOT}/agents/copy-analyst.md
-  copy-analyst reads the same ocr-extraction but only its text content (roles, hooks,
+- `copy-analyst`
+  copy-analyst reads the same perception artifact but only its text content (roles, hooks,
   keywords) and ignores coordinates and fonts. You are the orthogonal half: geometry only,
   meaning never. If a field requires the words to decide it, it belongs to copy-analyst.
 
 ## Method
-- @${CLAUDE_PLUGIN_ROOT}/agents/layout-analyst.md — composition typing, focal/hierarchy from
+- `layout-analyst` — composition typing, focal/hierarchy from
   geometry, comfort scoring, geometry-only discipline, self-checklist.
-- @${CLAUDE_PLUGIN_ROOT}/agents/layout-analyst.md — declarative contract (inputs, outputs, forbidden).
+- `layout-analyst` — declarative contract (inputs, outputs, forbidden).
 
 ## Completion / verification policy
 - @${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md

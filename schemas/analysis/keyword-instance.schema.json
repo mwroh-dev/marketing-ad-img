@@ -1,26 +1,84 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/keyword-instance.schema.json",
   "title": "KeywordInstances",
-  "description": "ad-analyst output: extracted+normalized keyword instances (NOT ranked).",
+  "description": "ad-analyst output: extracted+normalized keyword instances (not ranked)",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["product_id", "persona_id", "instances"],
+  "required": [
+    "product_id",
+    "persona_id",
+    "instances"
+  ],
   "properties": {
-    "product_id": { "type": "string", "minLength": 1 },
-    "persona_id": { "type": "string", "minLength": 1 },
-    "source_competitors": { "type": "array", "items": { "type": "string" } },
-    "instances": {
+    "product_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "source_competitors": {
       "type": "array",
       "items": {
-        "type": "object",
+        "type": "string"
+      }
+    },
+    "instances": {
+      "description": "NO score/tf/df/rank — ranking is the deterministic script's job",
+      "type": "array",
+      "items": {
         "additionalProperties": false,
-        "required": ["canonical", "slot"],
+        "type": "object",
+        "required": [
+          "canonical",
+          "slot"
+        ],
         "properties": {
-          "canonical": { "type": "string", "minLength": 1 },
-          "variants": { "type": "array", "items": { "type": "string" } },
-          "slot": { "type": "string", "enum": ["product_category", "feature", "target", "benefit", "technique", "other"] },
-          "english_origin": { "type": "boolean" }
+          "canonical": {
+            "minLength": 1,
+            "description": "the normalized surface form; loanword variants collapse to one canonical",
+            "type": "string"
+          },
+          "variants": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "slot": {
+            "description": "functional role in the ad (judgment, not keyword-spotting)",
+            "anyOf": [
+              {
+                "const": "product_category",
+                "type": "string"
+              },
+              {
+                "const": "feature",
+                "type": "string"
+              },
+              {
+                "const": "target",
+                "type": "string"
+              },
+              {
+                "const": "benefit",
+                "type": "string"
+              },
+              {
+                "const": "technique",
+                "type": "string"
+              },
+              {
+                "const": "other",
+                "type": "string"
+              }
+            ]
+          },
+          "english_origin": {
+            "type": "boolean"
+          }
         }
       }
     }

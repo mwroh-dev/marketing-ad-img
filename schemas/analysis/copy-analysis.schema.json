@@ -1,27 +1,137 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/copy-analysis.schema.json",
   "title": "CopyAnalysis",
-  "description": "L2b — text-role + hook + keywords, from L1 text content only.",
+  "description": "text-role + hook + keywords, from L1 text content only",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["image_ref", "persona_id", "copy_elements"],
+  "required": [
+    "image_ref",
+    "persona_id",
+    "copy_elements"
+  ],
   "properties": {
-    "image_ref": { "type": "string", "minLength": 1 },
-    "persona_id": { "type": "string", "minLength": 1 },
+    "image_ref": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
     "copy_elements": {
       "type": "array",
       "items": {
-        "type": "object", "additionalProperties": false,
-        "required": ["content", "text_role"],
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content",
+          "text_role"
+        ],
         "properties": {
-          "content": { "type": "string" },
-          "text_role": { "type": "string", "enum": ["headline", "subcopy", "CTA", "badge", "price", "review_quote", "spec_label", "other"] },
-          "hook_type": { "type": "string", "enum": ["question", "contrast", "result", "empathy", "number", "other"] }
+          "content": {
+            "description": "verbatim from the perception text element it came from",
+            "type": "string"
+          },
+          "source_id": {
+            "description": "the perception text element id (t#) this came from — makes the role traceable without the image; omit only if no single element maps",
+            "type": "string"
+          },
+          "text_role": {
+            "description": "what the line DOES (function), not a keyword match",
+            "anyOf": [
+              {
+                "const": "headline",
+                "type": "string"
+              },
+              {
+                "const": "subcopy",
+                "type": "string"
+              },
+              {
+                "const": "CTA",
+                "type": "string"
+              },
+              {
+                "const": "badge",
+                "type": "string"
+              },
+              {
+                "const": "price",
+                "type": "string"
+              },
+              {
+                "const": "review_quote",
+                "type": "string"
+              },
+              {
+                "const": "spec_label",
+                "type": "string"
+              },
+              {
+                "const": "other",
+                "type": "string"
+              }
+            ]
+          },
+          "hook_type": {
+            "description": "rhetorical function of a hook-bearing line; off/other on badge/price/spec/cta",
+            "anyOf": [
+              {
+                "const": "question",
+                "type": "string"
+              },
+              {
+                "const": "contrast",
+                "type": "string"
+              },
+              {
+                "const": "result",
+                "type": "string"
+              },
+              {
+                "const": "empathy",
+                "type": "string"
+              },
+              {
+                "const": "number",
+                "type": "string"
+              },
+              {
+                "const": "other",
+                "type": "string"
+              }
+            ]
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "const": "high",
+                "type": "string"
+              },
+              {
+                "const": "medium",
+                "type": "string"
+              },
+              {
+                "const": "low",
+                "type": "string"
+              }
+            ]
+          }
         }
       }
     },
-    "sentence_patterns": { "type": "string" },
-    "keywords": { "type": "array", "items": { "type": "string" } }
+    "sentence_patterns": {
+      "description": "recurring sentence STRUCTURE (imperative/declarative mix, question framing, number+unit cadence…), NOT a paraphrase of content",
+      "type": "string"
+    },
+    "keywords": {
+      "description": "meaning-bearing surface forms verbatim (no score/rank — the deterministic script ranks)",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
   }
 }

@@ -115,14 +115,8 @@ Soft blocks alone never flip `ready` to false.
 
 ## Verification checklist — output
 
-The schema validator (`${CLAUDE_PLUGIN_ROOT}/schemas/evaluation/request-evaluation.schema.json`) only checks **shape** — that
-`detected_mode` is in the enum, every slot state is a valid token, `ready` is a boolean, blockers have the
-required fields. Shape conformance does not mean the evaluation is *correct*. This is the **logical** gate: a
-reviewer (or the agent at self-review) judges whether the *reasoning* is sound. A schema-valid output that
-fails this checklist is still a defect — and the defect that matters most here (false-positive `ready=true`)
-is invisible to the schema.
+Agent-specific must-NOTs (the discriminating gate). The defect that matters most here — a false-positive `ready=true` — is invisible to the schema:
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Mode detection (the right mode, not a plausible one)
 - [ ] `detected_mode` is the mode the request actually intends, judged from intent signals — not keyword-spotting (e.g. "generate ad images" with no registered brand is NOT cleanly image-generation; an unmet prerequisite changes the picture).
@@ -158,17 +152,14 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 ## Output shape
 - [ ] Output is ONE schema-valid JSON object (see the References section) with no prose outside the JSON.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 
 Canonical sources this agent reads and writes against. Paths are repo-root relative.
 
 ## Output contract (what you emit)
-- Schema: @${CLAUDE_PLUGIN_ROOT}/schemas/evaluation/request-evaluation.schema.json
+- Schema: @${CLAUDE_PLUGIN_ROOT}/schemas/evaluation/request-evaluation.view.md
   The single JSON object you return must validate against this. Required keys:
   `run_id, detected_mode, required_slots, slot_states, blockers, ready,
   next_interview_target`. Enums: `detected_mode`, `slot_states[].state`
@@ -187,11 +178,11 @@ Canonical sources this agent reads and writes against. Paths are repo-root relat
   evaluation output. Defines that a mode must not execute with any hard blocker.
 
 ## Method
-- @${CLAUDE_PLUGIN_ROOT}/agents/request-evaluator.md — step-by-step detection/classification/ready method.
-- @${CLAUDE_PLUGIN_ROOT}/agents/request-evaluator.md — declarative contract (inputs, what you do, forbidden).
+- `request-evaluator` — step-by-step detection/classification/ready method.
+- `request-evaluator` — declarative contract (inputs, what you do, forbidden).
 
 ## Downstream (who consumes your output)
-- @${CLAUDE_PLUGIN_ROOT}/agents/interview-controller.md
+- `interview-controller`
   When `ready = false`, interview-controller takes `next_interview_target` and turns the
   highest-priority hard blocker into a user-answerable question. After each answer is
   structured, request-evaluator re-runs. You never ask questions yourself.

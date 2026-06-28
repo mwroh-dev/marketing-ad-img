@@ -1,75 +1,191 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/brand-research.schema.json",
   "title": "BrandResearchFindings",
-  "description": "initial-setup — one brand-researcher angle's findings: public-source evidence grounding the user's pointers, plus data-derived category/persona candidates the interview presents as CHOICES. NOT user-defined; NOT fabricated — every candidate traces to evidence.",
+  "description": "one brand-researcher angle — public-source evidence + data-derived candidates",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["brand_id", "angle", "sources_consulted", "evidence"],
+  "required": [
+    "brand_id",
+    "angle",
+    "sources_consulted",
+    "evidence"
+  ],
   "properties": {
-    "brand_id": { "type": "string", "minLength": 1 },
+    "brand_id": {
+      "minLength": 1,
+      "type": "string"
+    },
     "angle": {
-      "type": "string",
       "description": "which research lens this artifact covers",
-      "enum": ["page", "reviews", "positioning"]
+      "anyOf": [
+        {
+          "const": "page",
+          "type": "string"
+        },
+        {
+          "const": "reviews",
+          "type": "string"
+        },
+        {
+          "const": "positioning",
+          "type": "string"
+        }
+      ]
     },
     "sources_consulted": {
+      "description": "every public source actually fetched/searched (honest)",
       "type": "array",
-      "description": "every public source actually fetched/searched (honest — drives coverage)",
       "items": {
-        "type": "object",
         "additionalProperties": false,
-        "required": ["ref", "method"],
+        "type": "object",
+        "required": [
+          "ref",
+          "method"
+        ],
         "properties": {
-          "ref": { "type": "string", "minLength": 1, "description": "URL or search query actually used" },
-          "method": { "type": "string", "enum": ["curl", "webfetch", "websearch", "cdp"] },
-          "reached": { "type": "boolean", "description": "false if blocked/unreachable" }
+          "ref": {
+            "minLength": 1,
+            "description": "URL or search query actually used",
+            "type": "string"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "const": "curl",
+                "type": "string"
+              },
+              {
+                "const": "webfetch",
+                "type": "string"
+              },
+              {
+                "const": "websearch",
+                "type": "string"
+              },
+              {
+                "const": "cdp",
+                "type": "string"
+              }
+            ]
+          },
+          "reached": {
+            "description": "false if blocked/unreachable",
+            "type": "boolean"
+          }
         }
       }
     },
     "evidence": {
+      "description": "concrete observations — facts, not interpretation; each candidate traces here",
       "type": "array",
-      "description": "concrete observations from the sources — facts, not interpretation. Each candidate below must trace here.",
       "items": {
-        "type": "object",
         "additionalProperties": false,
-        "required": ["observation", "source_ref"],
+        "type": "object",
+        "required": [
+          "observation",
+          "source_ref"
+        ],
         "properties": {
-          "observation": { "type": "string", "minLength": 1 },
-          "source_ref": { "type": "string", "minLength": 1, "description": "which sources_consulted[].ref this came from" }
+          "observation": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "source_ref": {
+            "minLength": 1,
+            "description": "which sources_consulted[].ref this came from",
+            "type": "string"
+          }
         }
       }
     },
     "category_candidates": {
       "type": "array",
       "items": {
-        "type": "object",
         "additionalProperties": false,
-        "required": ["category", "evidence_refs"],
+        "type": "object",
+        "required": [
+          "category",
+          "evidence_refs"
+        ],
         "properties": {
-          "category": { "type": "string", "minLength": 1 },
-          "evidence_refs": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+          "category": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "evidence_refs": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       }
     },
     "persona_candidates": {
+      "description": "data-derived persona options for the interview to present as CHOICES",
       "type": "array",
-      "description": "data-derived persona options for the interview to present as CHOICES (not free-form)",
       "items": {
-        "type": "object",
         "additionalProperties": false,
-        "required": ["label", "who", "evidence_refs"],
+        "type": "object",
+        "required": [
+          "label",
+          "who",
+          "evidence_refs"
+        ],
         "properties": {
-          "label": { "type": "string", "minLength": 1 },
-          "who": { "type": "string", "minLength": 1, "description": "who this buyer is, in plain terms" },
-          "pains": { "type": "array", "items": { "type": "string" } },
-          "desires": { "type": "array", "items": { "type": "string" } },
-          "evidence_refs": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "review/page observations grounding this persona — no fabrication" }
+          "label": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "who": {
+            "minLength": 1,
+            "description": "who this buyer is, in plain terms",
+            "type": "string"
+          },
+          "pains": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "desires": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidence_refs": {
+            "minItems": 1,
+            "description": "review/page observations grounding this persona — no fabrication",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       }
     },
-    "positioning_signals": { "type": "array", "items": { "type": "string" } },
-    "forbidden_claim_risks": { "type": "array", "items": { "type": "string" }, "description": "claims observed on the page/reviews that may be over-claims to guard against downstream" },
-    "coverage_flags": { "type": "array", "items": { "type": "string" }, "description": "what could NOT be reached/found — honest gaps, never silent" }
+    "positioning_signals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "forbidden_claim_risks": {
+      "description": "claims observed that may be over-claims to guard downstream",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "coverage_flags": {
+      "description": "what could NOT be reached/found — honest gaps",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
   }
 }

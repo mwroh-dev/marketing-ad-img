@@ -1,10 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/creative-brief.schema.json",
   "title": "CreativeBrief",
-  "description": "generation creative-brief output — core message, differentiation, 4 angles, and forbidden-claim guards.",
+  "description": "creative brief — core message, differentiation, 4 angles, forbidden-claim guards",
   "type": "object",
-  "additionalProperties": false,
   "required": [
     "persona_id",
     "product_id",
@@ -14,16 +14,17 @@
   ],
   "properties": {
     "persona_id": {
-      "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "type": "string"
     },
     "product_id": {
-      "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "type": "string"
     },
     "core_message": {
-      "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "the single sharpest line; traces to a product claim ∧ a persona pain/desire",
+      "type": "string"
     },
     "differentiation": {
       "type": "string"
@@ -31,30 +32,45 @@
     "key_messages": {
       "type": "array",
       "items": {
-        "type": "object"
+        "additionalProperties": true,
+        "type": "object",
+        "properties": {}
       }
     },
     "angles": {
-      "type": "array",
       "minItems": 1,
+      "description": "the 4 enum angles, each a different lens on core_message (not 4 rewordings)",
+      "type": "array",
       "items": {
-        "type": "object",
         "additionalProperties": false,
+        "type": "object",
         "required": [
           "angle",
           "direction"
         ],
         "properties": {
           "angle": {
-            "type": "string",
-            "enum": [
-              "product_usp",
-              "persona_response",
-              "compelling_claim",
-              "visual_hierarchy"
+            "anyOf": [
+              {
+                "const": "product_usp",
+                "type": "string"
+              },
+              {
+                "const": "persona_response",
+                "type": "string"
+              },
+              {
+                "const": "compelling_claim",
+                "type": "string"
+              },
+              {
+                "const": "visual_hierarchy",
+                "type": "string"
+              }
             ]
           },
           "direction": {
+            "description": "an actionable creative instruction, not a paraphrase of core_message",
             "type": "string"
           },
           "evidence_refs": {
@@ -67,6 +83,7 @@
       }
     },
     "forbidden_claims": {
+      "description": "brand list verbatim ∪ derived-implicit; the hard guard the whole chain inherits",
       "type": "array",
       "items": {
         "type": "string"
@@ -79,9 +96,9 @@
       }
     },
     "brand_tone": {
-      "type": "string",
       "minLength": 1,
-      "description": "the brand's voice (e.g. 'honest, energetic, not-luxury') — carried downstream so the adapter derives visual style from it, never a premium default"
+      "description": "the brand's voice (e.g. 'honest, energetic, not-luxury'); the adapter derives visual style from it, never premium-by-default",
+      "type": "string"
     }
   }
 }

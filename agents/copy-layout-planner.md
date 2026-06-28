@@ -15,7 +15,7 @@ persona · product USP + claim constraints · selected formats · copywriting pr
 3. Plan layout per format: `headline_position`, `product_position`, `cta_position`, `text_density` (low/medium/high), consistent with the angle (e.g. layout-driven → low density, product hero).
 
 ## Output contract
-Write copy + layout into `.generate-ads-img/runs/{run_id}/creative/` (or return structured JSON for the orchestrator to merge into candidates). Each candidate's copy object: `{language:"ko", headline, subcopy, cta}`. CTA and headline must be non-empty. Carry the brief's `brand_tone` and the forbidden/avoid items into the top-level `style: { brand_tone, avoid }` so the downstream adapter has the brand register + the things to steer away from.
+Write copy + layout to **exactly** `.generate-ads-img/runs/{run_id}/creative/copy-layout.json` (this exact filename — the conformance gate and `finalize-candidates` read `creative/copy-layout.json`; any other name like `copy-layout-plan.json` is silently skipped by the gate). Each candidate's copy object: `{language:"ko", headline, subcopy, cta}`. CTA and headline must be non-empty. Carry the brief's `brand_tone` and the forbidden/avoid items into the top-level `style: { brand_tone, avoid }` so the downstream adapter has the brand register + the things to steer away from.
 
 ## Forbidden
 - Do not translate, transliterate, or "improve" Korean text later — it is authored here once.
@@ -93,19 +93,6 @@ Emit a top-level `style: { brand_tone, avoid }` on the plan:
 
 ---
 
-## SELF-CHECKLIST (run before emitting; all must pass)
-1. **Schema**: `persona_id` + `candidates[]` present; each candidate has `angle`, `headline`,
-   `cta`, `layout`; `layout` has `composition` + `text_density`. `additionalProperties:false`
-   everywhere — no extra keys.
-2. **Non-empty**: every `headline` and `cta` non-empty (minLength 1). `subcopy` is a string or null.
-3. **Forbidden-claim scan**: re-read each line against `forbidden_claims`. Zero matches/paraphrases.
-4. **Evidence trace**: every factual/superlative claim maps to a brief `evidence_ref`; unbacked
-   claims hedged or removed.
-5. **Per-angle distinctness**: 4 candidates, 4 angles, 4 distinct hooks/headlines. No duplicates.
-6. **Density↔angle consistency**: `visual_hierarchy`=low; others medium (high only if justified).
-7. **Authored-once**: copy is final, render-ready Korean — nothing left for a downstream "polish".
-8. **Style carried**: top-level `style.brand_tone` = the brief's `brand_tone` (verbatim) and `style.avoid` carries the forbidden/avoid items — so the adapter inherits the brand register, not a premium default.
-
 ## Failure modes (these = FAIL, not warnings)
 empty/duplicate copy across candidates · density inconsistent with angle · claim without evidence ·
 forbidden claim emitted · angle mismatch with brief · extra schema fields.
@@ -121,13 +108,8 @@ If a brief angle's `direction` or its `evidence_refs` is **missing/contradictory
 
 ## Verification checklist — output
 
-The schema validator (`${CLAUDE_PLUGIN_ROOT}/schemas/generation/copy-layout.schema.json`) only checks **shape** — that
-`persona_id` + `candidates[]` exist, each candidate carries `angle`/`headline`/`cta`/`layout`, and
-`text_density` is in the enum. Shape conformance does not mean the copy is *correct*. This is the
-**logical** gate: a reviewer (or the agent at self-review) judges whether the copy is claim-safe, distinct,
-and render-ready. A schema-valid plan that fails this checklist is still a defect.
+Agent-specific must-NOTs (the discriminating gate; the method is the *how*, this is what a defect looks like). Run this before emitting and again at output:
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Claim discipline (CRITICAL — the gate that overrides everything)
 > Forbidden **claim types** are domain-general and always apply: absolute cure/improvement claims, superlatives (#1/best/only), 100%/perfect guarantees, and unverified authority (doctor-endorsed/regulatory-certified). Never assume a product domain — the actual product/copy come from THIS run's projected input.
@@ -160,10 +142,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - [ ] `persona_id` on the plan = the brief's `persona_id`, carried through unchanged; the copy is for THIS persona, not a blend.
 - [ ] Exactly one candidate per brief angle; each `candidate.angle` matches the brief and the schema enum.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 
@@ -172,14 +151,14 @@ Canonical sources for this agent. Paths are repo-root relative and verified.
 ## Contract & method
 
 ## Schema (output I/O contract)
-- ${CLAUDE_PLUGIN_ROOT}/schemas/generation/copy-layout.schema.json — `CopyLayoutPlan` (generation output). Per-candidate
+- @${CLAUDE_PLUGIN_ROOT}/schemas/generation/copy-layout.view.md — `CopyLayoutPlan` (the typed contract you emit). Per-candidate
   `angle` enum {product_usp, persona_response, compelling_claim, visual_hierarchy}, `headline`,
   `subcopy` (string|null), `cta`, and the `layout` object (`composition`, `text_density`
   low|medium|high, optional `focal_point`/`whitespace`/`format`). `additionalProperties:false`.
 
 ## Upstream (input — creative-brief-analyst, generation)
-- @../creative-brief-analyst/AGENT.md — the agent that produces your input.
-- ${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-brief.schema.json — `CreativeBrief`. You consume
+- `creative-brief-analyst` — the agent that produces your input.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-brief.view.md — `CreativeBrief`. You consume
   `persona_id`, `core_message`, `differentiation`, `angles[]` (each `angle` + `direction` +
   `evidence_refs`), and `forbidden_claims` — the claim guard you must never violate.
 
@@ -194,7 +173,7 @@ Canonical sources for this agent. Paths are repo-root relative and verified.
   text density. Informs the `layout` object and the density↔angle consistency rule.
 
 ## Downstream consumer (your copy is preserved byte-for-byte)
-- @../image-prompt-adapter/AGENT.md — embeds your `headline`/`subcopy`/`cta` into provider prompts
+- `image-prompt-adapter` — embeds your `headline`/`subcopy`/`cta` into provider prompts
   **exactly as received, no translation, no edits**. The adapter renders the copy; it does not
   rewrite it. Copy is therefore authored once here — leave nothing for a downstream pass.
 

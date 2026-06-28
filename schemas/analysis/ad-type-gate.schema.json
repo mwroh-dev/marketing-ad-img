@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "$id": "https://marketing-img/schemas/ad-type-gate.schema.json",
+  "title": "AdTypeGate",
+  "description": "deterministic per-ad gate: routed adapter requires vs the analyses → gates_raised (no LLM)",
+  "type": "object",
+  "required": [
+    "image_ref",
+    "ad_type",
+    "requires_checked",
+    "gates_raised"
+  ],
+  "properties": {
+    "image_ref": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "persona_id": {
+      "type": "string"
+    },
+    "ad_type": {
+      "type": "string"
+    },
+    "requires_checked": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "gates_raised": {
+      "type": "array",
+      "items": {
+        "description": "the adapter `gates` flags raised by unmet `requires`",
+        "type": "string"
+      }
+    }
+  }
+}

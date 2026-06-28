@@ -1,74 +1,304 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/ad-creative.schema.json",
   "title": "AdCreativeSet",
-  "description": "Per-persona set of real ad creatives collected from a public ad library. Feeds ad analysis analysis.",
+  "description": "per-persona set of real ad creatives collected from a public ad library",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["persona_id", "source", "search", "creatives"],
+  "required": [
+    "persona_id",
+    "source",
+    "search",
+    "creatives"
+  ],
   "properties": {
-    "persona_id": { "type": "string", "minLength": 1 },
-    "product_id": { "type": "string" },
-    "advertiser": { "type": "string" },
-    "source": { "type": "string", "enum": ["meta_ad_library", "google_ads_transparency", "tiktok_creative_center", "own_detail_cut"] },
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "product_id": {
+      "type": "string"
+    },
+    "advertiser": {
+      "type": "string"
+    },
+    "source": {
+      "anyOf": [
+        {
+          "const": "meta_ad_library",
+          "type": "string"
+        },
+        {
+          "const": "google_ads_transparency",
+          "type": "string"
+        },
+        {
+          "const": "tiktok_creative_center",
+          "type": "string"
+        },
+        {
+          "const": "own_detail_cut",
+          "type": "string"
+        }
+      ]
+    },
     "search": {
-      "type": "object",
       "additionalProperties": false,
-      "required": ["mode", "query"],
+      "type": "object",
+      "required": [
+        "mode",
+        "query"
+      ],
       "properties": {
-        "mode": { "type": "string", "enum": ["advertiser", "keyword", "detail_cut"] },
-        "query": { "type": "string" },
-        "category": { "type": "string" },
-        "country": { "type": "string" }
+        "mode": {
+          "anyOf": [
+            {
+              "const": "advertiser",
+              "type": "string"
+            },
+            {
+              "const": "keyword",
+              "type": "string"
+            },
+            {
+              "const": "detail_cut",
+              "type": "string"
+            }
+          ]
+        },
+        "query": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        }
       }
     },
     "creatives": {
       "type": "array",
       "items": {
-        "type": "object",
         "additionalProperties": false,
-        "required": ["subtype"],
+        "type": "object",
+        "required": [
+          "subtype"
+        ],
         "properties": {
-          "library_id": { "type": "string" },
-          "image_url": { "type": "string" },
-          "image_file": { "type": "string" },
-          "ad_copy": { "type": "string" },
-          "platforms": { "type": "array", "items": { "type": "string" } },
-          "started_at": { "type": "string" },
-          "subtype": { "type": "string", "enum": ["single_image", "carousel", "video_thumb", "video"] },
-          "advertiser_id": { "type": "string" },
-          "resolved_via": { "type": "string", "enum": ["advertiser", "advertiser_loose", "text_fallback"] },
-          "matched_name": { "type": "string" },
-          "match_quality": { "type": "string", "enum": ["exact", "prefix", "loose"] },
-          "type": { "type": "string", "enum": ["ad_creative", "catalog", "spec", "review", "lifestyle", "unknown"] },
-          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
-          "competitor_id": { "type": "string" },
-          "video_url": { "type": "string" },
-          "video_file": { "type": "string" },
-          "video_duration": { "type": "string" },
-          "follower_count": { "type": ["integer", "null"], "minimum": 0 },
-          "status": { "type": "string", "enum": ["active", "inactive", "unknown"] },
-          "page_category": { "type": "string" },
-          "page_id": { "type": "string" },
-          "detail_captured": { "type": "boolean" },
-          "advertiser_name": { "type": "string" }
+          "library_id": {
+            "type": "string"
+          },
+          "image_url": {
+            "type": "string"
+          },
+          "image_file": {
+            "type": "string"
+          },
+          "ad_copy": {
+            "type": "string"
+          },
+          "platforms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "keywords": {
+            "description": "every search keyword whose results surfaced this ad (preserved across the global dedup)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "subtype": {
+            "anyOf": [
+              {
+                "const": "single_image",
+                "type": "string"
+              },
+              {
+                "const": "carousel",
+                "type": "string"
+              },
+              {
+                "const": "video_thumb",
+                "type": "string"
+              },
+              {
+                "const": "video",
+                "type": "string"
+              }
+            ]
+          },
+          "advertiser_id": {
+            "type": "string"
+          },
+          "resolved_via": {
+            "anyOf": [
+              {
+                "const": "advertiser",
+                "type": "string"
+              },
+              {
+                "const": "advertiser_loose",
+                "type": "string"
+              },
+              {
+                "const": "text_fallback",
+                "type": "string"
+              }
+            ]
+          },
+          "matched_name": {
+            "type": "string"
+          },
+          "match_quality": {
+            "anyOf": [
+              {
+                "const": "exact",
+                "type": "string"
+              },
+              {
+                "const": "prefix",
+                "type": "string"
+              },
+              {
+                "const": "loose",
+                "type": "string"
+              }
+            ]
+          },
+          "type": {
+            "description": "the ad-creative-refiner's TYPE classification",
+            "anyOf": [
+              {
+                "const": "ad_creative",
+                "type": "string"
+              },
+              {
+                "const": "catalog",
+                "type": "string"
+              },
+              {
+                "const": "spec",
+                "type": "string"
+              },
+              {
+                "const": "review",
+                "type": "string"
+              },
+              {
+                "const": "lifestyle",
+                "type": "string"
+              },
+              {
+                "const": "unknown",
+                "type": "string"
+              }
+            ]
+          },
+          "confidence": {
+            "minimum": 0,
+            "maximum": 1,
+            "type": "number"
+          },
+          "competitor_id": {
+            "type": "string"
+          },
+          "video_url": {
+            "type": "string"
+          },
+          "video_file": {
+            "type": "string"
+          },
+          "video_duration": {
+            "type": "string"
+          },
+          "follower_count": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "const": "active",
+                "type": "string"
+              },
+              {
+                "const": "inactive",
+                "type": "string"
+              },
+              {
+                "const": "unknown",
+                "type": "string"
+              }
+            ]
+          },
+          "page_category": {
+            "type": "string"
+          },
+          "page_id": {
+            "type": "string"
+          },
+          "detail_captured": {
+            "type": "boolean"
+          },
+          "advertiser_name": {
+            "type": "string"
+          }
         }
       }
     },
     "queries": {
       "type": "array",
       "items": {
-        "type": "object",
         "additionalProperties": false,
-        "required": ["mode", "query"],
+        "type": "object",
+        "required": [
+          "mode",
+          "query"
+        ],
         "properties": {
-          "mode": { "type": "string", "enum": ["advertiser", "keyword"] },
-          "query": { "type": "string" }
+          "mode": {
+            "anyOf": [
+              {
+                "const": "advertiser",
+                "type": "string"
+              },
+              {
+                "const": "keyword",
+                "type": "string"
+              }
+            ]
+          },
+          "query": {
+            "type": "string"
+          }
         }
       }
     },
-    "coverage_flags": { "type": "array", "items": { "type": "string" } },
-    "blocked": { "type": "boolean" },
-    "captured_at": { "type": "string" }
+    "coverage_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "blocked": {
+      "type": "boolean"
+    },
+    "captured_at": {
+      "type": "string"
+    }
   }
 }

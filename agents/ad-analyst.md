@@ -91,12 +91,8 @@ When extraction goals conflict:
 
 ## Verification checklist — output
 
-The schema validator (`${CLAUDE_PLUGIN_ROOT}/shared/validators/validate-keyword-model.ts`) only checks **shape** — that fields
-exist and slots are in the enum. Shape conformance does not mean the keyword model is *correct*. This is the
-**logical** gate: a reviewer (or the agent at self-review) judges whether the reasoning is sound. A
-schema-valid output that fails this checklist is still a defect.
+Agent-specific must-NOTs (the discriminating gate; the method is the *how*, this is what a defect looks like):
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Grounding (no invention)
 - [ ] Every keyword instance traces to an actual string in the read corpus — none invented, paraphrased, or imported from world knowledge.
@@ -121,17 +117,14 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - [ ] `product_id` / `persona_id` match the projected inputs; the model is for THIS persona, not a blend.
 - [ ] The handoff is the JSON only — no prose wrapped around it.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 
 Canonical paths this agent reads or hands off to. Verify before relying.
 
 ## Output contract (what you produce)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/keyword-instance.schema.json — KeywordInstances schema. `{ product_id, persona_id, source_competitors?, instances:[{ canonical, variants?, slot, english_origin? }] }`. `slot` enum = product_category|feature|target|benefit|technique|other. `additionalProperties:false` — **no score/tf/df/rank fields.**
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/keyword-instance.view.md — KeywordInstances (the typed contract you emit). `{ product_id, persona_id, source_competitors?, instances:[{ canonical, variants?, slot, english_origin? }] }`. `slot` enum = product_category|feature|target|benefit|technique|other. `additionalProperties:false` — **no score/tf/df/rank fields.**
 
 ## Downstream consumer (the deterministic ranker — NOT you)
 - @${CLAUDE_PLUGIN_ROOT}/shared/collect/keyword-rank.mjs — pure, no-network, no-LLM ranking. `countOccurrences` → `computeStats` (tf with title ×2, df = distinct competitors) → `scoreKeywords` (weights tf .4 / df .4 / persona cue .2) → `rankByGroup` (per-slot top-k). Consumes your instances + raw corpus. Ranking is **its** job, never yours.

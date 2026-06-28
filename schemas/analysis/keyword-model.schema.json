@@ -1,59 +1,178 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/keyword-model.schema.json",
   "title": "KeywordModel",
-  "description": "Per-persona keyword model: functional-slot groups with deterministic top-k ranking.",
+  "description": "per-persona keyword model: functional-slot groups with deterministic top-k ranking",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["product_id", "persona_id", "corpus", "weights", "groups"],
+  "required": [
+    "product_id",
+    "persona_id",
+    "corpus",
+    "weights",
+    "groups"
+  ],
   "properties": {
-    "product_id": { "type": "string", "minLength": 1 },
-    "persona_id": { "type": "string", "minLength": 1 },
+    "product_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
     "corpus": {
-      "type": "object",
       "additionalProperties": false,
-      "required": ["competitor_count", "source"],
+      "type": "object",
+      "required": [
+        "competitor_count",
+        "source"
+      ],
       "properties": {
-        "competitor_count": { "type": "integer", "minimum": 0 },
-        "source": { "type": "string" }
+        "competitor_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "source": {
+          "type": "string"
+        }
       }
     },
     "weights": {
-      "type": "object",
       "additionalProperties": false,
-      "required": ["tf", "df", "cue"],
-      "properties": { "tf": { "type": "number" }, "df": { "type": "number" }, "cue": { "type": "number" } }
+      "type": "object",
+      "required": [
+        "tf",
+        "df",
+        "cue"
+      ],
+      "properties": {
+        "tf": {
+          "type": "number"
+        },
+        "df": {
+          "type": "number"
+        },
+        "cue": {
+          "type": "number"
+        }
+      }
     },
     "groups": {
       "type": "array",
       "items": {
-        "type": "object",
         "additionalProperties": false,
-        "required": ["slot", "keywords"],
+        "type": "object",
+        "required": [
+          "slot",
+          "keywords"
+        ],
         "properties": {
-          "slot": { "type": "string", "enum": ["product_category", "feature", "target", "benefit", "technique", "other"] },
+          "slot": {
+            "anyOf": [
+              {
+                "const": "product_category",
+                "type": "string"
+              },
+              {
+                "const": "feature",
+                "type": "string"
+              },
+              {
+                "const": "target",
+                "type": "string"
+              },
+              {
+                "const": "benefit",
+                "type": "string"
+              },
+              {
+                "const": "technique",
+                "type": "string"
+              },
+              {
+                "const": "other",
+                "type": "string"
+              }
+            ]
+          },
           "keywords": {
             "type": "array",
             "items": {
-              "type": "object",
               "additionalProperties": false,
-              "required": ["canonical", "slot", "tf", "df", "score"],
+              "type": "object",
+              "required": [
+                "canonical",
+                "slot",
+                "tf",
+                "df",
+                "score"
+              ],
               "properties": {
-                "canonical": { "type": "string", "minLength": 1 },
-                "variants": { "type": "array", "items": { "type": "string" } },
-                "slot": { "type": "string", "enum": ["product_category", "feature", "target", "benefit", "technique", "other"] },
-                "english_origin": { "type": "boolean" },
-                "tf": { "type": "number" },
-                "df": { "type": "number" },
-                "cue_match": { "type": "number" },
-                "score": { "type": "number" }
+                "canonical": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "variants": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "slot": {
+                  "anyOf": [
+                    {
+                      "const": "product_category",
+                      "type": "string"
+                    },
+                    {
+                      "const": "feature",
+                      "type": "string"
+                    },
+                    {
+                      "const": "target",
+                      "type": "string"
+                    },
+                    {
+                      "const": "benefit",
+                      "type": "string"
+                    },
+                    {
+                      "const": "technique",
+                      "type": "string"
+                    },
+                    {
+                      "const": "other",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "english_origin": {
+                  "type": "boolean"
+                },
+                "tf": {
+                  "type": "number"
+                },
+                "df": {
+                  "type": "number"
+                },
+                "cue_match": {
+                  "type": "number"
+                },
+                "score": {
+                  "type": "number"
+                }
               }
             }
           }
         }
       }
     },
-    "generated_at": { "type": "string" },
-    "confidence_note": { "type": "string" }
+    "generated_at": {
+      "type": "string"
+    },
+    "confidence_note": {
+      "type": "string"
+    }
   }
 }

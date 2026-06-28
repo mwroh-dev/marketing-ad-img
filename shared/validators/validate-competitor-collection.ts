@@ -1,6 +1,6 @@
 // SHAPE sanity only — schema conformance + cheap structural invariants. This does NOT verify the
 // producing agent's logical correctness (sound reasoning/judgment); that is the LOGICAL gate in the relevant
-// agents/<name>/checklist.md. Shape-valid ≠ correct.
+// agent's `## Verification checklist` section. Shape-valid ≠ correct.
 
 // Validates a store deep-collection output (products + detail-cut images + reviews).
 // This is the CORRECT gate for the collection deliverable — distinct from validate-competitor.ts,

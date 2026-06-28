@@ -1,6 +1,5 @@
-// Dedicated headless Chrome lifecycle for CDP collection — the launcher the interaction layer assumed but
-// never had. `acquire-port.mjs` finds a FREE port; `lib.connect()` ATTACHES to a Chrome already on a port.
-// Between them was a gap: launching that Chrome was a manual shell comment. This closes it.
+// Dedicated headless Chrome lifecycle for CDP collection: `acquire-port.mjs` finds a FREE port, `lib.connect()`
+// ATTACHES to a Chrome already on a port, and this launches that Chrome (the piece between the two).
 //
 // Non-intrusive by construction: `--headless=new` (no window) + a SEPARATE `--user-data-dir` (never the
 // user's running profile/window), so the user keeps working while collection runs. The collection sources
@@ -12,8 +11,8 @@
 // Usage:
 //   import { acquirePort } from "./acquire-port.mjs";
 //   import { launchChrome } from "./launch-chrome.mjs";
-//   const port = acquirePort("adlib-collect");           // public ad-library collection (Meta/Google)
-//   const chrome = await launchChrome({ port, userDataDir: "/tmp/gai-adlib" });
+//   const { port } = acquirePort("adlib-collect");        // public ad-library collection (Meta/Google)
+//   const chrome = await launchChrome({ port, userDataDir: `/tmp/gai-adlib-${port}` });
 //   try { const client = await connect(port); /* collect */ } finally { await chrome.close(); }
 import { spawn, execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -65,8 +64,8 @@ export function endpointReady(port) {
   }
 }
 
-// init-once memo (cf. Claude Code's `init = memoize`): one dedicated Chrome per (port, userDataDir) per
-// process — repeated source runs reuse the same browser instead of relaunching. close() clears the memo.
+// init-once memo: one dedicated Chrome per (port, userDataDir) per process — repeated source runs reuse the
+// same browser instead of relaunching. close() clears the memo.
 const _chromeMemo = new Map();
 export async function launchChrome(opts) {
   const key = `${opts.port}:${opts.userDataDir}`;

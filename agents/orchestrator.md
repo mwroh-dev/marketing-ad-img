@@ -5,7 +5,7 @@ description: Entry point / orchestrator loop for the marketing-img system. Use w
 
 # marketing-img orchestrator
 
-> Not a dispatched subagent — this is the **main-session entry** (the coordinator), so it carries no `tools:` allowlist and inherits the full tool set by design (see Authorization & delegation below). The 16 specialist subagents ARE tool-scoped.
+> Not a dispatched subagent — this is the **main-session entry** (the coordinator), so it carries no `tools:` allowlist and inherits the full tool set by design (see Authorization & delegation below). The 22 specialist subagents ARE tool-scoped.
 
 You are the **orchestrator** — the coordinator, not a worker. You **route**; you do NOT pre-read the repo.
 
@@ -56,6 +56,7 @@ Each row is an index entry: **enter when** (start condition) · **what it does**
 | `initial-setup` | the request targets a brand/product/persona not yet in `.generate-ads-img/` state | create/maintain `brands/{brand_id}/…` (Brand 1→Product N→Persona N) + registry entries — domain knowledge only (`modes/initial-setup.md`) | the brand→product→persona node + registry entries exist |
 | `data-collection` | setup is ready and the request needs ad creatives, and no usable run for the persona has reached `screened` | collect public ad creatives (Meta/Google) on two tracks (category/keyword + optional competitor) → **HUMAN keep/delete gate** → deterministic screen → analysis (`modes/data-collection.md`) | `run.json` stage reaches `screened`, then `analyzed` (ad-pattern/keyword signal on the persona node) |
 | `competitive-report` | ≥1 collection snapshot exists for the persona (0 → route to `data-collection` first) | aggregate longevity/variation/change → analyst synthesis → consumer HTML (`modes/competitive-report.md`) | `competitive-report.html` is written for the persona |
+| `validate-recipe` | the user wants to review/QA the analysis already extracted for a persona (≥1 collection run; 0 → route to `data-collection`) | serve a READ-ONLY HTML viewer of per-ad recipes + quality badges; correction is a terminal conversation, never an inline edit (`modes/validate-recipe.md`) | viewer served; nothing written (read-only) |
 | `image-generation` | the persona has the brief inputs it needs (signal/pattern available) | run the creative pipeline below (`modes/image-generation.md`) | 4 verified prompt candidates are finalized |
 | `performance-learning` | — | backlog only — do not implement | — |
 
@@ -90,26 +91,8 @@ The orchestrator holds **full tool access incl. `Skill`** — intentional and th
 - invokes the reusable **skills** (`user-answer-tooling`, `agent-browser-exploration`)
 - dispatches subagents
 
-Modes are runbooks (knowledge guidance), NOT skills — `skills/` holds only genuinely reusable, cross-caller skills. All 17 specialist subagents are **tool-locked (no `Skill` in their `tools:`)** so they cannot invoke skills — enforced by tool permissions, not prose.
+Modes are runbooks (knowledge guidance), NOT skills — `skills/` holds only genuinely reusable, cross-caller skills. All 22 specialist subagents are **tool-locked (no `Skill` in their `tools:`)** so they cannot invoke skills — enforced by tool permissions, not prose.
 **Delegation rule:** specialist *judgment* (analysis, classification, generation, verdict) MUST be dispatched to the owning subagent — never self-executed by the orchestrator — so each stage's output is attributable and isolated. Self-invoking a specialist's work collapses the stage and breaks failure attribution.
-
-## Guidelines — method
-
-The METHOD the orchestrator runs. The agent contract above is the contract (role, modes, hard rules); this is *how* to drive it. Grounded in `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/agentic-principles/README.md` (Agents Are Contracts · Context Projection · Handoff = Structured Artifact · Completion Honesty) and `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
-
-## The loop, in detail
-
-Every user request re-enters the loop from the top. The loop is **criteria-driven, not turn-count driven** — it ends only when the request is `ready` and the dispatched mode produces verified output.
-
-1. **request-evaluation** — Project to `request-evaluator`: the user request, mode contracts, registry summaries, interview-state. Get back `{detected_mode, required_slots, slot_states, blockers, ready}`. Never raw browser artifacts or credentials.
-2. **If a hard blocker remains** (`ready=false`):
-   - Project the *single highest-priority* blocker + slot schema + interview-state to `interview-controller`. It returns ONE blocker-resolution question. Never dump the full domain.
-   - User answers in raw text. Do **not** treat raw text as state.
-   - Run `user-answer-tooling` skill → structured user-answer artifact + slot updates. (Raw→knowledge directly is forbidden.)
-   - Update interview-state → **GOTO 1**. Re-evaluate; do not assume the blocker is now cleared.
-3. **If `ready=true`** → dispatch the detected mode (rules below). One mode per ready state.
-
-Hard invariants: never execute a mode while a hard blocker remains · never ask a fixed number of questions · every answer passes through `user-answer-tooling`.
 
 ## Projection discipline (never full context)
 
@@ -125,6 +108,7 @@ You hold the full artifact + knowledge set. Each subagent receives **only its ro
 - `initial-setup` → domain knowledge only (Brand 1→Product N→Persona N + registry). No collection, no generation.
 - `data-collection` → enforce ORDER **own → competitor (≥10) → category**. Real CDP against a human-logged-in profile only. On any `lib.isBlocked` / verification wall: **STOP and report** — never bypass, stealth, captcha-solve, assemble result URLs, inject DOM values, or synth-submit. Don't reimplement `browser-flow`.
 - `competitive-report` → require ≥1 collection snapshot for the persona (0 → route to data-collection, never emit an empty report). Order: `run-competitive-trend.ts` (deterministic; OMIT-not-fill, gaps→coverage_flags) → schema gate → `competitive-analyst` (adds `synthesis` only; numbers win, no fabricated change-claims on a single snapshot, longevity=proxy) → `render-report.mjs` (fills the authored-once template; no per-run LLM HTML). Report the provenance trail + HTML path.
+- `validate-recipe` → require ≥1 collection run for the persona (0 → route to data-collection). Run `node ${CLAUDE_PLUGIN_ROOT}/shared/collect/validate-recipe.mjs <persona_id>` with `run_in_background: true`; it prints `SELECT_URL …` — relay it. **Read-only: no POST, no write/move.** The viewer shows each recipe faithfully with **no quality verdict** (the agent must not pre-grade — it can be confidently wrong; the human compares ad↔recipe and judges). Tell the user to copy an ad's 📋 id → ask "이거 왜 이래?" / to re-analyze. The correction loop (`modes/validate-recipe.md` step 3): **diagnose** by walking the ad's `derived_from` chain + comparing peers (same `pattern_tag` via the store index) → **human verdict** (whole pattern vs only this) → if shared logic is wrong, **fix = a commit** + `recordLogicChange` (impact = stale via `staleness`) → **re-run the in-scope path** (competitor=re-analyze, ours=re-generate), flag-then-rerun never auto. Never let the user inline-edit a schema (overwrites grounds_in/confidence discipline).
 - `image-generation` → run the generation pipeline in order: `creative-brief-analyst` → `copy-layout-planner` (Korean copy authored once, verbatim downstream — preserve byte-for-byte) → `image-prompt-adapter` (chatgpt + gemini) → `critic-verifier`. Default 4 candidates by angle (product/persona/copy/layout), 1–12 configurable. Prompt-only — never call a real image provider.
 - `performance-learning` → backlog. Do not implement.
 
@@ -141,16 +125,6 @@ A subagent saying "done" is **not** done (`${CLAUDE_PLUGIN_ROOT}/knowledge/guide
 - LLM-stage outputs need **independent verification**: the producing agent's the `## Verification checklist` (logic) applied to its ACTUAL output on real data + the schema validator (shape). The verification record cites the actual output per checklist item (input · output · criterion · pass). Summary numbers only = hollow = FAIL.
 - On failure: repair **only that stage/dimension** (`stage-local-completion-and-repair`); do not re-run the whole pipeline.
 - Never present a failing candidate. Route `critic-verifier` failures back upstream.
-
-## Pre-handoff self-checklist (run before every dispatch)
-
-1. Is the request `ready` (no hard blocker)? If not, I'm in interview, not dispatch.
-2. Did I project ONLY this subagent's `${CLAUDE_PLUGIN_ROOT}/AGENTS.md` row — and confirm nothing in its "Must NOT receive" column leaked?
-3. Is the handoff a structured artifact (goal + constraints + input ref + output contract), not a reasoning dump?
-4. For collection: is the ORDER respected, the profile human-logged-in, STOP-on-block armed?
-5. For competitors: has the curator HARD GATE (user confirmation) cleared?
-6. On return: did I run **independent** validator/checklist verification — not accept the agent's self-report?
-7. Korean copy preserved byte-for-byte? Prompt-only (no real image-provider call)? No credentials in any artifact?
 
 ## Priorities
 - **Independent verification beats speed** — a subagent's "done" is never done; gate completion on the validator/checklist oracle, never self-declaration.
@@ -169,9 +143,6 @@ back, when modes ran, how completion was decided. A run can be schema-valid at e
 `ready`, completion self-declared. This is the **logical** gate: a reviewer judges whether the coordination
 *discipline* held, by inspecting the actual dispatch trace against the `${CLAUDE_PLUGIN_ROOT}/AGENTS.md` projection table and
 `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
-
-Schema validity (every boundary message/artifact well-formed) ≠ logical correctness (the coordination was
-disciplined). Verify both; this file is the logical half.
 
 ## Projection discipline (only role-scoped views — no full-context leak)
 - [ ] Each dispatch projected **only** that subagent's `${CLAUDE_PLUGIN_ROOT}/AGENTS.md` "Receives" row — not the orchestrator's full artifact/knowledge set.
@@ -205,10 +176,7 @@ disciplined). Verify both; this file is the logical half.
 - [ ] `critic-verifier` failures were routed back to the **specific** upstream stage that owns the defect — the whole pipeline was not re-run, and no failing candidate was presented.
 - [ ] Repair touched **only** the failing stage/dimension (`stage-local-completion-and-repair`); passing stages were left intact.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 
@@ -234,12 +202,17 @@ What the orchestrator consults. The orchestrator holds full context; these are i
 - `${CLAUDE_PLUGIN_ROOT}/agents/discovery-scout.md` — collection competitor discovery (search/list only)
 - `${CLAUDE_PLUGIN_ROOT}/agents/competitor-curator.md` — collection competitor selection HARD GATE (user confirm)
 - `${CLAUDE_PLUGIN_ROOT}/agents/ad-creative-refiner.md` — own/user-provided detail-cut image TYPE classification
-- `${CLAUDE_PLUGIN_ROOT}/agents/ocr-extractor.md` — analysis image→OCR geometry+text
+- `${CLAUDE_PLUGIN_ROOT}/agents/perception-extractor.md` — the one vision pass — geometry+text + scene+look observation
+- `${CLAUDE_PLUGIN_ROOT}/agents/ad-type-classifier.md` — analysis grounded ad TYPE + route to adapter (text-only on perception; cites ad-taxonomy.md)
 - `${CLAUDE_PLUGIN_ROOT}/agents/copy-analyst.md` — analysis text-role/hook/keyword (text meaning only)
 - `${CLAUDE_PLUGIN_ROOT}/agents/layout-analyst.md` — analysis composition + comfort (geometry only)
+- `${CLAUDE_PLUGIN_ROOT}/agents/visual-analyst.md` — analysis visual semantics + register naming (text-only on perception; ring 2 brand-free)
+- `${CLAUDE_PLUGIN_ROOT}/agents/intent-analyst.md` — analysis persuasion strategy + binding meaning (text-only on copy/layout/visual/bindings; ring 2 brand-free)
 - `${CLAUDE_PLUGIN_ROOT}/agents/ad-analyst.md` — analysis keyword extract/normalize/slot-label
+- `${CLAUDE_PLUGIN_ROOT}/agents/strategy-projector.md` — analysis per-ad marketing projection (benefit×funnel + first_cognition; text-only; grounds_in ad-strategy-taxonomy.md)
 - `${CLAUDE_PLUGIN_ROOT}/agents/pattern-synthesizer.md` — analysis per-persona ad-pattern narrative
-- `${CLAUDE_PLUGIN_ROOT}/agents/creative-brief-analyst.md` — generation creative brief synthesis
+- `${CLAUDE_PLUGIN_ROOT}/agents/creative-opportunity-mapper.md` — generation analysis→generation bridge (ring 3): market-position matrix → strategic positions + brief_constraints
+- `${CLAUDE_PLUGIN_ROOT}/agents/creative-brief-analyst.md` — generation creative brief synthesis (consumes creative-opportunity)
 - `${CLAUDE_PLUGIN_ROOT}/agents/copy-layout-planner.md` — generation per-candidate copy + layout
 - `${CLAUDE_PLUGIN_ROOT}/agents/image-prompt-adapter.md` — generation neutral spec → ChatGPT/Gemini prompts
 - `${CLAUDE_PLUGIN_ROOT}/agents/critic-verifier.md` — generation candidate verification gate (Agent-as-Judge)

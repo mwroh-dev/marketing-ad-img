@@ -1,0 +1,645 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "$id": "https://marketing-img/schemas/perception.schema.json",
+  "title": "Perception",
+  "description": "literal observation of ONE ad image (axes 1-4), observe-only",
+  "type": "object",
+  "required": [
+    "image_ref",
+    "persona_id",
+    "medium",
+    "canvas",
+    "text_elements",
+    "graphic_elements",
+    "scene",
+    "look"
+  ],
+  "properties": {
+    "image_ref": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "competitor_id": {
+      "type": "string"
+    },
+    "medium": {
+      "description": "axis-3 GATE; gates the photo-only fields (omit them unless photo)",
+      "anyOf": [
+        {
+          "const": "photo",
+          "type": "string"
+        },
+        {
+          "const": "illustration",
+          "type": "string"
+        },
+        {
+          "const": "render_3d",
+          "type": "string"
+        },
+        {
+          "const": "flat_graphic",
+          "type": "string"
+        },
+        {
+          "const": "composite",
+          "type": "string"
+        },
+        {
+          "const": "other",
+          "type": "string"
+        }
+      ]
+    },
+    "canvas": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "aspect_ratio"
+      ],
+      "properties": {
+        "aspect_ratio": {
+          "type": "string"
+        },
+        "dominant_colors": {
+          "description": "hex",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "background_desc": {
+          "description": "literal (e.g. 'solid cream'); never 'premium feel'",
+          "type": "string"
+        }
+      }
+    },
+    "text_elements": {
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content",
+          "bbox",
+          "font_size_scale"
+        ],
+        "properties": {
+          "id": {
+            "description": "stable handle (t1,t2…) so downstream can reference it",
+            "type": "string"
+          },
+          "content": {
+            "description": "verbatim characters; source language preserved; typos NOT fixed",
+            "type": "string"
+          },
+          "bbox": {
+            "additionalProperties": false,
+            "description": "percent of canvas 0–100, top-left origin",
+            "type": "object",
+            "required": [
+              "x",
+              "y",
+              "w",
+              "h"
+            ],
+            "properties": {
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "w": {
+                "type": "number"
+              },
+              "h": {
+                "type": "number"
+              }
+            }
+          },
+          "font_size_scale": {
+            "description": "relative size within THIS image (xl=biggest), not absolute pt",
+            "anyOf": [
+              {
+                "const": "xs",
+                "type": "string"
+              },
+              {
+                "const": "s",
+                "type": "string"
+              },
+              {
+                "const": "m",
+                "type": "string"
+              },
+              {
+                "const": "l",
+                "type": "string"
+              },
+              {
+                "const": "xl",
+                "type": "string"
+              }
+            ]
+          },
+          "text_confidence": {
+            "minimum": 0,
+            "maximum": 1,
+            "description": "per-element read confidence; low = blurry/overlapping/occluded",
+            "type": "number"
+          },
+          "color_hex": {
+            "type": "string"
+          },
+          "bold": {
+            "type": "boolean"
+          },
+          "shadow": {
+            "type": "boolean"
+          },
+          "align": {
+            "anyOf": [
+              {
+                "const": "left",
+                "type": "string"
+              },
+              {
+                "const": "center",
+                "type": "string"
+              },
+              {
+                "const": "right",
+                "type": "string"
+              }
+            ]
+          },
+          "line_breaks": {
+            "description": "as-laid-out wrap count (3-line block = 2)",
+            "type": "number"
+          }
+        }
+      }
+    },
+    "graphic_elements": {
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "bbox"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "description": "shape/visual bucket of the element's form, never its role (screenshot=embedded UI capture)",
+            "anyOf": [
+              {
+                "const": "product",
+                "type": "string"
+              },
+              {
+                "const": "lifestyle",
+                "type": "string"
+              },
+              {
+                "const": "icon",
+                "type": "string"
+              },
+              {
+                "const": "badge",
+                "type": "string"
+              },
+              {
+                "const": "chart",
+                "type": "string"
+              },
+              {
+                "const": "screenshot",
+                "type": "string"
+              },
+              {
+                "const": "illustration",
+                "type": "string"
+              },
+              {
+                "const": "other",
+                "type": "string"
+              }
+            ]
+          },
+          "bbox": {
+            "additionalProperties": false,
+            "description": "percent of canvas 0–100, top-left origin",
+            "type": "object",
+            "required": [
+              "x",
+              "y",
+              "w",
+              "h"
+            ],
+            "properties": {
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "w": {
+                "type": "number"
+              },
+              "h": {
+                "type": "number"
+              }
+            }
+          },
+          "border": {
+            "anyOf": [
+              {
+                "const": "none",
+                "type": "string"
+              },
+              {
+                "const": "line",
+                "type": "string"
+              },
+              {
+                "const": "rounded",
+                "type": "string"
+              },
+              {
+                "const": "shadow",
+                "type": "string"
+              },
+              {
+                "const": "frame",
+                "type": "string"
+              }
+            ]
+          },
+          "placement": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "scene": {
+      "additionalProperties": false,
+      "description": "what is depicted, literally (no setting bucketing — that is downstream)",
+      "type": "object",
+      "required": [
+        "subjects",
+        "depicted"
+      ],
+      "properties": {
+        "subjects": {
+          "description": "presence facts — everything depicted",
+          "type": "array",
+          "items": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "anyOf": [
+                  {
+                    "const": "human",
+                    "type": "string"
+                  },
+                  {
+                    "const": "human_part",
+                    "type": "string"
+                  },
+                  {
+                    "const": "animal_or_character",
+                    "type": "string"
+                  },
+                  {
+                    "const": "product",
+                    "type": "string"
+                  },
+                  {
+                    "const": "packaging",
+                    "type": "string"
+                  },
+                  {
+                    "const": "container_or_contents",
+                    "type": "string"
+                  },
+                  {
+                    "const": "environment",
+                    "type": "string"
+                  },
+                  {
+                    "const": "text_graphic",
+                    "type": "string"
+                  },
+                  {
+                    "const": "other",
+                    "type": "string"
+                  }
+                ]
+              },
+              "note": {
+                "description": "literal detail only (e.g. 'hand holding the box'); no impression / staged-real judgement",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "depicted": {
+          "description": "one literal scene sentence; no impression, no real/fake judgement",
+          "type": "string"
+        },
+        "space": {
+          "description": "photo-only background cue (disambiguates studio vs room); omit unless medium=photo",
+          "anyOf": [
+            {
+              "const": "seamless_backdrop",
+              "type": "string"
+            },
+            {
+              "const": "real_room",
+              "type": "string"
+            },
+            {
+              "const": "outdoor",
+              "type": "string"
+            },
+            {
+              "const": "surface_top",
+              "type": "string"
+            },
+            {
+              "const": "none",
+              "type": "string"
+            },
+            {
+              "const": "other",
+              "type": "string"
+            }
+          ]
+        },
+        "shot_scale": {
+          "description": "photo-only; omit unless medium=photo",
+          "anyOf": [
+            {
+              "const": "extreme_closeup",
+              "type": "string"
+            },
+            {
+              "const": "closeup",
+              "type": "string"
+            },
+            {
+              "const": "medium",
+              "type": "string"
+            },
+            {
+              "const": "wide",
+              "type": "string"
+            },
+            {
+              "const": "other",
+              "type": "string"
+            }
+          ]
+        },
+        "angle": {
+          "description": "photo-only; omit unless medium=photo",
+          "anyOf": [
+            {
+              "const": "eye_level",
+              "type": "string"
+            },
+            {
+              "const": "high_angle",
+              "type": "string"
+            },
+            {
+              "const": "low_angle",
+              "type": "string"
+            },
+            {
+              "const": "top_down",
+              "type": "string"
+            },
+            {
+              "const": "other",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "look": {
+      "additionalProperties": false,
+      "description": "literal light/finish facts — NOT register/mood (that is visual-analyst)",
+      "type": "object",
+      "properties": {
+        "lighting": {
+          "description": "photo-only; omit when no light source",
+          "anyOf": [
+            {
+              "const": "soft_diffused",
+              "type": "string"
+            },
+            {
+              "const": "hard_directional",
+              "type": "string"
+            },
+            {
+              "const": "natural_daylight",
+              "type": "string"
+            },
+            {
+              "const": "studio_even",
+              "type": "string"
+            },
+            {
+              "const": "dramatic_contrast",
+              "type": "string"
+            },
+            {
+              "const": "other",
+              "type": "string"
+            }
+          ]
+        },
+        "brightness": {
+          "description": "any medium",
+          "anyOf": [
+            {
+              "const": "dark",
+              "type": "string"
+            },
+            {
+              "const": "low_key",
+              "type": "string"
+            },
+            {
+              "const": "balanced",
+              "type": "string"
+            },
+            {
+              "const": "high_key",
+              "type": "string"
+            }
+          ]
+        },
+        "finish": {
+          "description": "dominant product surface only; omit if none",
+          "anyOf": [
+            {
+              "const": "matte",
+              "type": "string"
+            },
+            {
+              "const": "glossy",
+              "type": "string"
+            },
+            {
+              "const": "textured",
+              "type": "string"
+            },
+            {
+              "const": "flat_graphic",
+              "type": "string"
+            },
+            {
+              "const": "other",
+              "type": "string"
+            }
+          ]
+        },
+        "look_desc": {
+          "description": "free-text literal light/surface fact if no enum fits; no impression/register",
+          "type": "string"
+        }
+      }
+    },
+    "not_present": {
+      "description": "salient absences — absence is signal",
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "const": "no_price",
+            "type": "string"
+          },
+          {
+            "const": "no_human",
+            "type": "string"
+          },
+          {
+            "const": "no_logo",
+            "type": "string"
+          },
+          {
+            "const": "no_cta_text",
+            "type": "string"
+          },
+          {
+            "const": "no_background_scene",
+            "type": "string"
+          },
+          {
+            "const": "no_product_shot",
+            "type": "string"
+          },
+          {
+            "const": "other",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "observation_confidence": {
+      "additionalProperties": false,
+      "description": "per-axis high|medium|low; a low read travels marked",
+      "type": "object",
+      "properties": {
+        "text": {
+          "anyOf": [
+            {
+              "const": "high",
+              "type": "string"
+            },
+            {
+              "const": "medium",
+              "type": "string"
+            },
+            {
+              "const": "low",
+              "type": "string"
+            }
+          ]
+        },
+        "geometry": {
+          "anyOf": [
+            {
+              "const": "high",
+              "type": "string"
+            },
+            {
+              "const": "medium",
+              "type": "string"
+            },
+            {
+              "const": "low",
+              "type": "string"
+            }
+          ]
+        },
+        "scene": {
+          "anyOf": [
+            {
+              "const": "high",
+              "type": "string"
+            },
+            {
+              "const": "medium",
+              "type": "string"
+            },
+            {
+              "const": "low",
+              "type": "string"
+            }
+          ]
+        },
+        "look": {
+          "anyOf": [
+            {
+              "const": "high",
+              "type": "string"
+            },
+            {
+              "const": "medium",
+              "type": "string"
+            },
+            {
+              "const": "low",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

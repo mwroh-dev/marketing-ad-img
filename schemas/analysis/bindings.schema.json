@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "$id": "https://marketing-img/schemas/bindings.schema.json",
+  "title": "Bindings",
+  "description": "deterministic text↔graphic spatial bindings (axis-6 fact, no LLM)",
+  "type": "object",
+  "required": [
+    "image_ref",
+    "bound_pairs"
+  ],
+  "properties": {
+    "image_ref": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "persona_id": {
+      "type": "string"
+    },
+    "bound_pairs": {
+      "description": "a text element sits on a graphic element (geometry fact; the MEANING is intent-analyst's)",
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text_id",
+          "graphic_id",
+          "overlap"
+        ],
+        "properties": {
+          "text_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "graphic_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "overlap": {
+            "minimum": 0,
+            "maximum": 1,
+            "description": "fraction of the text box area inside the graphic",
+            "type": "number"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "$id": "https://marketing-img/schemas/ad-type.schema.json",
+  "title": "AdType",
+  "description": "the ad-type classification for ONE ad (text-only, ring 2), with grounds_in provenance",
+  "type": "object",
+  "required": [
+    "image_ref",
+    "persona_id",
+    "message_basis",
+    "execution_style",
+    "ad_type",
+    "grounds_in"
+  ],
+  "properties": {
+    "image_ref": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "message_basis": {
+      "description": "layer 1 — what carries the message (Puto & Wells 1984)",
+      "anyOf": [
+        {
+          "const": "informational",
+          "type": "string"
+        },
+        {
+          "const": "transformational",
+          "type": "string"
+        },
+        {
+          "const": "hybrid",
+          "type": "string"
+        },
+        {
+          "const": "other",
+          "type": "string"
+        }
+      ]
+    },
+    "execution_style": {
+      "description": "layer 2 — observable execution style (Belch & Belch; Kotler & Armstrong)",
+      "anyOf": [
+        {
+          "const": "straight_sell",
+          "type": "string"
+        },
+        {
+          "const": "scientific_evidence",
+          "type": "string"
+        },
+        {
+          "const": "demonstration",
+          "type": "string"
+        },
+        {
+          "const": "comparison",
+          "type": "string"
+        },
+        {
+          "const": "testimonial",
+          "type": "string"
+        },
+        {
+          "const": "slice_of_life",
+          "type": "string"
+        },
+        {
+          "const": "lifestyle",
+          "type": "string"
+        },
+        {
+          "const": "mood_image",
+          "type": "string"
+        },
+        {
+          "const": "fantasy",
+          "type": "string"
+        },
+        {
+          "const": "personality_symbol",
+          "type": "string"
+        },
+        {
+          "const": "dramatization",
+          "type": "string"
+        },
+        {
+          "const": "humor",
+          "type": "string"
+        },
+        {
+          "const": "animation",
+          "type": "string"
+        },
+        {
+          "const": "musical",
+          "type": "string"
+        },
+        {
+          "const": "other",
+          "type": "string"
+        }
+      ]
+    },
+    "secondary_execution_styles": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "const": "straight_sell",
+            "type": "string"
+          },
+          {
+            "const": "scientific_evidence",
+            "type": "string"
+          },
+          {
+            "const": "demonstration",
+            "type": "string"
+          },
+          {
+            "const": "comparison",
+            "type": "string"
+          },
+          {
+            "const": "testimonial",
+            "type": "string"
+          },
+          {
+            "const": "slice_of_life",
+            "type": "string"
+          },
+          {
+            "const": "lifestyle",
+            "type": "string"
+          },
+          {
+            "const": "mood_image",
+            "type": "string"
+          },
+          {
+            "const": "fantasy",
+            "type": "string"
+          },
+          {
+            "const": "personality_symbol",
+            "type": "string"
+          },
+          {
+            "const": "dramatization",
+            "type": "string"
+          },
+          {
+            "const": "humor",
+            "type": "string"
+          },
+          {
+            "const": "animation",
+            "type": "string"
+          },
+          {
+            "const": "musical",
+            "type": "string"
+          },
+          {
+            "const": "other",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "ad_type": {
+      "description": "the routed seed adapter (ad-taxonomy.md routing table)",
+      "anyOf": [
+        {
+          "const": "informational",
+          "type": "string"
+        },
+        {
+          "const": "transformational",
+          "type": "string"
+        },
+        {
+          "const": "social_proof",
+          "type": "string"
+        },
+        {
+          "const": "default",
+          "type": "string"
+        }
+      ]
+    },
+    "grounds_in": {
+      "minLength": 1,
+      "description": "REQUIRED provenance — the ad-taxonomy.md citation(s) this rests on; a classification with no basis is a defect",
+      "type": "string"
+    },
+    "reason": {
+      "description": "which perception facts drove the call (anti-hallucination trace)",
+      "type": "string"
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "const": "high",
+          "type": "string"
+        },
+        {
+          "const": "medium",
+          "type": "string"
+        },
+        {
+          "const": "low",
+          "type": "string"
+        }
+      ]
+    }
+  }
+}

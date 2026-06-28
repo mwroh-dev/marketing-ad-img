@@ -1,6 +1,6 @@
 // SHAPE sanity only — schema conformance + cheap structural invariants. This does NOT verify the
 // producing agent's logical correctness (sound reasoning/judgment); that is the LOGICAL gate in the relevant
-// agents/<name>/checklist.md. Shape-valid ≠ correct.
+// agent's `## Verification checklist` section. Shape-valid ≠ correct.
 
 // Validates discovery-scout pool + curator confirmed-set against schemas.
 // Usage: tsx scripts/validate-competitor.ts [candidatesPath] [confirmedPath]

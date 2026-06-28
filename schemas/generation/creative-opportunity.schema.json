@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "$id": "https://marketing-img/schemas/creative-opportunity.schema.json",
+  "title": "CreativeOpportunity",
+  "description": "ring-3 selection of strategic positions + brief_constraints for OUR next ad (not a final prompt)",
+  "type": "object",
+  "required": [
+    "persona_id",
+    "selected_opportunities"
+  ],
+  "properties": {
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "selected_opportunities": {
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "opportunity_id",
+          "selected_position",
+          "reason",
+          "source_matrix_evidence"
+        ],
+        "properties": {
+          "opportunity_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "selected_position": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "benefit",
+              "funnel"
+            ],
+            "properties": {
+              "benefit": {
+                "anyOf": [
+                  {
+                    "const": "function",
+                    "type": "string"
+                  },
+                  {
+                    "const": "cost",
+                    "type": "string"
+                  },
+                  {
+                    "const": "trust",
+                    "type": "string"
+                  },
+                  {
+                    "const": "symbol",
+                    "type": "string"
+                  }
+                ]
+              },
+              "funnel": {
+                "anyOf": [
+                  {
+                    "const": "discovery",
+                    "type": "string"
+                  },
+                  {
+                    "const": "comparison",
+                    "type": "string"
+                  },
+                  {
+                    "const": "action",
+                    "type": "string"
+                  },
+                  {
+                    "const": "retention",
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          },
+          "reason": {
+            "minItems": 1,
+            "description": "≥1 product/persona-fit reason this position was selected",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source_matrix_evidence": {
+            "minItems": 1,
+            "description": "≥1 matrix cell/device this rests on — no opportunity without matrix backing",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "recommended_ad_type": {
+            "type": "string"
+          },
+          "recommended_execution_style": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "brief_constraints": {
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {
+              "headline_style": {
+                "type": "string"
+              },
+              "visual_style": {
+                "type": "string"
+              },
+              "proof_device": {
+                "type": "string"
+              },
+              "layout_device": {
+                "type": "string"
+              },
+              "cta_direction": {
+                "type": "string"
+              },
+              "must_include": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "must_avoid": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "risk_notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "rejected_positions": {
+      "description": "why each candidate was NOT chosen",
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "position",
+          "reason"
+        ],
+        "properties": {
+          "position": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "grounds_in": {
+      "type": "string"
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "const": "high",
+          "type": "string"
+        },
+        {
+          "const": "medium",
+          "type": "string"
+        },
+        {
+          "const": "low",
+          "type": "string"
+        }
+      ]
+    }
+  }
+}

@@ -36,6 +36,7 @@ function makeCtx(cards, { cap = 24, imagesPerQuery } = {}) {
     },
     async evalJs(expr) {
       if (/\.length\s*$/.test(expr) && expr.includes('role="button"')) return cards.length;     // trigger count
+      if (expr.includes("_7jyr")) return cards[i] ? (cards[i].cardText || "") : "";              // CARD_PRIMARY_TEXT(i) — does NOT advance cursor (must precede the k<12 walk match)
       if (expr.includes("for(let k=0;k<12")) {                 // CARD_IMG_ASSETS(i) — advance the cursor
         const m = expr.match(/\]\[(\d+)\]/);
         i = m ? Number(m[1]) : i + 1;

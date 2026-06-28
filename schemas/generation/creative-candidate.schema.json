@@ -1,102 +1,282 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/creative-candidate.schema.json",
   "title": "Creative candidates file",
-  "description": "Container for image-generation creative candidates (provider-neutral). Written to .generate-ads-img/runs/{run_id}/creative/creative-candidates.json.",
+  "description": "container for image-generation creative candidates (provider-neutral)",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["run_id", "candidate_count", "candidates"],
+  "required": [
+    "run_id",
+    "candidate_count",
+    "candidates"
+  ],
   "properties": {
-    "run_id": { "type": "string", "minLength": 1 },
-    "candidate_count": { "type": "integer", "minimum": 1, "maximum": 12 },
+    "run_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "candidate_count": {
+      "minimum": 1,
+      "maximum": 12,
+      "type": "integer"
+    },
     "candidates": {
-      "type": "array",
       "minItems": 1,
       "maxItems": 12,
-      "items": { "$ref": "#/$defs/candidate" }
-    }
-  },
-  "$defs": {
-    "format": {
-      "type": "string",
-      "enum": ["meta_square_1_1", "meta_feed_4_5", "meta_story_9_16", "meta_landscape_1_91_1"]
-    },
-    "angle": {
-      "type": "string",
-      "enum": ["product_usp", "persona_response", "compelling_claim", "visual_hierarchy"]
-    },
-    "candidate": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["candidate_id", "angle", "format", "provider_neutral_spec"],
-      "properties": {
-        "candidate_id": { "type": "string", "pattern": "^candidate_[0-9]{3}$" },
-        "angle": { "$ref": "#/$defs/angle" },
-        "primary_variable": { "type": "string" },
-        "format": { "$ref": "#/$defs/format" },
-        "provider_neutral_spec": { "$ref": "#/$defs/creativeCandidateSpec" },
-        "evidence_refs": { "type": "array", "items": { "type": "string" } },
-        "assumption_notes": { "type": "array", "items": { "type": "string" } },
-        "risk_notes": { "type": "array", "items": { "type": "string" } }
-      }
-    },
-    "creativeCandidateSpec": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["candidate_id", "format", "canvas", "product", "copy", "layout", "style"],
-      "properties": {
-        "candidate_id": { "type": "string", "pattern": "^candidate_[0-9]{3}$" },
-        "format": { "$ref": "#/$defs/format" },
-        "canvas": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["ratio", "width", "height"],
-          "properties": {
-            "ratio": { "type": "string" },
-            "width": { "type": "integer", "minimum": 1 },
-            "height": { "type": "integer", "minimum": 1 }
-          }
-        },
-        "product": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["asset_id", "placement", "scale"],
-          "properties": {
-            "asset_id": { "type": "string" },
-            "placement": { "type": "string" },
-            "scale": { "type": "string", "enum": ["small", "medium", "large"] }
-          }
-        },
-        "copy": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["language", "headline", "cta"],
-          "properties": {
-            "language": { "type": "string" },
-            "headline": { "type": "string", "minLength": 1 },
-            "subcopy": { "type": "string" },
-            "cta": { "type": "string", "minLength": 1 }
-          }
-        },
-        "layout": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["headline_position", "product_position", "cta_position", "text_density"],
-          "properties": {
-            "headline_position": { "type": "string" },
-            "product_position": { "type": "string" },
-            "cta_position": { "type": "string" },
-            "text_density": { "type": "string", "enum": ["low", "medium", "high"] }
-          }
-        },
-        "style": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["brand_mood", "color_direction"],
-          "properties": {
-            "brand_mood": { "type": "string" },
-            "color_direction": { "type": "string" },
-            "avoid": { "type": "array", "items": { "type": "string" } }
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "candidate_id",
+          "angle",
+          "format",
+          "provider_neutral_spec"
+        ],
+        "properties": {
+          "candidate_id": {
+            "pattern": "^candidate_[0-9]{3}$",
+            "type": "string"
+          },
+          "angle": {
+            "anyOf": [
+              {
+                "const": "product_usp",
+                "type": "string"
+              },
+              {
+                "const": "persona_response",
+                "type": "string"
+              },
+              {
+                "const": "compelling_claim",
+                "type": "string"
+              },
+              {
+                "const": "visual_hierarchy",
+                "type": "string"
+              }
+            ]
+          },
+          "primary_variable": {
+            "type": "string"
+          },
+          "format": {
+            "anyOf": [
+              {
+                "const": "meta_square_1_1",
+                "type": "string"
+              },
+              {
+                "const": "meta_feed_4_5",
+                "type": "string"
+              },
+              {
+                "const": "meta_story_9_16",
+                "type": "string"
+              },
+              {
+                "const": "meta_landscape_1_91_1",
+                "type": "string"
+              }
+            ]
+          },
+          "provider_neutral_spec": {
+            "additionalProperties": false,
+            "description": "the provider-neutral spec the image-prompt-adapter specializes into ChatGPT/Gemini prompts",
+            "type": "object",
+            "required": [
+              "candidate_id",
+              "format",
+              "canvas",
+              "product",
+              "copy",
+              "layout",
+              "style"
+            ],
+            "properties": {
+              "candidate_id": {
+                "pattern": "^candidate_[0-9]{3}$",
+                "type": "string"
+              },
+              "format": {
+                "anyOf": [
+                  {
+                    "const": "meta_square_1_1",
+                    "type": "string"
+                  },
+                  {
+                    "const": "meta_feed_4_5",
+                    "type": "string"
+                  },
+                  {
+                    "const": "meta_story_9_16",
+                    "type": "string"
+                  },
+                  {
+                    "const": "meta_landscape_1_91_1",
+                    "type": "string"
+                  }
+                ]
+              },
+              "canvas": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "ratio",
+                  "width",
+                  "height"
+                ],
+                "properties": {
+                  "ratio": {
+                    "type": "string"
+                  },
+                  "width": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "height": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                }
+              },
+              "product": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "asset_id",
+                  "placement",
+                  "scale"
+                ],
+                "properties": {
+                  "asset_id": {
+                    "type": "string"
+                  },
+                  "placement": {
+                    "type": "string"
+                  },
+                  "scale": {
+                    "anyOf": [
+                      {
+                        "const": "small",
+                        "type": "string"
+                      },
+                      {
+                        "const": "medium",
+                        "type": "string"
+                      },
+                      {
+                        "const": "large",
+                        "type": "string"
+                      }
+                    ]
+                  }
+                }
+              },
+              "copy": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "language",
+                  "headline",
+                  "cta"
+                ],
+                "properties": {
+                  "language": {
+                    "type": "string"
+                  },
+                  "headline": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "subcopy": {
+                    "type": "string"
+                  },
+                  "cta": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                }
+              },
+              "layout": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "headline_position",
+                  "product_position",
+                  "cta_position",
+                  "text_density"
+                ],
+                "properties": {
+                  "headline_position": {
+                    "type": "string"
+                  },
+                  "product_position": {
+                    "type": "string"
+                  },
+                  "cta_position": {
+                    "type": "string"
+                  },
+                  "text_density": {
+                    "anyOf": [
+                      {
+                        "const": "low",
+                        "type": "string"
+                      },
+                      {
+                        "const": "medium",
+                        "type": "string"
+                      },
+                      {
+                        "const": "high",
+                        "type": "string"
+                      }
+                    ]
+                  }
+                }
+              },
+              "style": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "brand_mood",
+                  "color_direction"
+                ],
+                "properties": {
+                  "brand_mood": {
+                    "type": "string"
+                  },
+                  "color_direction": {
+                    "type": "string"
+                  },
+                  "avoid": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assumption_notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "risk_notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       }

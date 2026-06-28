@@ -76,7 +76,7 @@ a duplicated candidate. **Catch-rate must be 100% and false-positive rate must b
   fabricated reason.
 
 ## Output
-Emit JSON conforming to `critic-verdict.schema.json`:
+Write to **exactly** `.generate-ads-img/runs/{run_id}/creative/critic-verdict.json` (this exact filename — the conformance gate + the normalize step read it by this path), JSON conforming to `critic-verdict.schema.json`:
 `{ "verdicts": [ { "candidate_id, "pass", "issues"[], "risk_flags"[] } ], "overall_pass" }`.
 `overall_pass` is `true` only if **every** candidate passes. Put one concrete sentence per real
 defect in `issues`; use `risk_flags` for the categorical tags
@@ -97,18 +97,7 @@ If an `evidence_ref` is **missing, placeholder, or mismatched**, the Korean diff
 
 ## Verification checklist — output
 
-The schema validator (`critic-verdict.schema.json`) only checks **shape** — that each verdict has a
-`candidate_id`, a boolean `pass`, `issues[]`, `risk_flags[]`, and that `overall_pass` exists. A
-schema-valid verdict can still be *wrong*: it can approve a candidate that smuggles a forbidden claim,
-miss a near-duplicate, or invent a defect on a clean candidate. This is the **logical** gate — a
-reviewer (or the agent at self-review) judges whether the verdict's *judgment* is sound.
-
-critic-verifier IS the final gate of the whole system, so this checklist verifies the **verifier
-itself**: not "did it emit a well-formed verdict" but "did it catch what it exists to catch, and did
-it refrain from failing what is clean." A verdict that conforms to the schema but mis-judges any
-candidate is still a defect.
-
-Schema validity ≠ logical correctness. The verifier's whole value is the logical half; this file is it.
+Agent-specific must-NOTs (the discriminating gate). critic-verifier IS the final gate, so this verifies the **verifier itself** — not "did it emit a well-formed verdict" but "did it catch what it exists to catch, and refrain from failing what is clean":
 
 ## Catch-rate (the planted defects — must be 100%)
 - [ ] **Forbidden claim** caught: any `forbidden_claims` entry appearing anywhere — headline, subcopy, CTA, **or the embedded adapter `prompt`** — is FAILed with `risk_flag: forbidden_claim`, even when paraphrased or only present in the prompt surface (not just the spec).
@@ -143,24 +132,21 @@ Schema validity ≠ logical correctness. The verifier's whole value is the logic
 ## Korean integrity in the verdict itself
 - [ ] Korean ad-copy quoted in `issues` is preserved **verbatim** (both the spec string and the altered string shown for an `altered_korean` defect) — the verifier does not itself alter the Korean it is reporting on.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 
 ## Output contract (this agent emits)
-- ${CLAUDE_PLUGIN_ROOT}/schemas/generation/critic-verdict.schema.json — `{ verdicts[]{ candidate_id, pass, issues[], risk_flags[] }, overall_pass }`. Default `pass:false`; `overall_pass` = AND of all candidate `pass`.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/generation/critic-verdict.view.md — `{ verdicts[]{ candidate_id, pass, issues[], risk_flags[] }, overall_pass }`. Default `pass:false`; `overall_pass` = AND of all candidate `pass`.
 
 ## Upstream (this agent consumes)
 - ${CLAUDE_PLUGIN_ROOT}/agents/image-prompt-adapter.md — producer of the adapter outputs under review.
-- ${CLAUDE_PLUGIN_ROOT}/schemas/generation/image-adapter-output.schema.json — the input you verify. Each `outputs[]` item has the **9 required fields** (`provider`, `candidate_id`, `prompt`, `negative_prompt`, `provider_notes`, `input_assets`, `expected_output`, `verification_checklist`, `retry_instruction_template`). `verification_checklist` must be non-empty.
-- ${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-candidate.schema.json — candidate spec; Korean headline/subcopy/cta here must match the adapter `prompt` byte-for-byte.
-- ${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-brief.schema.json — brief + `evidence_refs` claims trace back to.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/generation/image-adapter-output.view.md — the input you verify. Each `outputs[]` item has the **9 required fields** (`provider`, `candidate_id`, `prompt`, `negative_prompt`, `provider_notes`, `input_assets`, `expected_output`, `verification_checklist`, `retry_instruction_template`). `verification_checklist` must be non-empty.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-candidate.view.md — candidate spec; Korean headline/subcopy/cta here must match the adapter `prompt` byte-for-byte.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-brief.view.md — brief + `evidence_refs` claims trace back to.
 
 ## Brand constraints (defect source)
-- ${CLAUDE_PLUGIN_ROOT}/schemas/setup/brand.schema.json — `forbidden_claims` (array) and `tone` live here; scan all copy against `forbidden_claims`, match voice to `tone`.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/setup/brand.view.md — `forbidden_claims` (array) and `tone` live here; scan all copy against `forbidden_claims`, match voice to `tone`.
 
 ## Knowledge / guidelines
 - ${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/marketing-techniques/README.md — marketing-technique reference for judging overclaim vs. legitimate persuasion.

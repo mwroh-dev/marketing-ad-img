@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "$id": "https://marketing-img/schemas/intent-analysis.schema.json",
+  "title": "IntentAnalysis",
+  "description": "persuasion intent (axis 5) + binding meaning (axis 6), ring 2 brand-free, text-only",
+  "type": "object",
+  "required": [
+    "image_ref",
+    "persona_id",
+    "appeal",
+    "funnel_stage"
+  ],
+  "properties": {
+    "image_ref": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "appeal": {
+      "description": "the dominant persuasion mechanism the ad uses (brand-free)",
+      "anyOf": [
+        {
+          "const": "price",
+          "type": "string"
+        },
+        {
+          "const": "quality_proof",
+          "type": "string"
+        },
+        {
+          "const": "social_proof",
+          "type": "string"
+        },
+        {
+          "const": "fear_avoidance",
+          "type": "string"
+        },
+        {
+          "const": "aspiration",
+          "type": "string"
+        },
+        {
+          "const": "convenience",
+          "type": "string"
+        },
+        {
+          "const": "novelty",
+          "type": "string"
+        },
+        {
+          "const": "authority",
+          "type": "string"
+        },
+        {
+          "const": "scarcity",
+          "type": "string"
+        },
+        {
+          "const": "other",
+          "type": "string"
+        }
+      ]
+    },
+    "secondary_appeals": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "const": "price",
+            "type": "string"
+          },
+          {
+            "const": "quality_proof",
+            "type": "string"
+          },
+          {
+            "const": "social_proof",
+            "type": "string"
+          },
+          {
+            "const": "fear_avoidance",
+            "type": "string"
+          },
+          {
+            "const": "aspiration",
+            "type": "string"
+          },
+          {
+            "const": "convenience",
+            "type": "string"
+          },
+          {
+            "const": "novelty",
+            "type": "string"
+          },
+          {
+            "const": "authority",
+            "type": "string"
+          },
+          {
+            "const": "scarcity",
+            "type": "string"
+          },
+          {
+            "const": "other",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "funnel_stage": {
+      "anyOf": [
+        {
+          "const": "awareness",
+          "type": "string"
+        },
+        {
+          "const": "consideration",
+          "type": "string"
+        },
+        {
+          "const": "conversion",
+          "type": "string"
+        },
+        {
+          "const": "retargeting",
+          "type": "string"
+        },
+        {
+          "const": "other",
+          "type": "string"
+        }
+      ]
+    },
+    "primary_objection_addressed": {
+      "description": "free-text: the buyer objection this ad most neutralizes (not aggregated)",
+      "type": "string"
+    },
+    "binding_reading": {
+      "description": "axis-6 MEANING per bound_pair; references bound_pairs by id",
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text_id",
+          "graphic_id",
+          "meaning"
+        ],
+        "properties": {
+          "text_id": {
+            "type": "string"
+          },
+          "graphic_id": {
+            "type": "string"
+          },
+          "meaning": {
+            "minLength": 1,
+            "description": "what the placement DOES (e.g. price ON product = value anchored to product)",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "look_copy_tension": {
+      "description": "the STRATEGY a look↔copy mismatch encodes (never a re-labeled register)",
+      "type": "string"
+    },
+    "evidence": {
+      "description": "anti-hallucination trace: which analysis facts the appeal was derived from",
+      "type": "string"
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "const": "high",
+          "type": "string"
+        },
+        {
+          "const": "medium",
+          "type": "string"
+        },
+        {
+          "const": "low",
+          "type": "string"
+        }
+      ]
+    }
+  }
+}

@@ -1,70 +1,235 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/run-manifest.schema.json",
   "title": "RunManifest",
-  "description": "Per-run progress ledger written at runs/{run_id}/run.json. Gives each collection run a dated identity (no more silent overwrite of the 'adlib' default) and tracks the pipeline stage so a returning user knows exactly how far a run got: collected → human_reviewed → screened → analyzed. Stage advance is monotonic (see advance-stage.mjs). Not encryption — just sync.",
+  "description": "per-run progress ledger — dated identity + monotonic stage (collected→human_reviewed→screened→analyzed)",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["run_id", "created_at", "source", "track", "persona_id", "queries", "stage", "counts"],
+  "required": [
+    "run_id",
+    "created_at",
+    "source",
+    "track",
+    "persona_id",
+    "queries",
+    "stage",
+    "counts"
+  ],
   "properties": {
-    "run_id": { "type": "string", "minLength": 1, "description": "dated id, e.g. 2026-06-23-1430-meta-keyword" },
-    "created_at": { "type": "string", "minLength": 1, "description": "ISO-8601 run creation instant" },
-    "source": { "type": "string", "minLength": 1, "description": "collection source, e.g. meta_ad_library | google_ads_transparency" },
-    "track": {
-      "type": "string",
-      "description": "category_keyword = the ad-corpus track (mode keyword); competitor = the advertiser track (mode advertiser)",
-      "enum": ["category_keyword", "competitor"]
+    "run_id": {
+      "minLength": 1,
+      "description": "dated id, e.g. 2026-06-23-1430-meta-keyword",
+      "type": "string"
     },
-    "persona_id": { "type": "string", "minLength": 1 },
+    "created_at": {
+      "minLength": 1,
+      "description": "ISO-8601 run creation instant",
+      "type": "string"
+    },
+    "source": {
+      "minLength": 1,
+      "description": "collection source, e.g. meta_ad_library | google_ads_transparency",
+      "type": "string"
+    },
+    "track": {
+      "description": "category_keyword = ad-corpus track; competitor = advertiser track",
+      "anyOf": [
+        {
+          "const": "category_keyword",
+          "type": "string"
+        },
+        {
+          "const": "competitor",
+          "type": "string"
+        }
+      ]
+    },
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
     "product_id": {
-      "type": ["string", "null"],
-      "description": "set when collection is driven by a keyword-plan that carries it; null for a bare positional run"
+      "description": "set when a keyword-plan carries it; null for a bare positional run",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "queries": {
-      "type": "array",
       "description": "what was searched this run",
+      "type": "array",
       "items": {
-        "type": "object",
         "additionalProperties": false,
-        "required": ["query", "mode"],
+        "type": "object",
+        "required": [
+          "query",
+          "mode"
+        ],
         "properties": {
-          "query": { "type": "string", "minLength": 1 },
-          "mode": { "type": "string", "enum": ["keyword", "advertiser"] },
-          "axis": {
-            "type": ["string", "null"],
-            "description": "keyword-plan axis: needs | use_case | adjacency; advertiser for competitor queries; null for bare runs",
-            "enum": ["needs", "use_case", "adjacency", "advertiser", null]
+          "query": {
+            "minLength": 1,
+            "type": "string"
           },
-          "results_count": { "type": ["integer", "null"], "minimum": 0, "description": "platform-reported result count (coverage signal), null if not captured" }
+          "mode": {
+            "anyOf": [
+              {
+                "const": "keyword",
+                "type": "string"
+              },
+              {
+                "const": "advertiser",
+                "type": "string"
+              }
+            ]
+          },
+          "axis": {
+            "description": "keyword-plan axis; advertiser for competitor queries; null for bare runs",
+            "anyOf": [
+              {
+                "const": "needs",
+                "type": "string"
+              },
+              {
+                "const": "use_case",
+                "type": "string"
+              },
+              {
+                "const": "adjacency",
+                "type": "string"
+              },
+              {
+                "const": "advertiser",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "results_count": {
+            "description": "platform-reported result count (coverage signal); null if not captured",
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
         }
       }
     },
     "stage": {
-      "type": "string",
       "description": "current pipeline stage — advances monotonically",
-      "enum": ["collected", "human_reviewed", "screened", "analyzed"]
+      "anyOf": [
+        {
+          "const": "collected",
+          "type": "string"
+        },
+        {
+          "const": "human_reviewed",
+          "type": "string"
+        },
+        {
+          "const": "screened",
+          "type": "string"
+        },
+        {
+          "const": "analyzed",
+          "type": "string"
+        }
+      ]
     },
     "counts": {
-      "type": "object",
       "additionalProperties": false,
-      "required": ["collected", "kept_by_human", "screened", "analyzed"],
+      "type": "object",
+      "required": [
+        "collected",
+        "kept_by_human",
+        "screened",
+        "analyzed"
+      ],
       "properties": {
-        "collected": { "type": "integer", "minimum": 0 },
-        "kept_by_human": { "type": ["integer", "null"], "minimum": 0 },
-        "screened": { "type": ["integer", "null"], "minimum": 0 },
-        "analyzed": { "type": ["integer", "null"], "minimum": 0 }
+        "collected": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "kept_by_human": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "screened": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "analyzed": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
       }
     },
     "stage_history": {
+      "description": "append-only audit of stage transitions",
       "type": "array",
-      "description": "append-only audit of stage transitions (monotonic)",
       "items": {
-        "type": "object",
         "additionalProperties": false,
-        "required": ["stage", "at"],
+        "type": "object",
+        "required": [
+          "stage",
+          "at"
+        ],
         "properties": {
-          "stage": { "type": "string", "enum": ["collected", "human_reviewed", "screened", "analyzed"] },
-          "at": { "type": "string", "minLength": 1 }
+          "stage": {
+            "anyOf": [
+              {
+                "const": "collected",
+                "type": "string"
+              },
+              {
+                "const": "human_reviewed",
+                "type": "string"
+              },
+              {
+                "const": "screened",
+                "type": "string"
+              },
+              {
+                "const": "analyzed",
+                "type": "string"
+              }
+            ]
+          },
+          "at": {
+            "minLength": 1,
+            "type": "string"
+          }
         }
       }
     }

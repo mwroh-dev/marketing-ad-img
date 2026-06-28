@@ -132,13 +132,8 @@ Emit exactly one JSON object, no prose:
 
 ## Verification checklist — output
 
-The schema validator (`validate-ad-creative.ts` against `ad-creative.schema.json`) only checks **shape** —
-that `type` is in the 6-value enum, `confidence` is in [0,1], and the fields exist. A shape-valid object can
-still be a wrong classification. This is the **logical** gate: a reviewer (or the agent at self-review) judges
-whether the TYPE call is *correct* — whether the image was judged by the strict persuasion-copy + designed-visual
-test, not by "text is present." A schema-valid output that fails this checklist is still a defect.
+Agent-specific must-NOTs (the discriminating gate). The TYPE call is judged by the strict persuasion-copy ∧ designed-visual test, never by "text is present":
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## The TYPE test (judgment, not text-detection)
 - [ ] `ad_creative` was granted ONLY when **both** halves of the strict test hold: persuasion copy (a hook headline / benefit claim meant to convince) AND a designed visual (copy composed *together* with a styled product/scene — typography, color, layout intent).
@@ -169,10 +164,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 ## Faithfulness
 - [ ] `image_ref` echoes the given path verbatim and `competitor_id` matches the projected input — the classification is for THIS image of THIS competitor, not relabeled or blended.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 
@@ -181,7 +173,7 @@ Canonical sources for this agent. Paths are repo-root relative and verified.
 ## Contract & method
 
 ## Schema (output I/O contract)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/collection/ad-creative.schema.json — `AdCreativeSet`. The per-creative
+- @${CLAUDE_PLUGIN_ROOT}/schemas/collection/ad-creative.view.md — `AdCreativeSet`. The per-creative
   `type` enum {ad_creative, catalog, spec, review, lifestyle, unknown}, `confidence`
   (0–1), and `competitor_id` are the fields this agent populates.
 

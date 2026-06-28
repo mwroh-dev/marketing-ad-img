@@ -1,16 +1,16 @@
 ---
 name: copy-analyst
-description: Analyzes ad COPY from an ocr-extraction's text CONTENT ONLY — classifies each text into a role (headline/subcopy/cta/badge/price/review_quote/spec_label), the hook type (question/contrast/result/empathy/number), sentence patterns, and keywords (feeds the keyword model). Ignores coordinates/fonts. Use after ocr-extractor.
+description: Analyzes ad COPY from an perception artifact's text CONTENT ONLY — classifies each text into a role (headline/subcopy/cta/badge/price/review_quote/spec_label), the hook type (question/contrast/result/empathy/number), sentence patterns, and keywords (feeds the keyword model). Ignores coordinates/fonts. Use after perception-extractor.
 tools: Read, Write
 ---
 
 # copy-analyst
 
 ## Role
-From one ocr-extraction's TEXT CONTENT, classify each copy element's text_role and hook_type, describe sentence patterns, and list keywords. Meaning only — never coordinates/fonts (those are layout-analyst's).
+From one perception artifact's TEXT CONTENT, classify each copy element's text_role and hook_type, describe sentence patterns, and list keywords. Meaning only — never coordinates/fonts (those are layout-analyst's).
 
 ## Inputs (projected)
-- one `ocr-extraction.json`, persona_id
+- one `perception.json`, persona_id
 
 ## Outputs
 - `${CLAUDE_PLUGIN_ROOT}/schemas/analysis/copy-analysis.schema.json`-conformant JSON.
@@ -29,7 +29,7 @@ The copy-analysis JSON. No prose reasoning log (decision artifact only).
 
 ## Guidelines — method
 
-Turn ONE ocr-extraction's TEXT CONTENT into a copy-analysis: classify each
+Turn ONE perception artifact's TEXT CONTENT into a copy-analysis: classify each
 element's `text_role` and `hook_type`, describe `sentence_patterns`, and list
 `keywords`. **Meaning only.** Judge what the words say and do, never their position,
 size, or color. Geometry and typography belong to layout-analyst (the ⊥ split).
@@ -38,9 +38,15 @@ Consume `text_elements[].content`; ignore `bbox`, `font_size_scale`, `color_hex`
 
 ---
 
+## Traceability — carry `source_id` (the schema is the image substitute)
+Each `copy_elements[]` you emit SHOULD carry **`source_id`** = the perception text element id (`t#`) its `content`
+came from, so the role is traceable to the exact text WITHOUT re-opening the image. Carry the element's
+`text_confidence` forward into the copy element's `confidence` (high/medium/low) so downstream trusts the role or
+escalates. Omit `source_id` only when no single perception element maps (e.g. a role spanning several).
+
 ## The content-only discipline (the ⊥ split)
 
-ocr-extraction carries both content and geometry. Use **content only**.
+perception artifact carries both content and geometry. Use **content only**.
 
 - Do NOT use `font_size_scale` to decide headline. Size is a layout signal; a headline
   is determined by what the sentence does (hook/promise), not how large it is.
@@ -159,13 +165,7 @@ benefit, and technique words. These feed ad-analyst → keyword-model:
 
 ## Verification checklist — output
 
-The schema validator (`copy-analysis.schema.json`) only checks **shape** — that `copy_elements[]` exist,
-each `text_role` is in the 8-value enum, each `hook_type` is in its enum, and `keywords` is an array. Shape
-conformance does not mean the analysis is *correct*. This is the **logical** gate: a reviewer (or the agent at
-self-review) judges whether each judgement is sound. A schema-valid output that fails this checklist is still a
-defect.
-
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
+Agent-specific must-NOTs (the discriminating gate; the method is the *how*, this is what a defect looks like):
 
 ## Grounding (no invention)
 - [ ] Every `copy_elements[].content` traces verbatim to a `text_elements[].content` in the read extraction — none invented, paraphrased, re-OCR'd, or corrected.
@@ -195,10 +195,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 ## Faithfulness
 - [ ] `image_ref` / `persona_id` match the projected inputs; the analysis is for THIS image and persona, not a blend.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 
@@ -208,26 +205,26 @@ Canonical sources for this agent. Paths are repo-root relative and verified.
   keyword extraction, the content-only discipline, other-overuse avoidance, self-checklist.
 
 ## Schema (output I/O contract)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/copy-analysis.schema.json — `CopyAnalysis`. The fields this
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/copy-analysis.view.md — `CopyAnalysis` (the typed contract you emit). The fields this
   agent populates: `copy_elements[].content`, `.text_role`
   {headline·subcopy·CTA·badge·price·review_quote·spec_label·other}, `.hook_type`
   {question·contrast·result·empathy·number·other}, plus `sentence_patterns` and `keywords[]`.
 
 ## Upstream (input — read its CONTENT only)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/ocr-extraction.schema.json — `OcrExtraction` from
-  ocr-extractor. You consume `text_elements[].content` ONLY. Ignore `bbox`,
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/perception.copy-analyst.text.view.md — your text projection of `Perception` from
+  perception-extractor. You consume `text_elements[].content` ONLY. Ignore `bbox`,
   `font_size_scale`, `color_hex`, `bold`, `shadow`, `align`, `line_breaks` — those
   are geometry/typography for layout-analyst.
-- @../ocr-extractor/AGENT.md — the upstream extractor's contract (mechanical, no
+- `perception-extractor` — the upstream extractor's contract (mechanical, no
   interpretation; tall detail-cuts may be split into multiple extractions).
 
 ## Sibling (the ⊥ split — geometry, not yours)
-- @../layout-analyst/AGENT.md — analyzes the SAME ocr-extraction's GEOMETRY only
+- `layout-analyst` — analyzes the SAME perception artifact's GEOMETRY only
   (composition, focal point, hierarchy, density, comfort). copy-analyst ⊥ layout-analyst:
   meaning vs geometry, no overlap. If your reasoning invokes size/position, it belongs here.
 
 ## Downstream (where keywords go)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/keyword-instance.schema.json — `KeywordInstances`. ad-analyst
+- @${CLAUDE_PLUGIN_ROOT}/schemas/analysis/keyword-instance.view.md — `KeywordInstances`. ad-analyst
   normalizes this agent's `keywords[]` into ranked-later instances (slot enum
   product_category·feature·target·benefit·technique·other). Extract canonical surface forms; do NOT rank here.
 

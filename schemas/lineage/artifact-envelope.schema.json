@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "$id": "https://marketing-img/schemas/artifact-envelope.schema.json",
+  "title": "ArtifactEnvelope",
+  "description": "lineage envelope: chain + pattern_tag + logic_version stamping ONE stored artifact",
+  "type": "object",
+  "required": [
+    "kind",
+    "key",
+    "pattern_tag",
+    "derived_from",
+    "logic_version",
+    "produced_by",
+    "stamped_at",
+    "payload"
+  ],
+  "properties": {
+    "kind": {
+      "anyOf": [
+        {
+          "const": "perception",
+          "type": "string"
+        },
+        {
+          "const": "copy",
+          "type": "string"
+        },
+        {
+          "const": "layout",
+          "type": "string"
+        },
+        {
+          "const": "visual",
+          "type": "string"
+        },
+        {
+          "const": "intent",
+          "type": "string"
+        },
+        {
+          "const": "strategy",
+          "type": "string"
+        },
+        {
+          "const": "ad-type",
+          "type": "string"
+        },
+        {
+          "const": "ad-type-gate",
+          "type": "string"
+        },
+        {
+          "const": "bindings",
+          "type": "string"
+        },
+        {
+          "const": "opportunity",
+          "type": "string"
+        },
+        {
+          "const": "brief",
+          "type": "string"
+        },
+        {
+          "const": "candidate",
+          "type": "string"
+        }
+      ]
+    },
+    "key": {
+      "additionalProperties": false,
+      "description": "identity (persona + image/candidate) + provenance (run)",
+      "type": "object",
+      "required": [
+        "persona_id"
+      ],
+      "properties": {
+        "persona_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "image_ref": {
+          "description": "analysis — the ad's stable image join key",
+          "type": "string"
+        },
+        "candidate_id": {
+          "description": "generation — the candidate id",
+          "type": "string"
+        },
+        "run_id": {
+          "description": "provenance, NOT the directory key",
+          "type": "string"
+        }
+      }
+    },
+    "pattern_tag": {
+      "minLength": 1,
+      "description": "shared pattern → peers. analysis: {ad_type}:{benefit}×{funnel}; generation: the opportunity position",
+      "type": "string"
+    },
+    "derived_from": {
+      "description": "the chain — parent envelopes this was built from (machine-resolvable)",
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "ref"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "ref": {
+            "minLength": 1,
+            "description": "store-relative path of the parent envelope",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "logic_version": {
+      "additionalProperties": false,
+      "description": "which version of the shared logic produced this (a change marks prior artifacts stale)",
+      "type": "object",
+      "required": [
+        "version",
+        "method"
+      ],
+      "properties": {
+        "version": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "method": {
+          "anyOf": [
+            {
+              "const": "git",
+              "type": "string"
+            },
+            {
+              "const": "content",
+              "type": "string"
+            }
+          ]
+        },
+        "dirty": {
+          "description": "git only — uncommitted logic changes at stamp time",
+          "type": "boolean"
+        }
+      }
+    },
+    "produced_by": {
+      "minLength": 1,
+      "description": "the agent or script that emitted the payload",
+      "type": "string"
+    },
+    "stamped_at": {
+      "minLength": 1,
+      "description": "ISO timestamp when persisted",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": true,
+      "description": "the artifact itself — conforms to its own schema",
+      "type": "object",
+      "properties": {}
+    }
+  }
+}

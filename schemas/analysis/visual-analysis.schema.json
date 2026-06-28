@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "$id": "https://marketing-img/schemas/visual-analysis.schema.json",
+  "title": "VisualAnalysis",
+  "description": "visual semantics + register, derived from perception (text-only), ring 2 brand-free",
+  "type": "object",
+  "required": [
+    "image_ref",
+    "persona_id",
+    "medium",
+    "scene_class",
+    "register"
+  ],
+  "properties": {
+    "image_ref": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "medium": {
+      "description": "carried from perception.medium (the gate)",
+      "anyOf": [
+        {
+          "const": "photo",
+          "type": "string"
+        },
+        {
+          "const": "illustration",
+          "type": "string"
+        },
+        {
+          "const": "render_3d",
+          "type": "string"
+        },
+        {
+          "const": "flat_graphic",
+          "type": "string"
+        },
+        {
+          "const": "composite",
+          "type": "string"
+        },
+        {
+          "const": "other",
+          "type": "string"
+        }
+      ]
+    },
+    "scene_class": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "setting",
+        "prop_density"
+      ],
+      "properties": {
+        "setting": {
+          "anyOf": [
+            {
+              "const": "studio_plain",
+              "type": "string"
+            },
+            {
+              "const": "lifestyle_indoor",
+              "type": "string"
+            },
+            {
+              "const": "lifestyle_outdoor",
+              "type": "string"
+            },
+            {
+              "const": "surface_flatlay",
+              "type": "string"
+            },
+            {
+              "const": "in_situ_use",
+              "type": "string"
+            },
+            {
+              "const": "abstract_graphic",
+              "type": "string"
+            },
+            {
+              "const": "other",
+              "type": "string"
+            }
+          ]
+        },
+        "product_state": {
+          "description": "DERIVED from perception subjects: product + human/human_part ⇒ in_use/held; product alone ⇒ standalone; carton ⇒ packaging_only; none",
+          "anyOf": [
+            {
+              "const": "standalone",
+              "type": "string"
+            },
+            {
+              "const": "in_use",
+              "type": "string"
+            },
+            {
+              "const": "held",
+              "type": "string"
+            },
+            {
+              "const": "packaging_only",
+              "type": "string"
+            },
+            {
+              "const": "none",
+              "type": "string"
+            },
+            {
+              "const": "other",
+              "type": "string"
+            }
+          ]
+        },
+        "prop_density": {
+          "anyOf": [
+            {
+              "const": "none",
+              "type": "string"
+            },
+            {
+              "const": "minimal",
+              "type": "string"
+            },
+            {
+              "const": "moderate",
+              "type": "string"
+            },
+            {
+              "const": "busy",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "palette": {
+      "additionalProperties": false,
+      "type": "object",
+      "properties": {
+        "temp": {
+          "anyOf": [
+            {
+              "const": "warm",
+              "type": "string"
+            },
+            {
+              "const": "cool",
+              "type": "string"
+            },
+            {
+              "const": "neutral",
+              "type": "string"
+            },
+            {
+              "const": "mixed",
+              "type": "string"
+            }
+          ]
+        },
+        "saturation": {
+          "anyOf": [
+            {
+              "const": "muted",
+              "type": "string"
+            },
+            {
+              "const": "moderate",
+              "type": "string"
+            },
+            {
+              "const": "vivid",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "register": {
+      "description": "impression NAMED from perception's look facts; brand-free (what the ad reads as on its own terms, NOT fit-to-us)",
+      "anyOf": [
+        {
+          "const": "clean_minimal",
+          "type": "string"
+        },
+        {
+          "const": "warm_friendly",
+          "type": "string"
+        },
+        {
+          "const": "energetic_bold",
+          "type": "string"
+        },
+        {
+          "const": "premium_refined",
+          "type": "string"
+        },
+        {
+          "const": "raw_authentic",
+          "type": "string"
+        },
+        {
+          "const": "playful",
+          "type": "string"
+        },
+        {
+          "const": "clinical",
+          "type": "string"
+        },
+        {
+          "const": "nostalgic",
+          "type": "string"
+        },
+        {
+          "const": "other",
+          "type": "string"
+        }
+      ]
+    },
+    "register_basis": {
+      "description": "anti-hallucination trace: the specific perception look/scene facts the register stands on (e.g. 'soft_diffused + neutral palette + minimal props')",
+      "type": "string"
+    },
+    "confidence": {
+      "description": "lowered on a look↔copy mismatch — the mismatch is intent-analyst's signal",
+      "anyOf": [
+        {
+          "const": "high",
+          "type": "string"
+        },
+        {
+          "const": "medium",
+          "type": "string"
+        },
+        {
+          "const": "low",
+          "type": "string"
+        }
+      ]
+    }
+  }
+}

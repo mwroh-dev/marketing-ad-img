@@ -1,43 +1,11 @@
 // Platform-agnostic ad-collection harness. Owns the CDP lifecycle, image capture via
-// Network.getResponseBody (CORS/paint-proof), dedup, output schema, finally-close + hard
-// timeout. Per-platform flow is injected by an adapter:
-//   { source, region, acceptModes:string[], imgMatch(url):bool, async collect(ctx):void }
-//
-// ctx primitives given to adapter.collect:
-//   queries                  the (already mode-filtered) query list
-//   evalJs(expr)             in-page Runtime.evaluate, returnByValue
-//   goto(url) -> bool        navigate + wait + STOP-on-block (false if blocked)
-//   scroll(steps)            real wheel scroll loop
-//   type(text)               real keyboard entry into the focused/first <input> (Korean-safe)
-//   clickSuggestion(sel)->bool   hover+real-click first matching element (Angular-overlay safe)
-//   resetBuffer()            clear the seen-image buffer (call before each entry)
-//   sleep(ms)                bounded settle wait (e.g. after a modal-open click, before reading)
-//   esc()                    real ESC key (rawKeyDown+keyUp) — close an open modal/overlay
-//   clickAt(x,y[,postWaitMs]) real mouse click; postWaitMs defaults to 7000 (google nav wait), pass a
-//                            short value for quick clicks that poll their own completion (meta accordion)
-//   pollUntil(expr,opts)     poll an in-page boolean expr until true or timeout (event-driven settle)
-//   collectCreative({imageKey,imageFull,videoKey,videoFull,meta})
-//                            MODAL-DRIVEN per-ad collection (Meta): fetch THIS ad's creative asset(s) by the
-//                            full signed url + write images/ad-N.jpg (+ videos/ad-N.mp4 for video ads), build
-//                            ONE record with this ad's detail attached (1:1 by construction — no join). url-only
-//                            fallback on fetch failure; dedups on imageKey; honors the image budget. (google uses drain.)
-//   drain(meta, metaByKey, metaByAsset)
-//                            getResponseBody on buffered image/video (classifyResponse) responses → save + push.
-//                            `meta` merges into EVERY saved record; `metaByKey` (optional
-//                            { [dedupKey(url)]: extraMeta }) merges per-creative — the PRIMARY
-//                            deterministic image-URL join used to attach detail-modal fields
-//                            to the right creative (network order ≠ card order, so key-join).
-//                            `metaByAsset` (optional { [fbcdnAssetId(url)]: extraMeta }) is an ADDITIVE
-//                            FALLBACK consulted ONLY when the primary key misses — fbcdn serves one asset
-//                            under path/size variants whose dedupKeys differ; the asset-id index already
-//                            dropped any id ≥2 ads claimed, so only a unique non-conflicted detail attaches
-//                            (never another advertiser's, never an override of a primary match).
-//   flag(msg)                push a coverage flag
-//   limitReached() -> bool   image target hit or blocked
-//
+// Network.getResponseBody (CORS/paint-proof), dedup, output schema, finally-close + hard timeout.
+// Per-platform flow is injected by an adapter: { source, region, acceptModes, imgMatch(url), async collect(ctx) }.
+// collect(ctx) gets: queries · evalJs · goto · scroll · type · suggestions · clickAt · pollUntil · esc ·
+// collectCreative · drain · flag · limitReached · resetBuffer · sleep — each documented inline at its definition.
 // Non-intrusive: dedicated headless Chrome (default 9291), never bringToFront/activateTarget.
 import { realScroll, sleep, isBlocked, matchToolEntry } from "./lib.mjs";
-import { dedupKey, fbcdnAssetId, safeName, classifyResponse, buildCreativeRecord, downloadVideoFile, downloadImageFile } from "./ad-source-helpers.mjs";
+import { dedupKey, fbcdnAssetId, safeName, classifyResponse, buildCreativeRecord, appendKeyword, downloadVideoFile, downloadImageFile } from "./ad-source-helpers.mjs";
 import CDP from "chrome-remote-interface";
 import { writeFileSync, mkdirSync } from "fs";
 
@@ -72,6 +40,7 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
   const tgt = await CDP.New({ port, url: "about:blank" });
   const c = await CDP({ port, target: tgt.id });
   const seen = new Set();
+  const seenRec = new Map();   // dedupKey → the saved creative record, so a dup (same ad, ANOTHER keyword) can append its keyword (model B)
   let imagesCollected = 0;   // IMAGE creatives are the PRIMARY budget; videos are uncapped, collected incidentally
   const buf = new Map();
   // Hard timeout: never process.exit() from a library — it skips the finally cleanup and kills any
@@ -132,11 +101,9 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
         if (isBlocked(bodyText)) { result.blocked = true; return false; }
         return true;
       },
-      // Real keyboard entry. Input.insertText is browser-native and Korean/Unicode-safe
-      // (per-key dispatchKeyEvent drops Hangul via IME); it fires trusted input events that
-      // drive the page's autocomplete. NOT DOM value injection.
-      // Real text entry: focus the SOURCE'S search box (selector from the flow — not a guessed
-      // generic 'input') → Input.insertText (browser-native, Hangul-safe; NOT DOM value injection).
+      // Real text entry: focus the flow's search-box selector (not a guessed generic 'input') → Input.insertText
+      // (browser-native; fires trusted input events that drive autocomplete; Hangul-safe — unlike per-key
+      // dispatchKeyEvent which drops Hangul via IME — and NOT DOM value injection).
       type: async (text, { selector = "input", waitMs = 3000 } = {}) => {
         await evalJs(`document.querySelector(${JSON.stringify(selector)})?.focus()`);
         await sleep(400);
@@ -205,12 +172,14 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
       // with its OWN detail is still its own correct record because each modal pass is independent; the dedup
       // here only prevents the SAME url being written twice within the modal loop). Honors the image budget.
       // Returns { collected, index, imageSaved, videoSaved, reason }.
-      collectCreative: async ({ imageKey, imageFull = null, videoKey = null, videoFull = null, meta = {} } = {}) => {
+      collectCreative: async ({ imageKey, imageFull = null, videoKey = null, videoFull = null, meta = {}, keyword = null } = {}) => {
         // VIDEO ad → video-only: mp4 to videos/, no poster in images/ (a video's first frame is not an image ad).
         // Videos are uncapped (collected while hunting images).
         if (videoKey) {
           const vkey = dedupKey(videoKey);
-          if (seen.has(vkey)) return { collected: false, reason: "dup" };
+          // dup = the SAME ad surfaced again under another keyword → record that keyword on the existing
+          // record instead of discarding (model B: one ad belongs to every keyword that surfaced it).
+          if (seen.has(vkey)) { appendKeyword(seenRec.get(vkey), keyword); return { collected: false, reason: "dup" }; }
           const n = result.creatives.length;
           let videoSaved = false;
           if (videoFull) {
@@ -221,13 +190,14 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
               : `video not downloaded (${dl.reason}) — url only`);
           }
           seen.add(vkey);
-          result.creatives.push(buildCreativeRecord({ kind: "video", key: vkey, n, meta, saved: videoSaved }));
+          const rec = buildCreativeRecord({ kind: "video", key: vkey, n, meta, saved: videoSaved, keyword });
+          result.creatives.push(rec); seenRec.set(vkey, rec);
           return { collected: true, index: n, videoSaved };
         }
         // IMAGE ad → one image to images/ (best-effort; url-only fallback). Images are the budget — refuse past target.
         if (!imageKey || typeof imageKey !== "string") return { collected: false, reason: "no imageKey" };
         const key = dedupKey(imageKey);
-        if (seen.has(key)) return { collected: false, reason: "dup" };
+        if (seen.has(key)) { appendKeyword(seenRec.get(key), keyword); return { collected: false, reason: "dup" }; }
         if (imagesCollected >= totalImages) return { collected: false, reason: "image-cap" };
         const n = result.creatives.length;
         let imageSaved = false;
@@ -237,7 +207,8 @@ export async function runCollection({ adapter, queries, personaId, runId, port =
           if (!dl.saved) result.coverage_flags.push(`image not downloaded (${dl.reason}) — url only`);
         }
         seen.add(key);
-        result.creatives.push(buildCreativeRecord({ kind: "image", key, n, meta, saved: imageSaved }));
+        const rec = buildCreativeRecord({ kind: "image", key, n, meta, saved: imageSaved, keyword });
+        result.creatives.push(rec); seenRec.set(key, rec);
         imagesCollected++;
         return { collected: true, index: n, imageSaved };
       },

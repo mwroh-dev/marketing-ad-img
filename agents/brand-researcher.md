@@ -73,7 +73,7 @@ The job: turn the user's thin pointers into a **broad, evidence-grounded candida
 
 ## References (I/O contract)
 
-- Output schema: `${CLAUDE_PLUGIN_ROOT}/schemas/setup/brand-research.schema.json` — the findings artifact your JSON MUST conform to.
+- Output schema: @${CLAUDE_PLUGIN_ROOT}/schemas/setup/brand-research.view.md — the findings artifact your JSON MUST conform to.
 - Port/CDP (only if a JS page needs it): `${CLAUDE_PLUGIN_ROOT}/shared/collect/acquire-port.mjs` (claim a free port first) + the non-intrusive CDP lib in `${CLAUDE_PLUGIN_ROOT}/shared/collect/`. Background tabs only; never foreground.
 - Hard constraints (single-owner): `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/non-negotiable-rules.md` (public-source scope, non-intrusive, STOP-on-block, no-URL-assembly).
 - Completion: `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md` — completion = evidence-grounded findings that pass this checklist on real fetched data + schema validation; self-declared done is invalid; no smoke/mock.

@@ -1,0 +1,417 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "$id": "https://marketing-img/schemas/strategy-projection.schema.json",
+  "title": "StrategyProjection",
+  "description": "per-ad marketing-strategy projection (text-only, ring 2, own-product lens); projects intent, does not re-classify",
+  "type": "object",
+  "required": [
+    "image_ref",
+    "persona_id",
+    "benefit_vector",
+    "funnel_intent",
+    "first_cognition",
+    "grounds_in"
+  ],
+  "properties": {
+    "image_ref": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "advertiser_context": {
+      "additionalProperties": false,
+      "description": "the ad's OWN advertiser/product (so the read is 'company X's product', NOT judged against ours)",
+      "type": "object",
+      "properties": {
+        "advertiser_name": {
+          "type": "string"
+        },
+        "page_id": {
+          "type": "string"
+        },
+        "product_hint": {
+          "type": "string"
+        }
+      }
+    },
+    "benefit_vector": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "primary",
+        "evidence"
+      ],
+      "properties": {
+        "primary": {
+          "description": "purchase reason; `unclear` = insufficient evidence (coarsens intent.appeal)",
+          "anyOf": [
+            {
+              "const": "function",
+              "type": "string"
+            },
+            {
+              "const": "cost",
+              "type": "string"
+            },
+            {
+              "const": "trust",
+              "type": "string"
+            },
+            {
+              "const": "symbol",
+              "type": "string"
+            },
+            {
+              "const": "unclear",
+              "type": "string"
+            }
+          ]
+        },
+        "secondary": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "const": "function",
+                "type": "string"
+              },
+              {
+                "const": "cost",
+                "type": "string"
+              },
+              {
+                "const": "trust",
+                "type": "string"
+              },
+              {
+                "const": "symbol",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "evidence": {
+          "minItems": 1,
+          "description": "≥1 {source, reason} grounding this from the analyses",
+          "type": "array",
+          "items": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "source",
+              "reason"
+            ],
+            "properties": {
+              "source": {
+                "anyOf": [
+                  {
+                    "const": "headline",
+                    "type": "string"
+                  },
+                  {
+                    "const": "subcopy",
+                    "type": "string"
+                  },
+                  {
+                    "const": "visual",
+                    "type": "string"
+                  },
+                  {
+                    "const": "review",
+                    "type": "string"
+                  },
+                  {
+                    "const": "badge",
+                    "type": "string"
+                  },
+                  {
+                    "const": "price",
+                    "type": "string"
+                  },
+                  {
+                    "const": "offer",
+                    "type": "string"
+                  },
+                  {
+                    "const": "layout",
+                    "type": "string"
+                  },
+                  {
+                    "const": "cta",
+                    "type": "string"
+                  },
+                  {
+                    "const": "other",
+                    "type": "string"
+                  }
+                ]
+              },
+              "reason": {
+                "minLength": 1,
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "funnel_intent": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "stage",
+        "evidence"
+      ],
+      "properties": {
+        "stage": {
+          "description": "buyer-readiness; 1:1 projection of intent.funnel_stage",
+          "anyOf": [
+            {
+              "const": "discovery",
+              "type": "string"
+            },
+            {
+              "const": "comparison",
+              "type": "string"
+            },
+            {
+              "const": "action",
+              "type": "string"
+            },
+            {
+              "const": "retention",
+              "type": "string"
+            },
+            {
+              "const": "unclear",
+              "type": "string"
+            }
+          ]
+        },
+        "evidence": {
+          "minItems": 1,
+          "description": "≥1 {source, reason} grounding this from the analyses",
+          "type": "array",
+          "items": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "source",
+              "reason"
+            ],
+            "properties": {
+              "source": {
+                "anyOf": [
+                  {
+                    "const": "headline",
+                    "type": "string"
+                  },
+                  {
+                    "const": "cta",
+                    "type": "string"
+                  },
+                  {
+                    "const": "offer",
+                    "type": "string"
+                  },
+                  {
+                    "const": "layout",
+                    "type": "string"
+                  },
+                  {
+                    "const": "proof",
+                    "type": "string"
+                  },
+                  {
+                    "const": "visual",
+                    "type": "string"
+                  },
+                  {
+                    "const": "other",
+                    "type": "string"
+                  }
+                ]
+              },
+              "reason": {
+                "minLength": 1,
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "first_cognition": {
+      "additionalProperties": false,
+      "description": "does it communicate in the first glance (ELM low-elaboration)",
+      "type": "object",
+      "required": [
+        "target_clarity",
+        "situation_clarity",
+        "problem_clarity",
+        "product_category_clarity",
+        "benefit_clarity",
+        "reading_load",
+        "jargon_penalty",
+        "visual_legibility",
+        "total_score",
+        "verdict"
+      ],
+      "properties": {
+        "target_clarity": {
+          "minimum": 0,
+          "maximum": 2,
+          "type": "integer"
+        },
+        "situation_clarity": {
+          "minimum": 0,
+          "maximum": 2,
+          "type": "integer"
+        },
+        "problem_clarity": {
+          "minimum": 0,
+          "maximum": 2,
+          "type": "integer"
+        },
+        "product_category_clarity": {
+          "minimum": 0,
+          "maximum": 2,
+          "type": "integer"
+        },
+        "benefit_clarity": {
+          "minimum": 0,
+          "maximum": 2,
+          "type": "integer"
+        },
+        "reading_load": {
+          "minimum": 0,
+          "maximum": 2,
+          "type": "integer"
+        },
+        "jargon_penalty": {
+          "minimum": 0,
+          "maximum": 2,
+          "type": "integer"
+        },
+        "visual_legibility": {
+          "minimum": 0,
+          "maximum": 2,
+          "type": "integer"
+        },
+        "total_score": {
+          "minimum": 0,
+          "maximum": 16,
+          "description": "MUST equal the sum of the eight 0-2 sub-scores",
+          "type": "integer"
+        },
+        "verdict": {
+          "anyOf": [
+            {
+              "const": "strong",
+              "type": "string"
+            },
+            {
+              "const": "acceptable",
+              "type": "string"
+            },
+            {
+              "const": "weak",
+              "type": "string"
+            },
+            {
+              "const": "unusable",
+              "type": "string"
+            }
+          ]
+        },
+        "blockers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "customer_language": {
+      "additionalProperties": false,
+      "description": "whose words the copy uses (VoC)",
+      "type": "object",
+      "properties": {
+        "detected_phrases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "brand_language_phrases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "review_like_phrases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "generation_reusability": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "usable",
+        "reason"
+      ],
+      "properties": {
+        "usable": {
+          "type": "boolean"
+        },
+        "reason": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "reusable_devices": {
+          "description": "the ABSTRACT device, never competitor-specific content",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "avoid_copying": {
+          "description": "the competitor-specific wording/asset that must NOT be copied",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "grounds_in": {
+      "minLength": 1,
+      "description": "REQUIRED provenance — the ad-strategy-taxonomy.md source(s) this rests on",
+      "type": "string"
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "const": "high",
+          "type": "string"
+        },
+        {
+          "const": "medium",
+          "type": "string"
+        },
+        {
+          "const": "low",
+          "type": "string"
+        }
+      ]
+    }
+  }
+}

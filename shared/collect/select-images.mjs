@@ -47,25 +47,84 @@ export function cardHtml(c) {
   const cap = c.advertiser_name
     ? esc(c.advertiser_name) + (c.started_at ? ` · ${esc(c.started_at)}` : "")
     : esc(basename(file));
+  const copy = c.ad_copy ? `\n      <span class="copy">${esc(c.ad_copy)}</span>` : "";
   return `
     <div class="card" data-file="${esc(file)}">
       <img src="/${esc(file)}" loading="lazy" alt="${esc(basename(file))}" />
       <span class="check"></span>
-      <span class="cap">${cap}</span>
+      <span class="cap">${cap}</span>${copy}
     </div>`;
 }
 
-export function renderSelectHtml({ runId, personaId, track, queries, creatives }, template) {
+// ---- pure: model-B keyword grouping (one ad = every keyword that surfaced it; sections by exact combo) -------
+
+export const UNGROUPED_LABEL = "미분류";
+
+// the sorted, de-duplicated keyword set of a creative (the "signature" identity for grouping).
+export function keywordSet(c) {
+  const ks = Array.isArray(c?.keywords) ? c.keywords : [];
+  return [...new Set(ks.map((k) => String(k ?? "").trim()).filter(Boolean))].sort();
+}
+
+// stable sort by started_at ASCENDING (oldest first); creatives with no started_at sink to the end.
+export function sortByStartedAt(items) {
+  return items
+    .map((c, i) => [c, i])
+    .sort(([a, ia], [b, ib]) => {
+      const da = a.started_at || "", db = b.started_at || "";
+      if (!da && !db) return ia - ib;                 // both undated → preserve original order
+      if (!da) return 1;                              // undated sinks below dated
+      if (!db) return -1;
+      return da < db ? -1 : da > db ? 1 : ia - ib;    // ISO YYYY-MM-DD → lexical compare == chronological
+    })
+    .map(([c]) => c);
+}
+
+// group image creatives by their EXACT keyword combination (model B). Sections: most keywords first, then
+// label A→Z; 미분류 (no keyword) always last. Items inside a section: oldest started_at first.
+export function groupByKeywordSignature(creatives) {
   const imgs = imageCreatives(creatives);
-  const cards = imgs.length
-    ? imgs.map(cardHtml).join("")
+  const byLabel = new Map();
+  for (const c of imgs) {
+    const keys = keywordSet(c);
+    const label = keys.length ? keys.join(" · ") : UNGROUPED_LABEL;
+    if (!byLabel.has(label)) byLabel.set(label, { label, count: keys.length, items: [] });
+    byLabel.get(label).items.push(c);
+  }
+  const groups = [...byLabel.values()];
+  groups.sort((a, b) => b.count - a.count || (a.label < b.label ? -1 : a.label > b.label ? 1 : 0)); // count → 미분류(0) last
+  for (const g of groups) g.items = sortByStartedAt(g.items);
+  return groups;
+}
+
+export function sectionHtml(group, { showHeader }) {
+  const cards = group.items.map(cardHtml).join("");
+  if (!showHeader) return `<section class="kw-section">${cards ? `<div class="grid">${cards}</div>` : ""}</section>`;
+  const head = group.label === UNGROUPED_LABEL
+    ? `${esc(UNGROUPED_LABEL)} <span class="kw-note">키워드 정보 없음</span>`
+    : `키워드: ${esc(group.label)}`;
+  return `
+    <section class="kw-section">
+      <h1 class="kw-h1">${head} <span class="kw-count">${group.items.length}</span></h1>
+      <hr class="divider" />
+      <div class="grid">${cards}</div>
+    </section>`;
+}
+
+export function renderSelectHtml({ runId, personaId, track, queries, creatives }, template) {
+  const groups = groupByKeywordSignature(creatives);
+  const total = groups.reduce((n, g) => n + g.items.length, 0);
+  // Only one group AND it's 미분류 (e.g. older runs with no keyword data) → render bare grid, no section header.
+  const showHeader = !(groups.length === 1 && groups[0].label === UNGROUPED_LABEL);
+  const body = total
+    ? groups.map((g) => sectionHtml(g, { showHeader })).join("")
     : `<p class="empty">이 런/페르소나에 표시할 이미지가 없습니다.</p>`;
   // Function replacements — a string value containing $&, $$, $`, $' would be parsed as a special replacement
-  // pattern (advertiser names / queries are arbitrary text). A function disables that parsing entirely.
+  // pattern (advertiser names / queries / keywords are arbitrary text). A function disables that parsing entirely.
   return template
     .replace("<!--META-->", () => metaLine({ runId, personaId, track, queries }))
-    .replace("<!--CARDS-->", () => cards)
-    .replace("<!--TOTAL-->", () => String(imgs.length));
+    .replace("<!--CARDS-->", () => body)
+    .replace("<!--TOTAL-->", () => String(total));
 }
 
 // ---- pure: build the screening JSON (image-screening.schema shape) ----------------------------------------

@@ -1,0 +1,18 @@
+<!-- GENERATED from pattern-synthesizer.ts — the contract your output must match; regenerate via schemas/build.ts -->
+```ts
+// objects are CLOSED — emit only the fields shown, no extras. `?` = optional. (validated against the .schema.json)
+pattern-synthesizer = {
+  image_ref: string  // non-empty
+  persona_id: string  // non-empty
+  composition_type: "product_only"|"lifestyle"|"comparison_table"|"review_capture"|"spec_list"|"usage"|"price_emphasis"|"other"  // from GEOMETRY (bbox grid/placement/size), never from what the text says
+  text_density: "low"|"medium"|"high"  // summed text-bbox coverage + element count, not semantic heaviness
+  whitespace_ratio?: number  // 1 − (element-bbox union / canvas), in [0,1]
+  comfort: {
+    crowding: number  // spacing density from geometry (min gaps, element count, edge proximity, overlaps); higher = more cramped — relative within this persona's ads, not an absolute threshold
+    awkward_placement: boolean  // geometric: edge-cut / off-grid float / focal in a corner / misalignment
+    breathing_room: boolean  // healthy whitespace + low crowding (must be consistent with crowding)
+    balance?: string  // weight distribution: symmetric / left-heavy / top-heavy / asymmetric
+  }
+  confidence?: "high"|"medium"|"low"  // read confidence — trust the layout read or escalate from the schema alone
+}
+```

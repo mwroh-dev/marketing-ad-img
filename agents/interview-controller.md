@@ -115,7 +115,6 @@ fields exist and types match. Shape conformance does not mean the question is th
 **logical** gate: a reviewer (or the agent at self-review) judges whether the turn was driven correctly. A
 schema-valid output that fails this checklist is still a defect.
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Blocker selection (highest-priority, not just any)
 - [ ] The question targets the **single highest-priority** blocker — the active hard block — not a lower-priority or soft one that happened to be visible in the projected state.
@@ -142,10 +141,7 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - [ ] The agent did NOT structure the raw answer or mutate slot `state` itself — that is `user-answer-tooling`'s job; the output is only the next question.
 - [ ] The turn stayed within the projected blocker; it did not read or reason about unrelated slots or the full domain dump.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 
@@ -153,10 +149,10 @@ Canonical contracts and neighbors for Flow B. Read these; do not duplicate their
 
 ## Schemas (I/O contracts)
 
-- @${CLAUDE_PLUGIN_ROOT}/schemas/evaluation/interview-state.schema.json
+- @${CLAUDE_PLUGIN_ROOT}/schemas/evaluation/interview-state.view.md
   The loop state you read each turn: `status` (`in_progress`/`ready`/`cancelled`/`stopped`), per-slot `state` (`missing`/`insufficient`/`filled`/`confirmed`), and `active_blocker` (`{slot, type: hard_block|soft_block, question?}`). Loop while `active_blocker` is non-null and `status: in_progress`.
 
-- @${CLAUDE_PLUGIN_ROOT}/schemas/evaluation/user-answer.schema.json
+- @${CLAUDE_PLUGIN_ROOT}/schemas/evaluation/user-answer.view.md
   The structured artifact produced from each raw reply. Raw text is preserved verbatim; normalized slot updates are derived. **You do not write this** — `user-answer-tooling` does. Referenced so you know what shape the answer becomes downstream.
 
 ## Downstream skill (structures the answer)
@@ -166,7 +162,7 @@ Canonical contracts and neighbors for Flow B. Read these; do not duplicate their
 
 ## Upstream agent (supplies the blocker)
 
-- @${CLAUDE_PLUGIN_ROOT}/agents/request-evaluator.md
+- `request-evaluator`
   Produces the projected input: the single highest-priority blocker (`{slot, type}`), that slot's schema, and the current `interview-state`. When it reports `ready=false`, you run; when `ready`, the loop ends.
 
 ## Canonical docs

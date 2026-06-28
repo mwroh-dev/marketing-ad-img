@@ -1,29 +1,88 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "$id": "https://marketing-img/schemas/brand.schema.json",
   "title": "Brand",
-  "description": "Domain knowledge: a brand. A brand has many products (Brand 1 -> Product N). Do not flatten with product/persona.",
+  "description": "domain knowledge: a brand (has many products)",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["brand_id", "brand_name", "brand_goal", "product_ids"],
+  "required": [
+    "brand_id",
+    "brand_name",
+    "brand_goal",
+    "product_ids"
+  ],
   "properties": {
-    "brand_id": { "type": "string", "minLength": 1 },
-    "brand_name": { "type": "string", "minLength": 1 },
-    "brand_goal": { "type": "string" },
+    "brand_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "brand_name": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "brand_goal": {
+      "type": "string"
+    },
     "target_market": {
-      "type": "object",
       "additionalProperties": false,
-      "description": "WHERE the seller is selling — decided at setup. Scopes ad/competitor/research queries to the right market + language so a domestic-only seller is not handed foreign-only companies as competitors.",
+      "description": "WHERE the seller sells — scopes ad/competitor/research queries to the right market+language",
+      "type": "object",
       "properties": {
-        "scope": { "type": "string", "enum": ["domestic", "overseas", "both"] },
-        "regions": { "type": "array", "items": { "type": "string" }, "description": "e.g. KR, US, JP — country/locale codes the ads are targeted at" },
-        "languages": { "type": "array", "items": { "type": "string" }, "description": "ad copy languages, e.g. ko, en" }
+        "scope": {
+          "anyOf": [
+            {
+              "const": "domestic",
+              "type": "string"
+            },
+            {
+              "const": "overseas",
+              "type": "string"
+            },
+            {
+              "const": "both",
+              "type": "string"
+            }
+          ]
+        },
+        "regions": {
+          "description": "country/locale codes, e.g. KR/US/JP",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "languages": {
+          "description": "ad copy languages, e.g. ko/en",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       }
     },
-    "positioning": { "type": "string" },
-    "tone": { "type": "string" },
-    "forbidden_claims": { "type": "array", "items": { "type": "string" } },
-    "product_ids": { "type": "array", "items": { "type": "string" } },
-    "evidence_refs": { "type": "array", "items": { "type": "string" } }
+    "positioning": {
+      "type": "string"
+    },
+    "tone": {
+      "type": "string"
+    },
+    "forbidden_claims": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "product_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
   }
 }

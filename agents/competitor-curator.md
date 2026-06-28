@@ -106,14 +106,8 @@ entries are collectable.
 
 ## Verification checklist — output
 
-The schema validator (`${CLAUDE_PLUGIN_ROOT}/schemas/collection/competitor.schema.json`) only checks **shape** — that fields
-exist, statuses are in the enum, required keys are present. Shape conformance does not mean the curation is
-*correct*. This is the **logical** gate: a reviewer (or the agent at self-review) judges whether the selection
-reasoning is sound and whether the HARD GATE was actually held. A schema-valid output that fails this checklist
-is still a defect — most dangerously, a
-fully-valid `competitors.json` whose entries were *auto-confirmed*.
+Agent-specific must-NOTs (the discriminating gate). The most dangerous defect is a fully-valid `competitors.json` whose entries were *auto-confirmed* — verify the selection reasoning AND that the HARD GATE held:
 
-Schema validity ≠ logical correctness. Verify both; this file is the logical half.
 
 ## Fit-driven ranking (the discriminating logic)
 - [ ] Ranking is driven by **per-persona JTBD fit**, not brand-general popularity / sales / traffic. A high-traffic brand with no JTBD overlap is NOT this persona's competitor, however prominent its surface.
@@ -138,22 +132,19 @@ Schema validity ≠ logical correctness. Verify both; this file is the logical h
 - [ ] (Confirm path) The raw confirm/edit answer is structured via `user-answer-tooling`, not hand-parsed; confirmed → `confirmed`, dropped → `rejected` (kept with reason).
 - [ ] (Reject-all path) Nothing is persisted as collectable; rejected statuses + `rejected_note` are recorded and discovery-scout is signalled to widen — no invented replacements.
 
-> Verification: this checklist IS the logical gate. Apply each criterion to the agent's ACTUAL output
-> on real data — at self-review and again at independent review. The "must NOT" criteria anchor
-> false-positive = 0: one violation fails the output even when it is schema-valid. See
-> `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+> Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## References (I/O contract)
 
 ## Output contract (what this agent writes)
-- @${CLAUDE_PLUGIN_ROOT}/schemas/collection/competitor.schema.json — `CompetitorSet`: the confirmed per-persona competitor
+- @${CLAUDE_PLUGIN_ROOT}/schemas/collection/competitor.view.md — `CompetitorSet`: the confirmed per-persona competitor
   set. Required `product_id`, `persona_id`, `competitors[]`; per-entry `competitor_id`/`name`/`status`
   (`proposed`|`confirmed`|`rejected`) plus `rationale`, `evidence_refs`, `source_target_ref`,
   `source_surface`, `url`, `relevance_criteria`, `confirmed_at`, `rejected_note`.
 
 ## Upstream (input — discovery-scout)
-- @${CLAUDE_PLUGIN_ROOT}/agents/discovery-scout.md — produces the broad candidate pool this agent curates.
-- @${CLAUDE_PLUGIN_ROOT}/schemas/collection/competitor-candidate.schema.json — the candidate pool item contract. Shared
+- `discovery-scout` — produces the broad candidate pool this agent curates.
+- @${CLAUDE_PLUGIN_ROOT}/schemas/collection/competitor-candidate.view.md — the candidate pool item contract. Shared
   fields carried forward into the confirmed set: `name`, `seller`, `url`, `source_surface`
   (`meta_ad_library`|`google_ads_transparency`), and the surface+query provenance that becomes
   `source_target_ref`.
