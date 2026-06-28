@@ -30,7 +30,7 @@ export function checkAdTypeGates({ ad_type, analyses = {} }) {
   requires.forEach((req, i) => {
     const check = REQUIRE_CHECKS[req];
     // unknown requirement key → cannot check → do NOT raise (avoid false alarms); a known check decides.
-    const satisfied = check ? check(analyses) : true;
+    const satisfied = check ? check(analyses || {}) : true;   // `analyses` may be explicit null (default only guards undefined)
     if (!satisfied) gates_raised.push(gates[i] ?? `${ad_type}_missing_${req}`);
   });
   return { ad_type, requires_checked: requires, gates_raised };

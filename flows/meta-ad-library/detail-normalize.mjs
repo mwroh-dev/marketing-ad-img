@@ -112,7 +112,9 @@ export function normalizeAdvertiser(raw) {
 }
 
 export function normalizeAdCopy(raw) {
-  const s = String(raw ?? "").replace(/\s+/g, " ").trim();
+  // preserve line structure (headline / body / CTA breaks carry copy-analysis signal) — only normalize
+  // horizontal whitespace and collapse runs of blank lines. Flattening newlines to spaces destroys the layout.
+  const s = String(raw ?? "").replace(/[ \t]+/g, " ").replace(/\n[ \t]*\n+/g, "\n\n").trim();
   if (!s) return "";
   return s.length > 2000 ? s.slice(0, 2000) : s;
 }

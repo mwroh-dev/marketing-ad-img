@@ -40,7 +40,7 @@ export function contentVersion(root = ROOT, dirs = LOGIC_DIRS) {
   for (const rel of dirs) walk(resolve(root, rel));
   files.sort();                                                // stable order → deterministic hash
   const h = createHash("sha256");
-  for (const f of files) { h.update(f.slice(String(root).length)); h.update("\0"); h.update(readFileSync(f)); h.update("\0"); }
+  for (const f of files) { h.update(f.slice(String(root).length).replace(/\\/g, "/")); h.update("\0"); h.update(readFileSync(f)); h.update("\0"); }   // normalize path sep → same hash on Windows/POSIX
   return { version: h.digest("hex").slice(0, 16), method: "content" };
 }
 

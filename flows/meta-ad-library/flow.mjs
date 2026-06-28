@@ -213,7 +213,7 @@ const CARD_PRIMARY_TEXT = (i) => `(() => {
   for(let k=0;k<16 && p;k++){
     if((p.innerText||'').length>2600) break;                 // climbed past one ad → stop before grabbing a neighbour's copy
     const t=p.querySelector && p.querySelector('._7jyr');     // Meta primary-text block (the ad copy)
-    if(t && (t.innerText||'').trim()) return (t.innerText||'').replace(/\\s+/g,' ').trim();
+    if(t && (t.innerText||'').trim()) return (t.innerText||'').trim();   // keep newlines; normalizeAdCopy normalizes whitespace
     p=p.parentElement;
   }
   return "";

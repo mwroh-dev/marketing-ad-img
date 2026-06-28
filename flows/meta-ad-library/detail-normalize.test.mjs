@@ -15,8 +15,9 @@ test("normalizeDetail uses the collab-stripped advertiser", () => {
   assert.equal(normalizeDetail({ advertiser: "seller__shop 페이지는 파트너과(와) 함께합니다" }).advertiser_name, "seller__shop");
 });
 
-test("normalizeAdCopy collapses whitespace, trims, caps length; empty → ''", () => {
-  assert.equal(normalizeAdCopy("  촉촉한   보습\n크림  "), "촉촉한 보습 크림");
+test("normalizeAdCopy normalizes horizontal whitespace, PRESERVES line breaks, trims, caps length; empty → ''", () => {
+  assert.equal(normalizeAdCopy("  촉촉한   보습\n크림  "), "촉촉한 보습\n크림");   // newline kept (copy structure), spaces collapsed
+  assert.equal(normalizeAdCopy("헤드라인\n\n\n\n본문"), "헤드라인\n\n본문");          // runs of blank lines → one blank line
   assert.equal(normalizeAdCopy(""), "");
   assert.equal(normalizeAdCopy(null), "");
   assert.equal(normalizeAdCopy("x".repeat(3000)).length, 2000);

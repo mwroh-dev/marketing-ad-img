@@ -6,7 +6,8 @@ import { aggregatePattern, longevityWeights, weightByImageRef } from "../collect
 
 function flag(name: string): string | undefined {
   const i = process.argv.indexOf(name);
-  return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : undefined;
+  // an omitted value must not swallow the next flag (`--visual --intent` ⇒ visual is undefined, not "--intent")
+  return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith("--") ? process.argv[i + 1] : undefined;
 }
 // positional args, skipping flag pairs
 const positional = process.argv.slice(2).filter((a, idx, arr) => !a.startsWith("--") && !(idx > 0 && arr[idx - 1].startsWith("--")));
