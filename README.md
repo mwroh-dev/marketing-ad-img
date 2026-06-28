@@ -11,7 +11,7 @@ run in ChatGPT/Gemini together with your own product photo. It never generates a
 | **How decisions are grounded** | **user pointers + parallel real-data research** (the product page, public reviews, real category ads) — never a guess. |
 | **Ad data sources** | public ad-transparency libraries only: **Meta Ad Library + Google Ads Transparency** (no login). Commerce stores = public review reading only, never scraping. |
 | **Entry** | the `/marketing-img:start` command → the `orchestrator` agent routes to the right mode. |
-| **Verification** | every stage is gated by independent verification (schema shape + the agent's logical checklist on real output); self-declaration is never accepted. |
+| **Verification** | every stage is gated by independent verification (schema shape + the agent's logical checklist on real output); self-declaration is never accepted. **Runtime conformance gates** (`validate-store`, `validate-gen-run`) refuse an improvised / un-provenanced / drifted artifact before it proceeds — schemas are enforced, not just declared. |
 
 ## Entry
 
@@ -60,8 +60,8 @@ commands/start.md                                 /marketing-img:start — the s
 agents/ (flat .md)                                orchestrator + 22 role-scoped subagents
 skills/ (2)                                       reusable skills (agent-browser-exploration, user-answer-tooling)
 knowledge/  guidelines ⊥ experience ⊥ reference   principles · learned patterns · mode runbooks + design refs
-schemas/ (39, JSON Schema 2020-12)                I/O contracts per stage
-shared/  collect · harness · validators · _lib    CDP collection, deterministic logic, schema validators
+schemas/ (39, single-sourced from TypeBox)        I/O contracts per stage — `<name>.ts` → `build.ts` → `.schema.json` (validator) + lean `.view.md` (agents read)
+shared/  collect · harness · validators · _lib    CDP collection (run-flow self-launches Chrome), deterministic glue (close-analysis · build-market-position · normalize-artifact), schema validators + runtime gates (validate-store · validate-gen-run)
 flows/ (meta-ad-library, google-ads-transparency) per-source CDP collection adapters (defineFlow)
 config/ (cdp-ports, image-adapters, tool-entrypoints)
 AGENTS.md                                         subagent projection table (what each receives / must not)
