@@ -76,7 +76,7 @@ a duplicated candidate. **Catch-rate must be 100% and false-positive rate must b
   fabricated reason.
 
 ## Output
-Emit JSON conforming to `critic-verdict.schema.json`:
+Write to **exactly** `.generate-ads-img/runs/{run_id}/creative/critic-verdict.json` (this exact filename — the conformance gate + the normalize step read it by this path), JSON conforming to `critic-verdict.schema.json`:
 `{ "verdicts": [ { "candidate_id, "pass", "issues"[], "risk_flags"[] } ], "overall_pass" }`.
 `overall_pass` is `true` only if **every** candidate passes. Put one concrete sentence per real
 defect in `issues`; use `risk_flags` for the categorical tags

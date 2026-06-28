@@ -18,7 +18,7 @@ the final image prompt — you hand strategic constraints to `creative-brief-ana
 - OUR product USP / selling-point + claim constraints · the chosen persona · brand tone
 
 ## Outputs
-- `${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-opportunity.schema.json`-conformant JSON.
+- Write to **exactly** `.generate-ads-img/runs/{run_id}/creative/creative-opportunity.json` (this exact filename — the conformance gate reads it by this path), `${CLAUDE_PLUGIN_ROOT}/schemas/generation/creative-opportunity.schema.json`-conformant JSON.
 
 ## What you do
 1. Read the matrix: which benefit×funnel cells are crowded (saturated), which are whitespace (low frequency), what

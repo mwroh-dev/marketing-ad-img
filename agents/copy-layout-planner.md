@@ -15,7 +15,7 @@ persona · product USP + claim constraints · selected formats · copywriting pr
 3. Plan layout per format: `headline_position`, `product_position`, `cta_position`, `text_density` (low/medium/high), consistent with the angle (e.g. layout-driven → low density, product hero).
 
 ## Output contract
-Write copy + layout into `.generate-ads-img/runs/{run_id}/creative/` (or return structured JSON for the orchestrator to merge into candidates). Each candidate's copy object: `{language:"ko", headline, subcopy, cta}`. CTA and headline must be non-empty. Carry the brief's `brand_tone` and the forbidden/avoid items into the top-level `style: { brand_tone, avoid }` so the downstream adapter has the brand register + the things to steer away from.
+Write copy + layout to **exactly** `.generate-ads-img/runs/{run_id}/creative/copy-layout.json` (this exact filename — the conformance gate and `finalize-candidates` read `creative/copy-layout.json`; any other name like `copy-layout-plan.json` is silently skipped by the gate). Each candidate's copy object: `{language:"ko", headline, subcopy, cta}`. CTA and headline must be non-empty. Carry the brief's `brand_tone` and the forbidden/avoid items into the top-level `style: { brand_tone, avoid }` so the downstream adapter has the brand register + the things to steer away from.
 
 ## Forbidden
 - Do not translate, transliterate, or "improve" Korean text later — it is authored here once.
