@@ -8,7 +8,7 @@ Agents are contracts, not code. Each agent definition must contain: Role, Inputs
 
 ## Real subagents vs. blueprint agents
 
-**22 role-scoped subagents** are instantiated as real Claude Code subagents under `agents/` (flat `agents/<name>.md`, each with `name`/`description`/`tools` frontmatter), plus the `orchestrator` entry agent (23 total). **stage** = the pipeline stage that agent implements (gate→setup→collection→analysis→generation); matches the CLAUDE.md Modes map.
+**22 role-scoped subagents** are instantiated as real Claude Code subagents under `agents/` (flat `agents/<name>.md`, each with `name`/`description`/`tools` frontmatter), plus the `orchestrator` entry agent (23 total). **stage** = the pipeline stage that agent implements (evaluation→setup→collection→analysis→generation); matches the CLAUDE.md Modes map.
 
 | Real subagent (`agents/`) | stage | Role / Absorbs |
 |---|---|---|
@@ -70,7 +70,7 @@ The orchestrator is NOT a subagent. It is the main-session entry agent (`${CLAUD
 
 
 ## Agent file roles (process ⊥ result)
-Per agent: `AGENT.md` = the declarative contract; the `## Guidelines` section = the **making PROCESS** (steps, order, considerations — how to produce the output well); the `## Verification checklist` = the **OUTPUT verification** (is the produced artifact correct). Output-checks live in the Verification checklist section, never in the Guidelines section.
+Per agent: `agents/<name>.md` = the declarative contract; the `## Guidelines` section = the **making PROCESS** (steps, order, considerations — how to produce the output well); the `## Verification checklist` = the **OUTPUT verification** (is the produced artifact correct). Output-checks live in the Verification checklist section, never in the Guidelines section.
 
 ## Verification — two layers (shape ⊥ logic)
 An agent's output is verified at two levels; the schema validator alone is NOT sufficient for reasoning agents:

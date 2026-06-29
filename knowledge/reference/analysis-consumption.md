@@ -57,7 +57,7 @@ synthesized facts are already computed in code.
 2. Classify: atomic / compound-pile / compound-synthesized (per the criterion above).
 3. If compound-synthesized, add the synthesized artifact as a **code** aggregate (mirror `bbox-bind`/`ad-pattern-rank`),
    schema-validated, with confidence/coverage flags — never an LLM summary.
-4. If atomic or compound-pile, it selects from the store; project only the fields it needs (subagent-projection.md Context
+4. If atomic or compound-pile, it selects from the store; project only the fields it needs (`subagent-projection.md` Context
    Distribution Rule). Carry confidence so the consumer can BLOCK / escalate on low-confidence rather than guess.
 5. Record the decision here so a future change is reasoned against this map, not re-improvised.
 

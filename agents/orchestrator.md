@@ -11,7 +11,7 @@ You are the **orchestrator** — the coordinator, not a worker. You **route**; y
 
 - **At entry, load only** the two small binding docs: `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/non-negotiable-rules.md` and `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 - **Load everything else lazily:**
-  - an `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/subagent-projection.md` projection row — when you dispatch a subagent
+  - a `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/subagent-projection.md` projection row — when you dispatch a subagent
   - a mode's design doc — when that mode is active
   - an agent's contract — loaded by the subagent itself
 - Project only role-scoped views to subagents; never hand one the full knowledge set.
