@@ -114,6 +114,56 @@ function humanizeToken(value) {
   return String(value ?? "").replace(/_/g, " ");
 }
 
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const SUMMARY_TOKEN_RULES = Object.entries({ ...AXIS_LABELS, ...VALUE_LABELS, ...CANDIDATE_LABELS })
+  .map(([from, to]) => ({ find: new RegExp(`\\b${escapeRegex(from)}\\b`, "g"), replace: to }));
+
+const SUMMARY_REPLACEMENT_RULES = [
+  { find: /인벤토리 변화/g, replace: "광고 구성 변화" },
+  { find: /인벤토리/g, replace: "광고 구성" },
+  { find: /\brecipe\b/g, replace: "구성" },
+  { find: /레시피/g, replace: "구성" },
+  { find: /구성가/g, replace: "구성이" },
+  { find: /비주얼 레지스터/g, replace: "비주얼 톤" },
+  { find: /구성이 변경됨/g, replace: "구성이 바뀌었습니다" },
+  { find: /strength=강함/g, replace: "강도는 강함" },
+  { find: /strength=보통/g, replace: "강도는 보통" },
+  { find: /strength=약함/g, replace: "강도는 약함" },
+  { find: /품질 증명\(품질 증명\)/g, replace: "품질 증명" },
+  { find: /감성\(감성\)/g, replace: "감성" },
+  { find: /문구 변경와/g, replace: "문구와" },
+  { find: /\bfrom\b/g, replace: "이전" },
+  { find: /\bto\b/g, replace: "이후" },
+  { find: /\bdelta\b/g, replace: "변화폭" },
+  { find: /\bsupport_count\b/g, replace: "근거 수" },
+  { find: /\bchanged_axes\b/g, replace: "변경 항목" },
+  { find: /변경 항목\s*=\s*/g, replace: "바뀐 항목: " },
+  { find: /근거 수 ([0-9]+)/g, replace: "근거 $1건" },
+  { find: /바뀌었습니다:\s*바뀐 항목:/g, replace: "바뀌었습니다. 바뀐 항목:" },
+];
+
+const SUMMARY_FORMAT_RULES = [
+  {
+    find: /소구점=(.+?) 비중이 이전 ([0-9.-]+)에서 이후 ([0-9.-]+)(?:으)?로 변화\(변화폭 ([0-9.-]+), 근거(?: 수)? ([0-9]+)(?:건)?\)\.?/g,
+    replace: (_match, value, from, to, delta, support) => {
+      return `${value} 소구 비중이 ${formatShare(from)}에서 ${formatShare(to)}로 바뀌었습니다. 변화폭 ${formatDelta(delta)}, 근거 ${support}건.`;
+    },
+  },
+  {
+    find: /(품질 증명|감성|가격|할인|신뢰|사회적 증거|편의)\(([0-9.]+)→([0-9.]+)\)/g,
+    replace: (_match, label, from, to) => {
+      return `${label}(${formatShare(from)}→${formatShare(to)})`;
+    },
+  },
+];
+
+function applySummaryRules(text, rules) {
+  return rules.reduce((out, rule) => out.replace(rule.find, rule.replace), text);
+}
+
 function humanValue(value) {
   if (value == null) return "없음";
   const s = String(value);
@@ -140,38 +190,13 @@ function formatShare(value) {
 function humanizeSummary(summary) {
   const text = String(summary || "");
   if (/변화 없는 축\s*:/.test(text)) return "퍼널, 혜택, 비주얼 톤, 레이아웃 등 주요 구조는 유지되었습니다.";
-  return Object.entries({ ...AXIS_LABELS, ...VALUE_LABELS, ...CANDIDATE_LABELS }).reduce((out, [from, to]) => {
-    return out.replace(new RegExp(`\\b${from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "g"), to);
-  }, text)
-    .replace(/인벤토리 변화/g, "광고 구성 변화")
-    .replace(/인벤토리/g, "광고 구성")
-    .replace(/\brecipe\b/g, "구성")
-    .replace(/레시피/g, "구성")
-    .replace(/구성가/g, "구성이")
-    .replace(/비주얼 레지스터/g, "비주얼 톤")
-    .replace(/구성이 변경됨/g, "구성이 바뀌었습니다")
-    .replace(/변경 항목\s*=\s*/g, "바뀐 항목: ")
-    .replace(/근거 수 ([0-9]+)/g, "근거 $1건")
-    .replace(/strength=강함/g, "강도는 강함")
-    .replace(/strength=보통/g, "강도는 보통")
-    .replace(/strength=약함/g, "강도는 약함")
-    .replace(/품질 증명\(품질 증명\)/g, "품질 증명")
-    .replace(/감성\(감성\)/g, "감성")
-    .replace(/문구 변경와/g, "문구와")
-    .replace(/\bfrom\b/g, "이전")
-    .replace(/\bto\b/g, "이후")
-    .replace(/\bdelta\b/g, "변화폭")
-    .replace(/\bsupport_count\b/g, "근거 수")
-    .replace(/\bchanged_axes\b/g, "변경 항목")
-    .replace(/변경 항목\s*=\s*/g, "바뀐 항목: ")
-    .replace(/근거 수 ([0-9]+)/g, "근거 $1건")
-    .replace(/바뀌었습니다:\s*바뀐 항목:/g, "바뀌었습니다. 바뀐 항목:")
-    .replace(/소구점=(.+?) 비중이 이전 ([0-9.-]+)에서 이후 ([0-9.-]+)(?:으)?로 변화\(변화폭 ([0-9.-]+), 근거(?: 수)? ([0-9]+)(?:건)?\)\.?/g, (_match, value, from, to, delta, support) => {
-      return `${value} 소구 비중이 ${formatShare(from)}에서 ${formatShare(to)}로 바뀌었습니다. 변화폭 ${formatDelta(delta)}, 근거 ${support}건.`;
-    })
-    .replace(/(품질 증명|감성|가격|할인|신뢰|사회적 증거|편의)\(([0-9.]+)→([0-9.]+)\)/g, (_match, label, from, to) => {
-      return `${label}(${formatShare(from)}→${formatShare(to)})`;
-    });
+  return applySummaryRules(
+    applySummaryRules(
+      applySummaryRules(text, SUMMARY_TOKEN_RULES),
+      SUMMARY_REPLACEMENT_RULES,
+    ),
+    SUMMARY_FORMAT_RULES,
+  );
 }
 
 function humanizeFlag(flag) {
