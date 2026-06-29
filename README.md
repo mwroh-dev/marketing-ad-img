@@ -64,9 +64,8 @@ schemas/ (39, single-sourced from TypeBox)        I/O contracts per stage — `<
 shared/  collect · harness · validators · _lib    CDP collection (run-flow self-launches Chrome), deterministic glue (close-analysis · build-market-position · normalize-artifact), schema validators + runtime gates (validate-store · validate-gen-run)
 flows/ (meta-ad-library, google-ads-transparency) per-source CDP collection adapters (defineFlow)
 config/ (cdp-ports, image-adapters, tool-entrypoints)
-AGENTS.md                                         dev entry for AI coding agents (Codex etc.) → points to CLAUDE.md / orchestrator / subagent-projection
+AGENTS.md                                         dev entry for AI coding agents (Codex etc.) → CLAUDE.md / orchestrator / subagent-projection
 CLAUDE.md                                         DEV reference — NOT shipped/loaded for consumers
-knowledge/reference/subagent-projection.md        subagent projection table (what each receives / must not)
 ```
 
 ### The 22 subagents (by stage)
