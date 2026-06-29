@@ -13,8 +13,9 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { loadJson, validateAgainst, report } from "../_lib.ts";
 
-// run-relative path → schema basename. Each is OPTIONAL (a run may not have produced every stage yet); only
-// artifacts that exist are gated. generated-prompts/{chatgpt,gemini} share the provider-neutral adapter schema.
+// run-relative path → schema basename. For CONFORMANCE, each is optional (a run may not have produced every stage
+// yet); only artifacts that exist are shape-gated. (Presence of the intermediate creative-opportunity layer is
+// enforced separately by MANDATORY below.) generated-prompts/{chatgpt,gemini} share the provider-neutral schema.
 const ARTIFACTS: Array<[string, string]> = [
   ["creative/creative-opportunity.json", "creative-opportunity.schema.json"],
   ["creative/creative-brief.json", "creative-brief.schema.json"],
@@ -27,6 +28,15 @@ const ARTIFACTS: Array<[string, string]> = [
   ["candidate-selection-log.json", "candidate-selection-log.schema.json"],
 ];
 
+// Conditional-presence requirements: the creative-opportunity intermediate layer is NOT optional once generation
+// has moved past it. If a downstream artifact exists (the brief that consumes it, or finalized candidates), then
+// creative-opportunity.json MUST exist too — a run that produced a brief/candidates WITHOUT an opportunity skipped
+// the analysis→generation bridge, and that is a FAIL, not a silent pass. (A partial run that has not yet reached
+// the brief is unaffected.) Maps a required artifact → the triggers that make it mandatory.
+const MANDATORY: Record<string, string[]> = {
+  "creative/creative-opportunity.json": ["creative/creative-brief.json", "creative-candidates.json"],
+};
+
 export function validateGenRun(runDir: string): { ok: boolean; checked: number; failures: string[] } {
   const failures: string[] = [];
   let checked = 0;
@@ -36,6 +46,11 @@ export function validateGenRun(runDir: string): { ok: boolean; checked: number; 
     checked++;
     const r = validateAgainst(schema, loadJson(fp));
     if (!report(rel, r)) failures.push(rel);
+  }
+  for (const [required, triggers] of Object.entries(MANDATORY)) {
+    if (existsSync(resolve(runDir, required))) continue;            // present → already shape-checked above
+    const trigger = triggers.find((t) => existsSync(resolve(runDir, t)));
+    if (trigger) { checked++; failures.push(`${required} (MISSING — required once ${trigger} exists; generation must not skip the creative-opportunity layer)`); }
   }
   return { ok: failures.length === 0, checked, failures };
 }

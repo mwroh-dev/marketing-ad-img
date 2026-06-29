@@ -48,3 +48,27 @@ test("a non-conformant artifact → FAIL, exit 1 (caught, not silent)", () => {
   assert.match(r.out, /FAIL {2}creative\/critic-verdict\.json/);
   assert.match(r.out, /GEN-RUN FAIL/);
 });
+
+test("MANDATORY: a brief WITHOUT a creative-opportunity → FAIL (run skipped the analysis→generation bridge)", () => {
+  reset();
+  writeArtifact("creative/creative-brief.json", { core_message: "x" }); // presence is what triggers the rule
+  const r = run(TMP);
+  assert.equal(r.code, 1, r.out);
+  assert.match(r.out, /creative-opportunity\.json \(MISSING/);
+});
+
+test("MANDATORY: no brief/candidates yet → opportunity NOT required (a partial run is not broken)", () => {
+  reset();
+  writeArtifact("creative/critic-verdict.json", { verdicts: [{ candidate_id: "c1", pass: true }], overall_pass: true });
+  const r = run(TMP);
+  assert.equal(r.code, 0, r.out);          // critic-verdict alone — opportunity not yet mandatory
+  assert.doesNotMatch(r.out, /MISSING/);
+});
+
+test("MANDATORY: opportunity present alongside the brief → presence rule satisfied (no MISSING flag)", () => {
+  reset();
+  writeArtifact("creative/creative-brief.json", { core_message: "x" });
+  writeArtifact("creative/creative-opportunity.json", { persona_id: "p" });
+  const r = run(TMP);
+  assert.doesNotMatch(r.out, /MISSING/);    // once opportunity exists, the bridge was not skipped
+});

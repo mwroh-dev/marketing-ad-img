@@ -32,6 +32,19 @@ required_slots:
 
 Supported `formats`: `meta_square_1_1`, `meta_feed_4_5`, `meta_story_9_16`, `meta_landscape_1_91_1`.
 
+## Entry gate (HARD) — the analysis store must exist and be provenanced, BEFORE any agent runs
+
+Image-prompt generation consumes ONLY the persona's durable lineage store (`.generate-ads-img/store/{persona_id}/`), never a collection run's scratch. This is the durable analysis→generation boundary. Before dispatching `creative-opportunity-mapper`, run the store gate:
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/node_modules/.bin/tsx ${CLAUDE_PLUGIN_ROOT}/shared/harness/validate-store.ts <persona_id>
+```
+
+- **PASS (exit 0)** — a provenanced store exists (≥1 complete `artifact-envelope`); proceed to the pipeline.
+- **FAIL (exit 1)** — no store / empty / raw-or-partial payloads (the persist glue never ran). **STOP. Do NOT generate on scratch or improvised data.** Route the user to complete analysis: run `close-analysis` for the analyzed run (see `modes/analysis.md`), then re-enter generation.
+
+The only way past this gate is a real `close-analysis` persist — that is what makes close-analysis de-facto mandatory without a hook. Scope of the check: PROVENANCE + SHAPE (every stored artifact is a complete envelope, ≥1 exists), NOT coverage or analysis quality.
+
 ## Pipeline order (the agents the orchestrator dispatches, in sequence)
 
 The orchestrator dispatches these agents in strict order, each consuming the prior stage's artifact:
@@ -41,7 +54,8 @@ creative-opportunity-mapper  →  creative-brief-analyst  →  copy-layout-plann
    (opportunity, ring 3)              (brief)                 (copy ⊥ layout)        (prompt + asset)         (critique)          (finalize)
 ```
 
-- **creative-opportunity-mapper** — the analysis→generation bridge (ring 3): consume the persona's `market-position-matrix` (benefit×funnel + crowded/whitespace) + OUR product selling-point/persona → select strategic positions → `creative-opportunity.json` (`brief_constraints`). Whitespace is an opportunity only with product/persona fit; cites matrix evidence. Where our product first enters.
+- **market-position-matrix (deterministic, from the STORE — before the mapper)** — build the matrix that the mapper consumes from the durable store, NOT from a collection run's scratch: `node ${CLAUDE_PLUGIN_ROOT}/shared/collect/build-market-position.mjs --from-store <persona_id> <run_dir>/creative/market-position-matrix.json`. This reads the persisted strategy/ad-type envelopes via the store reader, which **THROWS (exit 1) if the store is empty** — the code interlock that makes generation depend on persisted analysis, not scratch. (The scratch-path form `build-market-position.mjs <analysisDir> <persona_id>` exists only for the analysis-time dry build.)
+- **creative-opportunity-mapper** — the analysis→generation bridge (ring 3): consume the persona's `market-position-matrix` (built above, from the store) (benefit×funnel + crowded/whitespace) + OUR product selling-point/persona → select strategic positions → `creative-opportunity.json` (`brief_constraints`). Whitespace is an opportunity only with product/persona fit; cites matrix evidence. Where our product first enters.
 - **creative-brief-analyst** — consume `creative-opportunity.json` (the precomputed gap + `brief_constraints`) + brand/product/persona/request → `creative-brief.json`. **Then normalize the shape:** `node ${CLAUDE_PLUGIN_ROOT}/shared/harness/normalize-artifact.mjs creative-brief <run_dir>/creative/creative-brief.json` — a CONSERVATIVE strip of only known meta annotations the model tends to add (e.g. `direction_repair_note`); it never touches `core_message`/`angles` content (a new substance field is left for the gate to surface, not silently dropped).
 - **copy-layout-planner** — plan copy and layout from the brief → write **exactly** `creative/copy-layout.json` (the conformance gate + `finalize-candidates --copy` read this exact name; `copy-layout-plan.json` etc. are silently skipped).
 - **image-prompt-adapter** — turn the plan into a provider-shaped image prompt, pulling the product cutout via the asset registry (`product_asset_id`) and the adapter via `image_adapter_id`.
