@@ -116,6 +116,17 @@ test("creative-change agent eval accepts negated performance, causality, and per
   assert.equal(result.ok, true, result.errors.join("\n"));
 });
 
+test("creative-change agent eval accepts non-performance creative transition/effect wording", () => {
+  const result = evaluateCreativeChangeAgentOutput({
+    diff,
+    candidates,
+    events: events("품질 증명에서 감성 소구로의 전환으로 읽힙니다. 시각적 대비 효과가 강조되었습니다. 시각적 대비 효과가 있었습니다. 원인은 모릅니다."),
+    report: report(),
+  });
+
+  assert.equal(result.ok, true, result.errors.join("\n"));
+});
+
 test("creative-change agent eval rejects positive forbidden claims", () => {
   const performance = evaluateCreativeChangeAgentOutput({
     diff,
@@ -125,6 +136,33 @@ test("creative-change agent eval rejects positive forbidden claims", () => {
   });
   assert.equal(performance.ok, false);
   assert.match(performance.errors.join("\n"), /performance/i);
+
+  const conversionRate = evaluateCreativeChangeAgentOutput({
+    diff,
+    candidates,
+    events: events("전환율이 상승했습니다."),
+    report: report(),
+  });
+  assert.equal(conversionRate.ok, false);
+  assert.match(conversionRate.errors.join("\n"), /performance/i);
+
+  const conversionIncrease = evaluateCreativeChangeAgentOutput({
+    diff,
+    candidates,
+    events: events("전환이 증가했습니다."),
+    report: report(),
+  });
+  assert.equal(conversionIncrease.ok, false);
+  assert.match(conversionIncrease.errors.join("\n"), /performance/i);
+
+  const performanceEffect = evaluateCreativeChangeAgentOutput({
+    diff,
+    candidates,
+    events: events("광고 효과가 개선되었습니다."),
+    report: report(),
+  });
+  assert.equal(performanceEffect.ok, false);
+  assert.match(performanceEffect.errors.join("\n"), /performance/i);
 
   const causal = evaluateCreativeChangeAgentOutput({
     diff,

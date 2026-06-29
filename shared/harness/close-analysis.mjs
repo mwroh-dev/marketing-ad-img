@@ -11,7 +11,7 @@ import { persistAnalysisRun } from "../lineage/persist-analysis-run.mjs";
 import { loadEnvelopes } from "../lineage/read-store.mjs";
 import { assertSnapshotJoinCoverage, buildCreativeSnapshot } from "../collect/creative-snapshot.mjs";
 import { validateAgainst } from "../collect/schema-validate.mjs";
-import { advanceStage } from "../collect/run-manifest.mjs";
+import { advanceStage, readManifest } from "../collect/run-manifest.mjs";
 import { resolve } from "node:path";
 import { dirname } from "node:path";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
@@ -56,6 +56,9 @@ export function freezeCreativeSnapshotsForRun({ runId, stateDir, generatedAt = n
 export function closeAnalysis({ runId, stateDir, advance = true }) {
   const analysisDir = resolve(stateDir, "runs", runId, "analysis");
   if (!existsSync(analysisDir)) throw new Error(`no analysis staging at ${analysisDir} — the analysts wrote no per-kind output`);
+  if (advance && !readManifest(runId)) {
+    throw new Error(`no run manifest for ${runId} — collect first; close-analysis will not write store envelopes without a run ledger`);
+  }
   const persisted = persistAnalysisRun({ analysisDir, stateDir });
   const ads = new Set(persisted.map((p) => p.slot)).size;
   const snapshots = persisted.length > 0 ? freezeCreativeSnapshotsForRun({ runId, stateDir }) : [];

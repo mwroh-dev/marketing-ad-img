@@ -34,6 +34,21 @@ test("per-kind staging → persists store envelopes (provenance-stamped) + advan
   assert.equal(JSON.parse(readFileSync(join(CONS, ".generate-ads-img", "runs", R, "run.json"))).stage, "analyzed");
 });
 
+test("missing run manifest fails before writing store envelopes", () => {
+  reset();
+  const R = "run-no-manifest";
+  const ir = "runs/run-no-manifest/ad-creatives/p/images/ad-0.jpg";
+  stage(R, "ocr", 0, { image_ref: ir, persona_id: "p", medium: "flat" });
+  stage(R, "type", 0, { image_ref: ir, persona_id: "p", ad_type: "informational" });
+  stage(R, "strategy", 0, { image_ref: ir, persona_id: "p", benefit_vector: { primary: "function" }, funnel_intent: { stage: "discovery" } });
+
+  const r = run(R);
+
+  assert.equal(r.code, 1, r.out);
+  assert.match(r.out, /run manifest|collect first|run\.json/i);
+  assert.equal(existsSync(join(CONS, ".generate-ads-img", "store", "p", "ad-0", "perception.json")), false);
+});
+
 test("close-analysis freezes a run-local creative snapshot while that run is store-latest", () => {
   reset();
   const R = "run-freeze"; manifest(R, "screened");

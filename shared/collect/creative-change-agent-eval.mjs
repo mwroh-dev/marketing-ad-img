@@ -2,12 +2,12 @@ import { validateAgainst } from "./schema-validate.mjs";
 
 const NUMBER_RE = /-?\d+(?:\.\d+)?/g;
 const NEGATED_RE =
-  /(not\s+(?:available|claimed|asserted|provided|supplied|mean|indicate)|no\s+(?:performance|causal|causality|persona|audience|context|claim)|without|absent|missing|unavailable|cannot|can't|does\s+not|do\s+not|is\s+not|are\s+not|never|아니|아닙|않|없|못|단정하지|주장하지|의미하지|알 수 없|제공되지|부재|불가|금지|회피)/i;
+  /(not\s+(?:available|claimed|asserted|provided|supplied|mean|indicate|known)|no\s+(?:performance|causal|causality|persona|audience|context|claim)|without|absent|missing|unavailable|unknown|unclear|cannot|can't|does\s+not|do\s+not|is\s+not|are\s+not|never|아니|아닙|않|없|못|모르|모릅|불명확|단정하지|주장하지|의미하지|알 수 없|제공되지|부재|불가|금지|회피)/i;
 
 const FORBIDDEN_PATTERNS = [
   {
     label: "performance claim",
-    re: /(CTR|ROAS|spend|conversion|performance|성과|매출|전환|효과)/i,
+    re: /(CTR|ROAS|spend|conversion|performance|성과|매출|전환\s*(?:율|률|수|건|값|성과)|전환(?:이|은|도|을|를)?\s*(?:좋|높|상승|증가|개선|향상|늘|올랐)|효과(?:가|는|도|를)?\s*(?:좋|높|상승|증가|개선|향상|검증|입증))/i,
   },
   {
     label: "causal claim",
