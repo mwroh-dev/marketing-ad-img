@@ -1,10 +1,11 @@
 // Small ESM validation helper for .mjs harnesses. Mirrors shared/_lib.ts schema lookup without importing TS.
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
-export const ROOT = resolve(new URL("../..", import.meta.url).pathname);
+export const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const ajv = new Ajv2020({ allErrors: true, strict: false });
 addFormats(ajv);
 const cache = new Map();

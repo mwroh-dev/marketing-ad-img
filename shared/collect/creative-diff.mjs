@@ -3,7 +3,6 @@ const AXES = ["appeal", "funnel_stage", "benefit_primary", "funnel_intent_stage"
 
 const ref = (ad) => ({ ad_key: ad.ad_key, ...(ad.library_id ? { library_id: ad.library_id } : {}), image_ref: ad.image_ref });
 const mapTrackable = (snapshot) => new Map((snapshot.ads || []).filter((a) => a.library_id).map((a) => [a.library_id, a]));
-const floorConfidence = (a, b) => (a === "low" || b === "low" ? "low" : a === "medium" || b === "medium" ? "medium" : a || b || undefined);
 
 function axisShare(snapshot, axis) {
   const values = {};

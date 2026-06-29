@@ -111,8 +111,35 @@ function report(overrides = {}) {
   };
 }
 
+const contextCalendar = {
+  persona_id: "p1",
+  date_range: { from: "2026-06-01", to: "2026-06-08" },
+  events: [
+    {
+      event_type: "season",
+      date_range: { from: "2026-06-01", to: "2026-06-08" },
+      summary: "seasonal context",
+      sources: ["fixture"],
+      confidence: "medium",
+    },
+  ],
+  coverage_flags: [],
+};
+
 test("creative-change agent eval accepts negated performance, causality, and persona disclaimers", () => {
   const result = evaluateCreativeChangeAgentOutput({ diff, candidates, events: events(), report: report() });
+  assert.equal(result.ok, true, result.errors.join("\n"));
+});
+
+test("creative-change agent eval normalizes date and leading-zero numbers for fidelity", () => {
+  const result = evaluateCreativeChangeAgentOutput({
+    diff,
+    candidates,
+    contextCalendar,
+    events: events("2026년 6월 1일에 관찰된 외부 맥락과 같은 기간에 있었습니다."),
+    report: report(),
+  });
+
   assert.equal(result.ok, true, result.errors.join("\n"));
 });
 

@@ -1,6 +1,6 @@
 import { validateAgainst } from "./schema-validate.mjs";
 
-const NUMBER_RE = /-?\d+(?:\.\d+)?/g;
+const NUMBER_RE = /(?<!\d)-?\d+(?:\.\d+)?/g;
 const NEGATED_RE =
   /(not\s+(?:available|claimed|asserted|provided|supplied|mean|indicate|known)|no\s+(?:performance|causal|causality|persona|audience|context|claim)|without|absent|missing|unavailable|unknown|unclear|cannot|can't|does\s+not|do\s+not|is\s+not|are\s+not|never|아니|아닙|않|없|못|모르|모릅|불명확|단정하지|주장하지|의미하지|알 수 없|제공되지|부재|불가|금지|회피)/i;
 
@@ -18,7 +18,7 @@ const FORBIDDEN_PATTERNS = [
 const PERSONA_SHIFT_RE = /(페르소나\s*(?:가\s*)?바뀌|페르소나\s*변화|persona\s+shift|audience\s+shift|타겟.*바뀌|대상.*바뀌)/i;
 
 function numbersFrom(value) {
-  return new Set(JSON.stringify(value).match(NUMBER_RE) || []);
+  return new Set((JSON.stringify(value).match(NUMBER_RE) || []).map(Number));
 }
 
 function splitClaims(text) {
@@ -78,7 +78,7 @@ function checkNumberFidelity(errors, texts, inputs) {
   const inputNumbers = numbersFrom(inputs);
   for (const text of texts) {
     for (const number of text.match(NUMBER_RE) || []) {
-      if (!inputNumbers.has(number)) errors.push(`number not present in input artifacts: ${number}`);
+      if (!inputNumbers.has(Number(number))) errors.push(`number not present in input artifacts: ${number}`);
     }
   }
 }
