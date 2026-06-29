@@ -1,0 +1,274 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "$id": "https://marketing-img/schemas/creative-diff.schema.json",
+  "title": "CreativeDiff",
+  "description": "computed edge between two creative snapshots",
+  "type": "object",
+  "required": [
+    "from_snapshot_id",
+    "to_snapshot_id",
+    "persona_id",
+    "inventory_delta",
+    "update_delta",
+    "distribution_delta",
+    "coverage_flags"
+  ],
+  "properties": {
+    "from_snapshot_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "to_snapshot_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "inventory_delta": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "created",
+        "deleted",
+        "persisted",
+        "untrackable"
+      ],
+      "properties": {
+        "created": {
+          "type": "array",
+          "items": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "ad_key",
+              "image_ref"
+            ],
+            "properties": {
+              "ad_key": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "library_id": {
+                "type": "string"
+              },
+              "image_ref": {
+                "minLength": 1,
+                "type": "string"
+              }
+            }
+          }
+        },
+        "deleted": {
+          "type": "array",
+          "items": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "ad_key",
+              "image_ref"
+            ],
+            "properties": {
+              "ad_key": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "library_id": {
+                "type": "string"
+              },
+              "image_ref": {
+                "minLength": 1,
+                "type": "string"
+              }
+            }
+          }
+        },
+        "persisted": {
+          "type": "array",
+          "items": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "ad_key",
+              "image_ref"
+            ],
+            "properties": {
+              "ad_key": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "library_id": {
+                "type": "string"
+              },
+              "image_ref": {
+                "minLength": 1,
+                "type": "string"
+              }
+            }
+          }
+        },
+        "untrackable": {
+          "type": "array",
+          "items": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "ad_key",
+              "image_ref"
+            ],
+            "properties": {
+              "ad_key": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "library_id": {
+                "type": "string"
+              },
+              "image_ref": {
+                "minLength": 1,
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "update_delta": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "same_library_id_changed_recipe"
+      ],
+      "properties": {
+        "same_library_id_changed_recipe": {
+          "type": "array",
+          "items": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "library_id",
+              "changed_axes",
+              "before",
+              "after",
+              "evidence_refs"
+            ],
+            "properties": {
+              "library_id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "changed_axes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "before": {
+                "type": "object",
+                "patternProperties": {
+                  "^(.*)$": {}
+                }
+              },
+              "after": {
+                "type": "object",
+                "patternProperties": {
+                  "^(.*)$": {}
+                }
+              },
+              "evidence_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "distribution_delta": {
+      "type": "object",
+      "patternProperties": {
+        "^(.*)$": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "from_count",
+            "to_count",
+            "values"
+          ],
+          "properties": {
+            "from_count": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "to_count": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "confidence_floor": {
+              "anyOf": [
+                {
+                  "const": "high",
+                  "type": "string"
+                },
+                {
+                  "const": "medium",
+                  "type": "string"
+                },
+                {
+                  "const": "low",
+                  "type": "string"
+                }
+              ]
+            },
+            "missing_axis": {
+              "type": "boolean"
+            },
+            "values": {
+              "type": "object",
+              "patternProperties": {
+                "^(.*)$": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "from",
+                    "to",
+                    "delta",
+                    "support_count"
+                  ],
+                  "properties": {
+                    "from": {
+                      "type": "number"
+                    },
+                    "to": {
+                      "type": "number"
+                    },
+                    "delta": {
+                      "type": "number"
+                    },
+                    "support_count": {
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "coverage_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "generated_at": {
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "from_snapshot_id": "snapshot-a",
+  "to_snapshot_id": "snapshot-b",
+  "candidates": [
+    {
+      "candidate_id": "candidate_001",
+      "candidate_type": "appeal_shift",
+      "claim_kind": "computed",
+      "input_claim_kinds": ["classified"],
+      "axis": "appeal",
+      "from": 1,
+      "to": 0,
+      "support_count": 2,
+      "share_delta": -1,
+      "strength": "strong",
+      "evidence_refs": ["snapshot-a", "snapshot-b", "appeal:price"],
+      "coverage_flags": []
+    }
+  ],
+  "coverage_flags": ["audience_read absent — audience/persona shift candidates suppressed"]
+}
+

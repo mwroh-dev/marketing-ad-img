@@ -1,0 +1,20 @@
+{
+  "from_snapshot_id": "snapshot-a",
+  "to_snapshot_id": "snapshot-b",
+  "persona_id": "p",
+  "inventory_delta": { "created": [], "deleted": [], "persisted": [], "untrackable": [] },
+  "update_delta": { "same_library_id_changed_recipe": [] },
+  "distribution_delta": {
+    "audience_read": { "from_count": 0, "to_count": 0, "missing_axis": true, "values": {} },
+    "appeal": {
+      "from_count": 2,
+      "to_count": 2,
+      "confidence_floor": "high",
+      "values": {
+        "price": { "from": 1, "to": 0, "delta": -1, "support_count": 2 }
+      }
+    }
+  },
+  "coverage_flags": []
+}
+

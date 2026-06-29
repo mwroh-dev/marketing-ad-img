@@ -1,0 +1,19 @@
+{
+  "from_snapshot_id": "snapshot-a",
+  "to_snapshot_id": "snapshot-b",
+  "persona_id": "p",
+  "inventory_delta": { "created": [], "deleted": [], "persisted": [], "untrackable": [] },
+  "update_delta": { "same_library_id_changed_recipe": [] },
+  "distribution_delta": {
+    "appeal": {
+      "from_count": 3,
+      "to_count": 3,
+      "confidence_floor": "high",
+      "values": {
+        "social_proof": { "from": 0.3333, "to": 1, "delta": 0.6667, "support_count": 4 }
+      }
+    }
+  },
+  "coverage_flags": []
+}
+

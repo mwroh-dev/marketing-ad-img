@@ -10,7 +10,7 @@ export const schema = Type.Object(
   {
     run_id: Type.String({ minLength: 1 }),
     raw_request: Type.Optional(Type.String()),
-    detected_mode: U(["initial-setup", "data-collection", "competitive-report", "validate-recipe", "image-generation", "performance-learning", "unknown"]),
+    detected_mode: U(["initial-setup", "data-collection", "competitive-report", "creative-change-analysis", "validate-recipe", "image-generation", "performance-learning", "unknown"]),
     mode_confidence: Type.Optional(Type.Number({ minimum: 0, maximum: 1, description: "<0.6 (with a risk_flag) when the call is uncertain" })),
     required_slots: Type.Array(Type.String()),
     slot_states: Type.Array(Type.Object({ name: Type.String(), state: U(SLOT_STATE) }, opts)),

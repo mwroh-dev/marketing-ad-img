@@ -1,0 +1,15 @@
+{
+  "persona_id": "p",
+  "date_range": { "from": "2026-06-01", "to": "2026-06-08" },
+  "events": [
+    {
+      "event_type": "season",
+      "date_range": { "from": "2026-06-01", "to": "2026-06-30" },
+      "summary": "Seasonal event overlaps the comparison window.",
+      "sources": ["https://example.com/context"],
+      "confidence": "low"
+    }
+  ],
+  "coverage_flags": []
+}
+

@@ -45,6 +45,16 @@ export const schema = Type.Object(
     customer_language: Type.Optional(
       Type.Object({ detected_phrases: Type.Optional(Type.Array(Type.String())), brand_language_phrases: Type.Optional(Type.Array(Type.String())), review_like_phrases: Type.Optional(Type.Array(Type.String())) }, { ...opts, description: "whose words the copy uses (VoC)" }),
     ),
+    audience_read: Type.Optional(
+      Type.Object(
+        {
+          primary: U(["price_sensitive", "proof_seeker", "social_validation_seeker", "convenience_seeker", "aspirational_buyer", "risk_avoidant", "unclear", "other"], { description: "the ad's inferred audience archetype read; NOT the configured persona_id" }),
+          evidence: evidence(["copy", "visual", "offer", "problem", "layout", "other"]),
+          confidence: U(["high", "medium", "low"]),
+        },
+        { ...opts, description: "classified audience-archetype read used only for creative-change distribution shifts; never a true persona-change claim" },
+      ),
+    ),
     generation_reusability: Type.Optional(
       Type.Object(
         { usable: Type.Boolean(), reason: Type.String({ minLength: 1 }), reusable_devices: Type.Optional(Type.Array(Type.String(), { description: "the ABSTRACT device, never competitor-specific content" })), avoid_copying: Type.Optional(Type.Array(Type.String(), { description: "the competitor-specific wording/asset that must NOT be copied" })) },

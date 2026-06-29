@@ -1,0 +1,36 @@
+{
+  "from_snapshot_id": "snapshot-a",
+  "to_snapshot_id": "snapshot-b",
+  "candidates": [
+    {
+      "candidate_id": "candidate_001",
+      "candidate_type": "copy_role_shift",
+      "claim_kind": "computed",
+      "input_claim_kinds": ["classified"],
+      "axis": "copy_role",
+      "from": 0.5,
+      "to": 0.1667,
+      "support_count": 4,
+      "share_delta": -0.3333,
+      "strength": "medium",
+      "evidence_refs": ["snapshot-a", "snapshot-b", "copy_role:badge"],
+      "coverage_flags": []
+    },
+    {
+      "candidate_id": "candidate_002",
+      "candidate_type": "copy_role_shift",
+      "claim_kind": "computed",
+      "input_claim_kinds": ["classified"],
+      "axis": "copy_role",
+      "from": 0.1667,
+      "to": 0.5,
+      "support_count": 4,
+      "share_delta": 0.3333,
+      "strength": "medium",
+      "evidence_refs": ["snapshot-a", "snapshot-b", "copy_role:review_quote"],
+      "coverage_flags": []
+    }
+  ],
+  "coverage_flags": []
+}
+

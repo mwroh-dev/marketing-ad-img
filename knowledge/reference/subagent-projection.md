@@ -8,7 +8,7 @@ Agents are contracts, not code. Each agent definition must contain: Role, Inputs
 
 ## Real subagents vs. blueprint agents
 
-**22 role-scoped subagents** are instantiated as real Claude Code subagents under `agents/` (flat `agents/<name>.md`, each with `name`/`description`/`tools` frontmatter), plus the `orchestrator` entry agent (23 total). **stage** = the pipeline stage that agent implements (evaluation→setup→collection→analysis→generation); matches the CLAUDE.md Modes map.
+**24 role-scoped subagents** are instantiated as real Claude Code subagents under `agents/` (flat `agents/<name>.md`, each with `name`/`description`/`tools` frontmatter), plus the `orchestrator` entry agent (25 total). **stage** = the pipeline stage that agent implements (evaluation→setup→collection→analysis→generation); matches the CLAUDE.md Modes map.
 
 | Real subagent (`agents/`) | stage | Role / Absorbs |
 |---|---|---|
@@ -29,6 +29,8 @@ Agents are contracts, not code. Each agent definition must contain: Role, Inputs
 | `strategy-projector` | analysis | per-ad marketing projection (benefit×funnel + first_cognition + customer_language + reusability; projects intent; grounds_in ad-strategy-taxonomy.md) |
 | `pattern-synthesizer` | analysis | per-persona ad-pattern description |
 | `competitive-analyst` | analysis | per-persona competitive-trend narrative (longevity/variation/change + appeals) ON TOP of the deterministic trend aggregate |
+| `temporal-change-analyst` | analysis | creative-change interpretation ON TOP of deterministic diff/candidates; claim-boundary report |
+| `market-context-researcher` | analysis | external context calendar for creative-change-analysis; context only, no change interpretation |
 | `creative-opportunity-mapper` | generation | analysis→generation bridge (ring 3): market-position matrix → strategic positions + brief_constraints (our product selling-point enters) |
 | `creative-brief-analyst` | generation | creative brief synthesis (consumes creative-opportunity + brand/product/persona/review) |
 | `copy-layout-planner` | generation | per-candidate copy + layout |
@@ -39,7 +41,7 @@ Data collection (D), the preprocessing slicer, pattern aggregation (deterministi
 
 ## Orchestrator
 
-The orchestrator is NOT a subagent. It is the main-session entry agent (`${CLAUDE_PLUGIN_ROOT}/agents/orchestrator.md`, auto-activated via `settings.json` `"agent": "orchestrator"`) — the shipped entry that works when the plugin is installed elsewhere (a plugin's root `CLAUDE.md` is NOT loaded for consumers). It holds the full artifact/knowledge set and dispatches the 22 subagents, projecting only role-scoped views to each.
+The orchestrator is NOT a subagent. It is the main-session entry agent (`${CLAUDE_PLUGIN_ROOT}/agents/orchestrator.md`, auto-activated via `settings.json` `"agent": "orchestrator"`) — the shipped entry that works when the plugin is installed elsewhere (a plugin's root `CLAUDE.md` is NOT loaded for consumers). It holds the full artifact/knowledge set and dispatches the 24 subagents, projecting only role-scoped views to each.
 
 ## Context Distribution Rule
 
@@ -66,6 +68,8 @@ The orchestrator is NOT a subagent. It is the main-session entry agent (`${CLAUD
 | strategy-projector | one ad's completed analyses (ad-type/copy/layout/visual/intent/bindings) + its advertiser metadata, persona_id | the image itself (text-only), OUR product's selling-point (ring 3), other images |
 | pattern-synthesizer | the deterministic ad-pattern aggregate | raw images, recompute rights |
 | competitive-analyst | the deterministic competitive-trend aggregate (+ optional ad-pattern copy aggregates) | raw images, recompute rights, other personas |
+| temporal-change-analyst | `creative-diff.json`, `change-candidates.json`, optional `context-calendar.json`, optional `competitive-trend.json` for one persona edge | raw images, full browser logs, other personas, credentials, recompute rights |
+| market-context-researcher | persona_id, brand/category/product label, target_market, date_range, optional source scope/user-known events | `creative-diff.json`, `change-candidates.json`, interpreted events, raw images, other personas, credentials |
 | ad-creative-refiner | one image (path), competitor_id, persona_id | text meaning interpretation, layout/composition analysis, other images |
 
 
@@ -80,3 +84,15 @@ An agent's output is verified at two levels; the schema validator alone is NOT s
 ## Handoff Rule
 
 Subagents return structured decision artifacts (JSON-compatible, schema-conformant), not full reasoning logs.
+
+When the orchestrator materializes a handoff as JSON, validate it before dispatch:
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/shared/harness/validate-subagent-projection.mjs <agent_name> <handoff.json> --persona <persona_id>
+```
+
+This machine guard backs the table above. It rejects direct raw media paths for every subagent except
+`perception-extractor`, `ad-creative-refiner`, and `image-prompt-adapter`; rejects browser traces/logs, credentials,
+and other-persona leakage; and applies agent-specific blocks such as keeping `creative-diff.json` and
+`change-candidates.json` away from `market-context-researcher`. Schema artifact identity fields such as relative
+`image_ref` values remain allowed as identity/provenance, not as permission to reopen images.

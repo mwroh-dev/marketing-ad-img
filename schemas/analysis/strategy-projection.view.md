@@ -43,6 +43,14 @@ strategy-projection = {
     brand_language_phrases?: string[]
     review_like_phrases?: string[]
   }  // whose words the copy uses (VoC)
+  audience_read?: {
+    primary: "price_sensitive"|"proof_seeker"|"social_validation_seeker"|"convenience_seeker"|"aspirational_buyer"|"risk_avoidant"|"unclear"|"other"  // the ad's inferred audience archetype read; NOT the configured persona_id
+    evidence: {
+      source: "copy"|"visual"|"offer"|"problem"|"layout"|"other"
+      reason: string  // non-empty
+    }[]  // 1.. items; ≥1 {source, reason} grounding this from the analyses
+    confidence: "high"|"medium"|"low"
+  }  // classified audience-archetype read used only for creative-change distribution shifts; never a true persona-change claim
   generation_reusability?: {
     usable: boolean
     reason: string  // non-empty

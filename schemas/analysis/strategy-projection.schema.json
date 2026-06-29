@@ -361,6 +361,118 @@
         }
       }
     },
+    "audience_read": {
+      "additionalProperties": false,
+      "description": "classified audience-archetype read used only for creative-change distribution shifts; never a true persona-change claim",
+      "type": "object",
+      "required": [
+        "primary",
+        "evidence",
+        "confidence"
+      ],
+      "properties": {
+        "primary": {
+          "description": "the ad's inferred audience archetype read; NOT the configured persona_id",
+          "anyOf": [
+            {
+              "const": "price_sensitive",
+              "type": "string"
+            },
+            {
+              "const": "proof_seeker",
+              "type": "string"
+            },
+            {
+              "const": "social_validation_seeker",
+              "type": "string"
+            },
+            {
+              "const": "convenience_seeker",
+              "type": "string"
+            },
+            {
+              "const": "aspirational_buyer",
+              "type": "string"
+            },
+            {
+              "const": "risk_avoidant",
+              "type": "string"
+            },
+            {
+              "const": "unclear",
+              "type": "string"
+            },
+            {
+              "const": "other",
+              "type": "string"
+            }
+          ]
+        },
+        "evidence": {
+          "minItems": 1,
+          "description": "≥1 {source, reason} grounding this from the analyses",
+          "type": "array",
+          "items": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "source",
+              "reason"
+            ],
+            "properties": {
+              "source": {
+                "anyOf": [
+                  {
+                    "const": "copy",
+                    "type": "string"
+                  },
+                  {
+                    "const": "visual",
+                    "type": "string"
+                  },
+                  {
+                    "const": "offer",
+                    "type": "string"
+                  },
+                  {
+                    "const": "problem",
+                    "type": "string"
+                  },
+                  {
+                    "const": "layout",
+                    "type": "string"
+                  },
+                  {
+                    "const": "other",
+                    "type": "string"
+                  }
+                ]
+              },
+              "reason": {
+                "minLength": 1,
+                "type": "string"
+              }
+            }
+          }
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "const": "high",
+              "type": "string"
+            },
+            {
+              "const": "medium",
+              "type": "string"
+            },
+            {
+              "const": "low",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
     "generation_reusability": {
       "additionalProperties": false,
       "type": "object",
