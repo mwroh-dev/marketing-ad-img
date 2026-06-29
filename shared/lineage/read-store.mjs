@@ -41,6 +41,14 @@ export function loadByKind(persona, kind, opts = {}) {
 // durable store — so the generation pipeline never assembles them from run scratch.
 export function loadMatrixInputs(persona, opts = {}) {
   const envs = loadEnvelopes(persona, opts);
-  const pick = (kind) => envs.filter((e) => e.kind === kind).map((e) => ({ image_ref: e.key?.image_ref, ...e.payload }));
+  // strategy/ad-type are joined into the matrix by image_ref; an envelope missing it would silently cross-join
+  // (every undefined key collapses into one bucket → corrupt aggregation). Guard at the join site — deliberately
+  // NOT in loadEnvelopes, which also legitimately loads candidate-keyed generation envelopes (candidate_id, no
+  // image_ref). image_ref comes from the envelope key (the authoritative identity), not the analyst payload.
+  const pick = (kind) => envs.filter((e) => e.kind === kind).map((e) => {
+    const image_ref = e.key?.image_ref;
+    if (!image_ref) throw new Error(`store corrupted: a '${kind}' envelope for persona '${persona}' has no key.image_ref — cannot build the market-position matrix (it is the join key)`);
+    return { image_ref, ...e.payload };
+  });
   return { strategies: pick("strategy"), adTypes: pick("ad-type") };
 }

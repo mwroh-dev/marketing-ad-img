@@ -47,6 +47,27 @@ test("populated store → loadMatrixInputs returns strategy + ad-type payloads, 
   assert.equal(adTypes[0].ad_type, "informational");
 });
 
+test("JOIN GUARD: a strategy/ad-type envelope missing key.image_ref → loadMatrixInputs throws (no silent cross-join)", () => {
+  reset();
+  // a strategy envelope whose key has NO image_ref — would otherwise collapse into one matrix bucket
+  const fp = join(STATE, "store", "p", "ad-0", "strategy.json");
+  mkdirSync(resolve(fp, ".."), { recursive: true });
+  writeFileSync(fp, JSON.stringify(env("strategy", undefined, { benefit_vector: { primary: "function" } })));
+  assert.throws(() => loadMatrixInputs("p", { stateDir: STATE }), /store corrupted/);
+});
+
+test("loadEnvelopes accepts candidate-keyed generation envelopes (no image_ref) — the image_ref guard belongs at the matrix join, not here", () => {
+  reset();
+  const fp = join(STATE, "store", "p", "cand-1", "creative-candidate.json");
+  mkdirSync(resolve(fp, ".."), { recursive: true });
+  writeFileSync(fp, JSON.stringify({
+    kind: "creative-candidate", key: { persona_id: "p", candidate_id: "cand-1" }, pattern_tag: "gen:function×discovery",
+    derived_from: [], logic_version: { version: "v1", method: "content" },
+    produced_by: "finalize-candidates", stamped_at: "2026-06-27T00:00:00.000Z", payload: { candidate_id: "cand-1" },
+  }));
+  assert.equal(loadEnvelopes("p", { stateDir: STATE }).length, 1);   // no throw — candidate envelopes are valid in the store
+});
+
 test("loadByKind filters one kind and injects image_ref", () => {
   reset();
   write("ad-0", "perception", "runs/r/ad-0.jpg", { medium: "flat" });
