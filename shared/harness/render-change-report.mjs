@@ -7,9 +7,181 @@ import { validateAgainst, report } from "../collect/schema-validate.mjs";
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 const webPath = (p) => String(p).split(sep).join("/");
 const chip = (label, cls = "") => `<span class="chip${cls ? ` ${esc(cls)}` : ""}">${esc(label)}</span>`;
-const list = (items = []) => items.length ? `<ol class="claim-list">${items.map((x) => `<li>${chip(x.claim_kind, `chip-${x.claim_kind}`)}<span>${esc(x.summary)}</span></li>`).join("")}</ol>` : `<p class="empty">not observed / not supplied</p>`;
-const flags = (items = []) => items.length ? `<ul class="flags">${items.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>` : `<p class="empty">reported gaps 없음</p>`;
+const list = (items = []) => items.length ? `<ol class="claim-list">${items.map((x) => `<li>${chip(claimKindLabel(x.claim_kind), `chip-${x.claim_kind}`)}<span>${esc(humanizeSummary(x.summary))}</span></li>`).join("")}</ol>` : `<p class="empty">관측되거나 제공된 내용 없음</p>`;
+const flags = (items = []) => items.length ? `<ul class="flags">${items.map((f) => `<li>${esc(humanizeFlag(f))}</li>`).join("")}</ul>` : `<p class="empty">표시할 분석 한계 없음</p>`;
 const byLibraryId = (snapshot) => new Map((snapshot?.ads || []).filter((ad) => ad.library_id).map((ad) => [ad.library_id, ad]));
+
+const CLAIM_LABELS = {
+  observed: "관측",
+  classified: "분류",
+  computed: "확인",
+  interpreted: "해석",
+  inferred: "가설",
+};
+
+const CANDIDATE_LABELS = {
+  inventory_change: "광고 구성 변화",
+  appeal_shift: "소구점 변화",
+  funnel_shift: "퍼널 변화",
+  benefit_shift: "혜택 변화",
+  visual_register_shift: "비주얼 톤 변화",
+  layout_shift: "레이아웃 변화",
+  copy_role_shift: "카피 역할 변화",
+  audience_read_shift: "읽히는 대상 변화",
+};
+
+const STRENGTH_LABELS = {
+  strong: "강함",
+  medium: "보통",
+  weak: "약함",
+};
+
+const AXIS_LABELS = {
+  inventory: "광고 구성",
+  text_hash: "문구 변경",
+  image_asset_hash: "이미지 변경",
+  appeal: "소구점",
+  funnel_stage: "퍼널",
+  funnel: "퍼널",
+  funnel_intent_stage: "구매 단계",
+  benefit_primary: "혜택",
+  benefit: "혜택",
+  visual_register: "비주얼 톤",
+  visual: "비주얼 톤",
+  scene_setting: "장면",
+  product_state: "제품 표현",
+  composition_type: "레이아웃",
+  layout: "레이아웃",
+  text_density: "텍스트 밀도",
+  copy_role: "카피 역할",
+  copy: "카피",
+  ad_type: "광고 타입",
+  execution_style: "표현 방식",
+  audience_read: "읽히는 대상",
+  audience: "읽히는 대상",
+};
+
+const VALUE_LABELS = {
+  quality_proof: "품질 증명",
+  social_proof: "사회적 증거",
+  emotional: "감성",
+  price: "가격",
+  discount: "할인",
+  trust: "신뢰",
+  convenience: "편의",
+  consideration: "고려 단계",
+  comparison: "비교 단계",
+  conversion: "구매 전환",
+  awareness: "인지",
+  clean_minimal: "깔끔한 미니멀",
+  studio_plain: "스튜디오형",
+  review_capture: "리뷰 캡처형",
+  raw_authentic: "날것의 진정성",
+  standalone: "단독 제품",
+  headline: "헤드라인",
+  badge: "배지",
+  cta: "CTA",
+  testimonial: "후기형",
+  proof_seeker: "근거 중시",
+  price_sensitive: "가격 민감",
+  social_validation_seeker: "사회적 검증 중시",
+  convenience_seeker: "편의 중시",
+  aspirational_buyer: "선망형 구매자",
+  risk_avoidant: "리스크 회피",
+  strong: "강함",
+  medium: "보통",
+  weak: "약함",
+  unclear: "불명확",
+};
+
+function claimKindLabel(kind) {
+  return CLAIM_LABELS[kind] || kind || "항목";
+}
+
+function candidateLabel(type) {
+  return CANDIDATE_LABELS[type] || humanizeToken(type);
+}
+
+function strengthLabel(strength) {
+  return STRENGTH_LABELS[strength] || strength || "확인";
+}
+
+function axisLabel(axis) {
+  return AXIS_LABELS[axis] || humanizeToken(axis);
+}
+
+function humanizeToken(value) {
+  return String(value ?? "").replace(/_/g, " ");
+}
+
+function humanValue(value) {
+  if (value == null) return "없음";
+  const s = String(value);
+  return VALUE_LABELS[s] || humanizeToken(s);
+}
+
+function formatDelta(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return humanValue(value);
+  if (Math.abs(n) <= 1) {
+    const pct = Math.round(n * 1000) / 10;
+    return `${pct > 0 ? "+" : ""}${pct}%p`;
+  }
+  return `${n > 0 ? "+" : ""}${n}`;
+}
+
+function formatShare(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return humanValue(value);
+  if (n >= 0 && n <= 1) return `${Math.round(n * 1000) / 10}%`;
+  return String(value);
+}
+
+function humanizeSummary(summary) {
+  const text = String(summary || "");
+  if (/변화 없는 축\s*:/.test(text)) return "퍼널, 혜택, 비주얼 톤, 레이아웃 등 주요 구조는 유지되었습니다.";
+  return Object.entries({ ...AXIS_LABELS, ...VALUE_LABELS, ...CANDIDATE_LABELS }).reduce((out, [from, to]) => {
+    return out.replace(new RegExp(`\\b${from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "g"), to);
+  }, text)
+    .replace(/인벤토리 변화/g, "광고 구성 변화")
+    .replace(/인벤토리/g, "광고 구성")
+    .replace(/\brecipe\b/g, "구성")
+    .replace(/레시피/g, "구성")
+    .replace(/구성가/g, "구성이")
+    .replace(/비주얼 레지스터/g, "비주얼 톤")
+    .replace(/구성이 변경됨/g, "구성이 바뀌었습니다")
+    .replace(/변경 항목\s*=\s*/g, "바뀐 항목: ")
+    .replace(/근거 수 ([0-9]+)/g, "근거 $1건")
+    .replace(/strength=강함/g, "강도는 강함")
+    .replace(/strength=보통/g, "강도는 보통")
+    .replace(/strength=약함/g, "강도는 약함")
+    .replace(/품질 증명\(품질 증명\)/g, "품질 증명")
+    .replace(/감성\(감성\)/g, "감성")
+    .replace(/문구 변경와/g, "문구와")
+    .replace(/\bfrom\b/g, "이전")
+    .replace(/\bto\b/g, "이후")
+    .replace(/\bdelta\b/g, "변화폭")
+    .replace(/\bsupport_count\b/g, "근거 수")
+    .replace(/\bchanged_axes\b/g, "변경 항목")
+    .replace(/변경 항목\s*=\s*/g, "바뀐 항목: ")
+    .replace(/근거 수 ([0-9]+)/g, "근거 $1건")
+    .replace(/바뀌었습니다:\s*바뀐 항목:/g, "바뀌었습니다. 바뀐 항목:")
+    .replace(/소구점=(.+?) 비중이 이전 ([0-9.-]+)에서 이후 ([0-9.-]+)(?:으)?로 변화\(변화폭 ([0-9.-]+), 근거(?: 수)? ([0-9]+)(?:건)?\)\.?/g, (_match, value, from, to, delta, support) => {
+      return `${value} 소구 비중이 ${formatShare(from)}에서 ${formatShare(to)}로 바뀌었습니다. 변화폭 ${formatDelta(delta)}, 근거 ${support}건.`;
+    })
+    .replace(/(품질 증명|감성|가격|할인|신뢰|사회적 증거|편의)\(([0-9.]+)→([0-9.]+)\)/g, (_match, label, from, to) => {
+      return `${label}(${formatShare(from)}→${formatShare(to)})`;
+    });
+}
+
+function humanizeFlag(flag) {
+  const text = String(flag || "");
+  if (text.startsWith("external_context_not_supplied:")) return "외부 맥락 자료가 없어 시즌/이벤트 관련 가설은 제외했습니다.";
+  if (text.startsWith("competitive_trend_not_supplied:")) return "경쟁 추세 자료가 없어 경쟁사 흐름 해석은 제외했습니다.";
+  if (text.startsWith("single_edge_only:")) return "한 구간 비교이므로 장기 추세로 단정하지 않습니다.";
+  if (text.startsWith("no_performance_data:")) return "성과 데이터가 없어 효과 여부는 판단하지 않습니다.";
+  return humanizeSummary(text.replace(/^[a-z_]+:\s*/, ""));
+}
 
 function readJsonIfExists(path) {
   if (!path || !existsSync(path)) return null;
@@ -78,18 +250,18 @@ function recipeChips(ad, changedAxes = []) {
     ["copy", Array.isArray(c.text_roles) ? c.text_roles.join(", ") : c.copy_role],
     ["audience", c.audience_read],
   ].filter(([, value]) => value);
-  if (!values.length) return `<p class="microcopy">No classified recipe available</p>`;
-  return `<div class="recipe-chips">${values.map(([key, value]) => chip(`${key}: ${value}`, changedAxes.includes(key) || changedAxes.includes(`${key}_stage`) ? "chip-axis chip-changed" : "chip-axis")).join("")}</div>`;
+  if (!values.length) return `<p class="microcopy">분류 정보 없음</p>`;
+  return `<div class="recipe-chips">${values.map(([key, value]) => chip(`${axisLabel(key)}: ${humanValue(value)}`, changedAxes.includes(key) || changedAxes.includes(`${key}_stage`) ? "chip-axis chip-changed" : "chip-axis")).join("")}</div>`;
 }
 
 function creativeFigure(ad, label, context, changedAxes = []) {
-  if (!ad) return `<div class="creative-side creative-missing"><h4>${esc(label)}</h4><div class="media-frame missing">not supplied</div></div>`;
+  if (!ad) return `<div class="creative-side creative-missing"><h4>${esc(label)}</h4><div class="media-frame missing">자료 없음</div></div>`;
   const src = assetSrc(ad.image_ref, context);
   const missingAsset = typeof context.assetExists === "function" && context.assetExists(ad.image_ref) === false;
   return `<div class="creative-side">
     <h4>${esc(label)}</h4>
-    <div class="media-frame${missingAsset ? " missing" : ""}">${src && !missingAsset ? `<img src="${esc(src)}" alt="${esc(label)} ${esc(ad.library_id || ad.ad_key || "creative")}" loading="lazy" />` : `<span>${src ? "image file not present" : "image ref missing"}</span>`}</div>
-    <div class="creative-meta">${chip(ad.library_id || ad.ad_key || "local", "chip-id")}${ad.started_at ? chip(`started ${ad.started_at}`, "chip-muted") : ""}</div>
+    <div class="media-frame${missingAsset ? " missing" : ""}">${src && !missingAsset ? `<img src="${esc(src)}" alt="${esc(label)} ${esc(ad.library_id || ad.ad_key || "광고")}" loading="lazy" />` : `<span>${src ? "이미지 파일 없음" : "이미지 경로 없음"}</span>`}</div>
+    <div class="creative-meta">${chip(ad.library_id || ad.ad_key || "local", "chip-id")}${ad.started_at ? chip(`시작 ${ad.started_at}`, "chip-muted") : ""}</div>
     ${recipeChips(ad, changedAxes)}
   </div>`;
 }
@@ -100,8 +272,8 @@ function changedAxisSummary(change) {
   return `<div class="axis-delta">${axes.map((axis) => {
     const before = change.before?.[axis];
     const after = change.after?.[axis];
-    if (/hash/i.test(axis)) return `<span><b>${esc(axis)}</b> changed</span>`;
-    return `<span><b>${esc(axis)}</b>${before != null || after != null ? ` ${esc(before ?? "missing")} → ${esc(after ?? "missing")}` : ""}</span>`;
+    if (/hash/i.test(axis)) return `<span><b>${esc(axisLabel(axis))}</b> 변경됨</span>`;
+    return `<span><b>${esc(axisLabel(axis))}</b>${before != null || after != null ? ` ${esc(humanValue(before))} → ${esc(humanValue(after))}` : ""}</span>`;
   }).join("")}</div>`;
 }
 
@@ -109,15 +281,15 @@ function renderUpdatedCreatives(diff, snapshots, context) {
   const fromMap = byLibraryId(snapshots?.from);
   const toMap = byLibraryId(snapshots?.to);
   const changes = diff?.update_delta?.same_library_id_changed_recipe || [];
-  if (!changes.length) return `<p class="empty">No persisted creative recipe updates detected.</p>`;
+  if (!changes.length) return `<p class="empty">유지된 광고에서 감지된 레시피 변경은 없습니다.</p>`;
   return changes.map((change) => `<article class="evidence-row">
     <header class="evidence-head">
-      <h3>Updated</h3>
-      <div>${chip(change.library_id, "chip-id")}${(change.changed_axes || []).map((axis) => chip(axis, "chip-axis chip-changed")).join("")}</div>
+      <h3>변경</h3>
+      <div>${chip(change.library_id, "chip-id")}${(change.changed_axes || []).map((axis) => chip(axisLabel(axis), "chip-axis chip-changed")).join("")}</div>
     </header>
     <div class="creative-pair">
-      ${creativeFigure(fromMap.get(change.library_id), "Before", context, change.changed_axes)}
-      ${creativeFigure(toMap.get(change.library_id), "After", context, change.changed_axes)}
+      ${creativeFigure(fromMap.get(change.library_id), "이전", context, change.changed_axes)}
+      ${creativeFigure(toMap.get(change.library_id), "이후", context, change.changed_axes)}
     </div>
     ${changedAxisSummary(change)}
   </article>`).join("");
@@ -136,18 +308,18 @@ function renderInventoryCreatives(diff, snapshots, context) {
   const created = diff?.inventory_delta?.created || [];
   const deleted = diff?.inventory_delta?.deleted || [];
   if (!created.length && !deleted.length) return "";
-  const createdHtml = created.map((ad) => inventoryFigure(toMap.get(ad.library_id) || ad, "Created", context, "After")).join("");
-  const deletedHtml = deleted.map((ad) => inventoryFigure(fromMap.get(ad.library_id) || ad, "Deleted", context, "Before")).join("");
+  const createdHtml = created.map((ad) => inventoryFigure(toMap.get(ad.library_id) || ad, "신규", context, "이후")).join("");
+  const deletedHtml = deleted.map((ad) => inventoryFigure(fromMap.get(ad.library_id) || ad, "종료", context, "이전")).join("");
   return `<div class="inventory-grid">${createdHtml}${deletedHtml}</div>`;
 }
 
 function renderCreativeEvidence(context) {
   const diff = context.diff;
-  if (!diff) return `<section class="section evidence"><h2>Before / After Creatives</h2><p class="empty">creative-diff artifact not supplied</p></section>`;
+  if (!diff) return `<section class="section evidence"><h2>전후 광고 비교</h2><p class="empty">전후 비교 자료가 없습니다.</p></section>`;
   return `<section class="section evidence">
     <div class="section-heading">
-      <h2>Before / After Creatives</h2>
-      <p>Images are displayed from existing artifact references; no image re-analysis is performed.</p>
+      <h2>전후 광고 비교</h2>
+      <p>분석에 쓰인 기존 이미지 참조만 표시합니다.</p>
     </div>
     ${renderUpdatedCreatives(diff, context.snapshots, context)}
     ${renderInventoryCreatives(diff, context.snapshots, context)}
@@ -157,10 +329,43 @@ function renderCreativeEvidence(context) {
 function renderCandidateBar(candidates = []) {
   if (!candidates.length) return "";
   return `<div class="candidate-bar">${candidates.map((c) => `<div class="candidate-chip">
-    ${chip(c.candidate_type, "chip-candidate")}
-    ${chip(c.strength, "chip-strength")}
-    <span>${esc(c.axis)} · Δ ${esc(c.share_delta ?? 0)} · n=${esc(c.support_count ?? 0)}</span>
+    ${chip(candidateLabel(c.candidate_type), "chip-candidate")}
+    ${chip(strengthLabel(c.strength), "chip-strength")}
+    <span>${esc(axisLabel(c.axis))} · 변화폭 ${esc(formatDelta(c.share_delta ?? 0))} · 근거 ${esc(c.support_count ?? 0)}건</span>
   </div>`).join("")}</div>`;
+}
+
+function renderAgentPrompt(report) {
+  const from = report.snapshot_range?.from_snapshot_id || "이전 스냅샷";
+  const to = report.snapshot_range?.to_snapshot_id || "이후 스냅샷";
+  const promptText = [
+    "다음 광고 변화 분석 산출물을 바탕으로, 한국어로 마케팅 관점의 인사이트를 정리해줘.",
+    "",
+    `분석 범위: ${report.persona_id}`,
+    `비교 구간: ${from} → ${to}`,
+    "",
+    "사용할 산출물:",
+    `- 전후 광고 스냅샷: creative-snapshot.${from}.json, creative-snapshot.${to}.json`,
+    "- 비교 결과: creative-diff.json",
+    "- 변화 후보: change-candidates.json",
+    "- 최종 리포트: creative-change-report.json",
+    "",
+    "요청:",
+    "1. 확인된 변화, 해석, 가능한 가설을 구분해줘.",
+    "2. 성과나 인과는 단정하지 말고, 데이터 한계를 명시해줘.",
+    "3. 사람이 읽기 쉬운 한국어로 요약해줘.",
+    "4. 이미지를 새로 판독하지 말고, 제공된 산출물만 근거로 사용해줘.",
+  ].join("\n");
+  return `<section class="section prompt-section">
+    <div class="section-heading">
+      <h2>에이전트 분석 프롬프트</h2>
+      <p>추가 분석이 필요할 때 아래 내용을 복사해서 사용합니다.</p>
+    </div>
+    <div class="prompt-box">
+      <button type="button" class="copy-button" onclick="navigator.clipboard && navigator.clipboard.writeText(document.getElementById('agent-prompt').value)">프롬프트 복사</button>
+      <textarea id="agent-prompt" readonly spellcheck="false">${esc(promptText)}</textarea>
+    </div>
+  </section>`;
 }
 
 export function renderChangeReport(report, context = {}) {
@@ -170,7 +375,7 @@ export function renderChangeReport(report, context = {}) {
 	<head>
 	  <meta charset="utf-8" />
 	  <meta name="viewport" content="width=device-width, initial-scale=1" />
-	  <title>Creative Change Report</title>
+	  <title>광고 변화 분석</title>
 	  <style>
 	    :root { color-scheme: light; --ink:#171717; --muted:#626a6a; --line:#d9dddd; --paper:#f7f8f8; --panel:#ffffff; --accent:#0f766e; --warn:#8a5a00; }
 	    * { box-sizing: border-box; }
@@ -180,7 +385,7 @@ export function renderChangeReport(report, context = {}) {
 	    h1 { margin: 0; font-size: 34px; line-height: 1.05; font-weight: 720; }
 	    h2 { margin: 0; font-size: 21px; line-height: 1.2; font-weight: 680; }
 	    h3 { margin: 0; font-size: 15px; line-height: 1.2; font-weight: 680; }
-	    h4 { margin: 0 0 8px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0; }
+	    h4 { margin: 0 0 8px; font-size: 12px; color: var(--muted); letter-spacing: 0; }
 	    p { line-height: 1.62; }
 	    .meta { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 	    .section { padding: 26px 0; border-bottom: 1px solid var(--line); }
@@ -217,6 +422,10 @@ export function renderChangeReport(report, context = {}) {
 	    .inventory-item { min-width: 0; padding-top: 18px; border-top: 1px solid #e5e9e8; }
 	    .flags { margin: 0; padding-left: 18px; color: var(--warn); }
 	    .flags li { margin: 6px 0; }
+	    .prompt-box { display: grid; gap: 10px; }
+	    .copy-button { justify-self: start; min-height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); color: var(--ink); font: inherit; cursor: pointer; }
+	    .copy-button:hover { border-color: #9fb7b4; }
+	    textarea { width: 100%; min-height: 230px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: #242827; font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; resize: vertical; }
 	    @media (max-width: 760px) {
 	      main { padding: 22px 16px 40px; }
 	      .hero, .section-heading, .creative-pair, .inventory-grid { grid-template-columns: 1fr; }
@@ -231,38 +440,39 @@ export function renderChangeReport(report, context = {}) {
 	  <main>
 	    <header class="hero">
 	      <div>
-	        <h1>Creative Change Report</h1>
-	        <p class="summary">${esc(report.synthesis || "서술 없음")}</p>
+	        <h1>광고 변화 분석</h1>
+	        <p class="summary">${esc(humanizeSummary(report.synthesis || "서술 없음"))}</p>
 	      </div>
 	      <div class="meta">
-	        ${chip(`persona ${report.persona_id}`, "chip-id")}
+	        ${chip(`분석 범위 ${report.persona_id}`, "chip-id")}
 	        ${chip(`${report.snapshot_range?.from_snapshot_id} → ${report.snapshot_range?.to_snapshot_id}`, "chip-muted")}
 	      </div>
 	    </header>
 	    <section class="section">
 	      <div class="section-heading">
-	        <h2>Change Candidates</h2>
-	        <p>Deterministic candidate signals used by the analyst.</p>
+	        <h2>주요 변화</h2>
+	        <p>변화 후보의 방향과 강도만 요약합니다.</p>
 	      </div>
-	      ${renderCandidateBar(candidates) || `<p class="empty">not observed / not supplied</p>`}
+	      ${renderCandidateBar(candidates) || `<p class="empty">관측되거나 제공된 내용 없음</p>`}
 	    </section>
 	    ${renderCreativeEvidence(context)}
 	    <section class="section">
-	      <div class="section-heading"><h2>계산된 변화</h2><p>Observed or computed facts from the snapshot edge.</p></div>
+	      <div class="section-heading"><h2>확인된 변화</h2><p>데이터로 확인되는 변화입니다.</p></div>
 	      ${list(report.confirmed_changes)}
 	    </section>
 	    <section class="section">
-	      <div class="section-heading"><h2>해석된 변화</h2><p>Marketing interpretation over deterministic candidates.</p></div>
+	      <div class="section-heading"><h2>마케팅 해석</h2><p>확인된 변화에서 읽을 수 있는 방향입니다.</p></div>
 	      ${list(report.classified_interpretations)}
 	    </section>
 	    <section class="section">
-	      <div class="section-heading"><h2>유추 가설</h2><p>External context hypotheses only; never causal proof.</p></div>
+	      <div class="section-heading"><h2>가능한 가설</h2><p>외부 맥락이 있을 때만 조심스럽게 다룹니다.</p></div>
 	      ${list(report.inferred_hypotheses)}
 	    </section>
 	    <section class="section">
-	      <div class="section-heading"><h2>Coverage Flags</h2><p>Known limits and missing inputs.</p></div>
+	      <div class="section-heading"><h2>분석 한계</h2><p>현재 자료로 말하면 안 되는 범위입니다.</p></div>
 	      ${flags(report.coverage_flags)}
 	    </section>
+	    ${renderAgentPrompt(report)}
 	  </main>
 	</body>
 	</html>`;
