@@ -1,0 +1,64 @@
+{
+  "from_snapshot_id": "snapshot-a",
+  "to_snapshot_id": "snapshot-b",
+  "candidates": [
+    {
+      "candidate_id": "candidate_001",
+      "candidate_type": "appeal_shift",
+      "claim_kind": "computed",
+      "input_claim_kinds": ["classified"],
+      "axis": "appeal",
+      "from": 0.75,
+      "to": 0.25,
+      "support_count": 4,
+      "share_delta": -0.5,
+      "strength": "strong",
+      "evidence_refs": ["snapshot-a", "snapshot-b", "appeal:price"],
+      "coverage_flags": []
+    },
+    {
+      "candidate_id": "candidate_002",
+      "candidate_type": "appeal_shift",
+      "claim_kind": "computed",
+      "input_claim_kinds": ["classified"],
+      "axis": "appeal",
+      "from": 0.25,
+      "to": 0.75,
+      "support_count": 4,
+      "share_delta": 0.5,
+      "strength": "strong",
+      "evidence_refs": ["snapshot-a", "snapshot-b", "appeal:quality_proof"],
+      "coverage_flags": []
+    },
+    {
+      "candidate_id": "candidate_003",
+      "candidate_type": "funnel_shift",
+      "claim_kind": "computed",
+      "input_claim_kinds": ["classified"],
+      "axis": "funnel_stage",
+      "from": 0.75,
+      "to": 0.25,
+      "support_count": 4,
+      "share_delta": -0.5,
+      "strength": "strong",
+      "evidence_refs": ["snapshot-a", "snapshot-b", "funnel_stage:conversion"],
+      "coverage_flags": []
+    },
+    {
+      "candidate_id": "candidate_004",
+      "candidate_type": "funnel_shift",
+      "claim_kind": "computed",
+      "input_claim_kinds": ["classified"],
+      "axis": "funnel_stage",
+      "from": 0.25,
+      "to": 0.75,
+      "support_count": 4,
+      "share_delta": 0.5,
+      "strength": "strong",
+      "evidence_refs": ["snapshot-a", "snapshot-b", "funnel_stage:consideration"],
+      "coverage_flags": []
+    }
+  ],
+  "coverage_flags": []
+}
+

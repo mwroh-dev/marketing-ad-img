@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "$id": "https://marketing-img/schemas/interpreted-change-event.schema.json",
+  "title": "InterpretedChangeEventSet",
+  "description": "agent-authored creative-change events over deterministic candidates",
+  "type": "object",
+  "required": [
+    "persona_id",
+    "events",
+    "coverage_flags"
+  ],
+  "properties": {
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "event_id",
+          "based_on_candidate_ids",
+          "event_type",
+          "claim_kind",
+          "summary",
+          "evidence_refs",
+          "confidence",
+          "forbidden_claims_checked"
+        ],
+        "properties": {
+          "event_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "based_on_candidate_ids": {
+            "type": "array",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "event_type": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "claim_kind": {
+            "anyOf": [
+              {
+                "const": "interpreted",
+                "type": "string"
+              },
+              {
+                "const": "inferred",
+                "type": "string"
+              }
+            ]
+          },
+          "summary": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "const": "high",
+                "type": "string"
+              },
+              {
+                "const": "medium",
+                "type": "string"
+              },
+              {
+                "const": "low",
+                "type": "string"
+              }
+            ]
+          },
+          "forbidden_claims_checked": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "coverage_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "generated_at": {
+      "type": "string"
+    }
+  }
+}

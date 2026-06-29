@@ -1,0 +1,250 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "$id": "https://marketing-img/schemas/creative-snapshot.schema.json",
+  "title": "CreativeSnapshot",
+  "description": "static per-run ad state for creative-change analysis",
+  "type": "object",
+  "required": [
+    "snapshot_id",
+    "run_id",
+    "persona_id",
+    "ads",
+    "aggregate",
+    "coverage_flags"
+  ],
+  "properties": {
+    "snapshot_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "run_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "captured_at": {
+      "type": "string"
+    },
+    "ads": {
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "ad_key",
+          "image_ref",
+          "identity_coverage",
+          "static_recipe"
+        ],
+        "properties": {
+          "ad_key": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "library_id": {
+            "type": "string"
+          },
+          "image_ref": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "advertiser_name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "identity_coverage": {
+            "anyOf": [
+              {
+                "const": "trackable",
+                "type": "string"
+              },
+              {
+                "const": "local_only",
+                "type": "string"
+              }
+            ]
+          },
+          "static_recipe": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "observed",
+              "classified",
+              "provenance_refs"
+            ],
+            "properties": {
+              "observed": {
+                "additionalProperties": false,
+                "type": "object",
+                "properties": {
+                  "text_hash": {
+                    "type": "string"
+                  },
+                  "image_asset_hash": {
+                    "type": "string"
+                  },
+                  "text_element_count": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "graphic_element_count": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "dominant_colors": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "not_present": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "classified": {
+                "additionalProperties": false,
+                "type": "object",
+                "properties": {
+                  "text_roles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "hook_types": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "composition_type": {
+                    "type": "string"
+                  },
+                  "text_density": {
+                    "type": "string"
+                  },
+                  "visual_register": {
+                    "type": "string"
+                  },
+                  "scene_setting": {
+                    "type": "string"
+                  },
+                  "product_state": {
+                    "type": "string"
+                  },
+                  "appeal": {
+                    "type": "string"
+                  },
+                  "funnel_stage": {
+                    "type": "string"
+                  },
+                  "benefit_primary": {
+                    "type": "string"
+                  },
+                  "funnel_intent_stage": {
+                    "type": "string"
+                  },
+                  "ad_type": {
+                    "type": "string"
+                  },
+                  "execution_style": {
+                    "type": "string"
+                  },
+                  "audience_read": {
+                    "type": "string"
+                  }
+                }
+              },
+              "confidence": {
+                "type": "object",
+                "patternProperties": {
+                  "^(.*)$": {
+                    "type": "string"
+                  }
+                }
+              },
+              "provenance_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "aggregate": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "axes"
+      ],
+      "properties": {
+        "axes": {
+          "type": "object",
+          "patternProperties": {
+            "^(.*)$": {
+              "additionalProperties": false,
+              "type": "object",
+              "properties": {
+                "values": {
+                  "type": "object",
+                  "patternProperties": {
+                    "^(.*)$": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "count",
+                        "share"
+                      ],
+                      "properties": {
+                        "count": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "share": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                },
+                "missing_count": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "low_confidence_count": {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "coverage_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "generated_at": {
+      "type": "string"
+    }
+  }
+}

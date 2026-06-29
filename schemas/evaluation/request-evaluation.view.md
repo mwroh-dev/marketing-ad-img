@@ -5,7 +5,7 @@
 request-evaluation = {
   run_id: string  // non-empty
   raw_request?: string
-  detected_mode: "initial-setup"|"data-collection"|"competitive-report"|"validate-recipe"|"image-generation"|"performance-learning"|"unknown"
+  detected_mode: "initial-setup"|"data-collection"|"competitive-report"|"creative-change-analysis"|"validate-recipe"|"image-generation"|"performance-learning"|"unknown"
   mode_confidence?: number /*0..1*/  // <0.6 (with a risk_flag) when the call is uncertain
   required_slots: string[]
   slot_states: {

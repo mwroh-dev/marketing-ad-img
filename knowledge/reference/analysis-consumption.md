@@ -13,6 +13,11 @@ The store is the **image's substitute** (see `axis-model.md` → "The schema IS 
 load-bearing fact carries `value + evidence + confidence`; a consumer reads the **confidence** to decide *trust the
 schema vs re-look* — it never blindly trusts a summary. Low confidence / absence is surfaced, never hidden.
 
+Operational backstop: when a downstream handoff is materialized as JSON, run
+`${CLAUDE_PLUGIN_ROOT}/shared/harness/validate-subagent-projection.mjs` before dispatch. That guard rejects direct raw
+media paths for downstream consumers and allows only artifact references/schema payloads, preserving the
+vision-once invariant in executable form.
+
 ## The criterion (one line)
 > **Gather (pre-combine in CODE) ONLY when the combination is a *synthesized fact* — a relationship or an aggregate
 > that exists only after combining (e.g. which text binds which graphic; a frequency/positioning matrix). If a
@@ -41,6 +46,9 @@ artifact** (the gather case) — never an LLM summary.
 | `intent-analyst` | copy + layout + visual conclusions + **bindings** | compound | only **bindings** (a synthesized relationship); the 3 conclusions are selected |
 | `strategy-projector` | ad-type + intent(appeal/funnel) + visual(register) + copy(language) + advertiser meta | compound (pile) | no — selects conclusions; no new synthesized fact |
 | `pattern-synthesizer` | the `ad-pattern` aggregate | consumes a gathered artifact | (ad-pattern is the gather) |
+| `creative-change-analysis` snapshot builder | ad-creative collection + per-ad store envelopes | compound (synthesized) | yes — `creative_snapshot` is the comparable static state |
+| `creative-change-analysis` diff/candidate tools | two `creative_snapshot` artifacts | compound (synthesized) | yes — `creative_diff` and `change_candidate` are computed edge facts |
+| `temporal-change-analyst` | `creative_diff` + `change_candidate` (+ optional context) | consumes gathered artifacts | no recompute — interpret only |
 | `creative-opportunity-mapper` | `market-position-matrix` + our product/persona | consumes a gathered artifact | (matrix is the gather) |
 | `creative-brief-analyst` | `creative-opportunity` + brand/product/persona | consumes a gathered artifact | (opportunity is the gather) |
 
@@ -48,6 +56,12 @@ artifact** (the gather case) — never an LLM summary.
 - **bindings** (`bbox-bind.mjs`) — which text sits on which graphic: a *relationship* that only exists after crossing text+graphic bboxes. Code.
 - **ad-pattern** (`ad-pattern-rank.mjs`) — per-persona frequency aggregates: a *synthesis over many images*. Code.
 - **market-position-matrix** (`market-position-aggregate.mjs`) — benefit×funnel 2-D positioning: a *joint* the 1-D marginals cannot give. Code.
+- **creative_snapshot** (`build-creative-snapshot.mjs`) — one run's comparable static ad state from collection metadata
+  plus durable store envelopes. Code.
+- **creative_diff** (`compare-creative-snapshots.mjs`) — computed edge between two snapshots: inventory, update,
+  distribution, and coverage flags. Code.
+- **change_candidate** (`detect-change-candidates.mjs`) — deterministic promotion of material computed shifts before
+  any agent interpretation. Code.
 
 No general "bundle everything" artifact exists — by design. Most consumers are atomic selections; the few real
 synthesized facts are already computed in code.

@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "$id": "https://marketing-img/schemas/change-candidate.schema.json",
+  "title": "ChangeCandidateSet",
+  "description": "deterministic creative-change candidates, before agent interpretation",
+  "type": "object",
+  "required": [
+    "from_snapshot_id",
+    "to_snapshot_id",
+    "candidates",
+    "coverage_flags"
+  ],
+  "properties": {
+    "from_snapshot_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "to_snapshot_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "candidate_id",
+          "candidate_type",
+          "claim_kind",
+          "input_claim_kinds",
+          "axis",
+          "support_count",
+          "share_delta",
+          "strength",
+          "evidence_refs",
+          "coverage_flags"
+        ],
+        "properties": {
+          "candidate_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "candidate_type": {
+            "anyOf": [
+              {
+                "const": "inventory_change",
+                "type": "string"
+              },
+              {
+                "const": "appeal_shift",
+                "type": "string"
+              },
+              {
+                "const": "funnel_shift",
+                "type": "string"
+              },
+              {
+                "const": "benefit_shift",
+                "type": "string"
+              },
+              {
+                "const": "visual_register_shift",
+                "type": "string"
+              },
+              {
+                "const": "layout_shift",
+                "type": "string"
+              },
+              {
+                "const": "copy_role_shift",
+                "type": "string"
+              },
+              {
+                "const": "audience_read_shift",
+                "type": "string"
+              }
+            ]
+          },
+          "claim_kind": {
+            "const": "computed",
+            "type": "string"
+          },
+          "input_claim_kinds": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "const": "observed",
+                  "type": "string"
+                },
+                {
+                  "const": "classified",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "axis": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "from": {},
+          "to": {},
+          "support_count": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "share_delta": {
+            "type": "number"
+          },
+          "strength": {
+            "anyOf": [
+              {
+                "const": "weak",
+                "type": "string"
+              },
+              {
+                "const": "medium",
+                "type": "string"
+              },
+              {
+                "const": "strong",
+                "type": "string"
+              }
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "coverage_flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "coverage_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "generated_at": {
+      "type": "string"
+    }
+  }
+}

@@ -6,6 +6,8 @@
 initial-setup
 data-collection
 competitive-report
+creative-change-analysis
+validate-recipe
 image-generation
 performance-learning
 ```
@@ -188,6 +190,82 @@ Honest degrade (not a blocker):
 - only 1 dated snapshot (or all snapshots undated/pre-timestamp): longevity + variation render;
   new/disappeared/cadence are OMITTED + flagged. ≥2 dated snapshots over time fill the change axis.
 - ads without started_at are excluded from longevity ranking (flagged), not zero-ranked.
+```
+
+## creative-change-analysis
+
+Purpose:
+
+```txt
+Compare already collected and persisted creative snapshots for one persona scope:
+create/delete/persisted/update, classified-axis distribution shifts, claim-kind-separated interpretation,
+and optional external context hypotheses. Public ad data only; no performance or causality claims.
+```
+
+Required slots:
+
+```yaml
+required_slots:
+  - brand_id
+  - product_id
+  - persona_id
+  - snapshot_selection      # latest-pair | date-range | explicit run ids
+  - analysis_store          # validate-store PASS for persona_id
+```
+
+Execution blocked when:
+
+```txt
+- persona_id missing
+- 0 collection snapshots for the persona
+- validate-store FAIL
+- edge analysis requested but fewer than 2 dated snapshots
+```
+
+Honest degrade:
+
+```txt
+- only 1 snapshot: build creative_snapshot only; no diff/candidate/event
+- no library_id: include in snapshot, exclude from cross-snapshot create/delete/persisted claims
+- low-confidence axis: cannot become strong candidate
+- no audience_read: no audience/persona shift candidate
+```
+
+Outputs:
+
+```txt
+.generate-ads-img/runs/{run_id}/creative-change/creative-snapshot.{run_id}.json
+.generate-ads-img/runs/{run_id}/creative-change/creative-diff.json
+.generate-ads-img/runs/{run_id}/creative-change/change-candidates.json
+.generate-ads-img/runs/{run_id}/creative-change/context-calendar.json
+.generate-ads-img/runs/{run_id}/creative-change/interpreted-change-events.json
+.generate-ads-img/runs/{run_id}/creative-change/creative-change-report.json
+.generate-ads-img/runs/{run_id}/creative-change/creative-change-report.html
+```
+
+## validate-recipe
+
+Purpose:
+
+```txt
+Read-only QA viewer for already extracted ad recipes. No inline editing and no quality verdict by the agent.
+```
+
+Required slots:
+
+```yaml
+required_slots:
+  - brand_id
+  - product_id
+  - persona_id
+  - collection_snapshot
+```
+
+Execution blocked when:
+
+```txt
+- persona_id missing
+- no collection run exists for the persona
 ```
 
 ## performance-learning

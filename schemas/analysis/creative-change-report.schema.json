@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "$id": "https://marketing-img/schemas/creative-change-report.schema.json",
+  "title": "CreativeChangeReport",
+  "description": "final creative-change report payload before deterministic HTML rendering",
+  "type": "object",
+  "required": [
+    "persona_id",
+    "snapshot_range",
+    "confirmed_changes",
+    "classified_interpretations",
+    "inferred_hypotheses",
+    "coverage_flags"
+  ],
+  "properties": {
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "snapshot_range": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "from_snapshot_id",
+        "to_snapshot_id"
+      ],
+      "properties": {
+        "from_snapshot_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "to_snapshot_id": {
+          "minLength": 1,
+          "type": "string"
+        }
+      }
+    },
+    "confirmed_changes": {
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "claim_kind",
+          "summary"
+        ],
+        "properties": {
+          "claim_kind": {
+            "anyOf": [
+              {
+                "const": "observed",
+                "type": "string"
+              },
+              {
+                "const": "computed",
+                "type": "string"
+              }
+            ]
+          },
+          "summary": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "classified_interpretations": {
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "claim_kind",
+          "summary"
+        ],
+        "properties": {
+          "claim_kind": {
+            "anyOf": [
+              {
+                "const": "classified",
+                "type": "string"
+              },
+              {
+                "const": "interpreted",
+                "type": "string"
+              }
+            ]
+          },
+          "summary": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "inferred_hypotheses": {
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "claim_kind",
+          "summary"
+        ],
+        "properties": {
+          "claim_kind": {
+            "const": "inferred",
+            "type": "string"
+          },
+          "summary": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "coverage_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "synthesis": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string"
+    }
+  }
+}

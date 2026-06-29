@@ -13,7 +13,7 @@ All validators/drivers **require their input path arg(s)** — no fixture fallba
 | `validators/validate-competitor.ts` | gate | `<candidatesPath> <confirmedPath>` → validates scout pool + curator confirmed set. |
 | `validators/validate-competitor-collection.ts` | D | `<competitor-collection.json>` → validates the deep-collection deliverable. |
 | `validators/validate-ad-creative.ts` | D | `<path>` → validates an ad-creative dataset. |
-| `validators/validate-ad-analysis.ts` | analysis | `[--ocr <p>] [--layout <p>] [--copy <p>] [--pattern <p>]` → validates only the artifacts whose paths are passed. |
+| `validators/validate-ad-analysis.ts` | analysis | `[--perception <p>] [--layout <p>] [--copy <p>] [--pattern <p>] [--creative-snapshot <p>] ...` → validates only the artifacts whose paths are passed. |
 | `validators/validate-keyword-model.ts` | analysis | `<instancesPath> [modelPath]` → keyword-instance/-model shape + score-sort. |
 | `validators/validate-creative-brief.ts` | gen | `<path>` → validates a creative-brief artifact. |
 | `validators/validate-copy-layout.ts` | gen | `<path>` → validates a copy-layout artifact. |
@@ -23,7 +23,14 @@ All validators/drivers **require their input path arg(s)** — no fixture fallba
 | `harness/run-ad-pattern.ts` | analysis | `<layoutAnalysesPath> <copyAnalysesPath> <product_id> [synthesis] [outPath]` → per-persona ad-pattern (wraps `ad-pattern-rank`). |
 | `harness/product-cutout-cleanup.ts` | H | `--assets <product-assets.json> [--product-id] [--source] [--out]` → Node cutout/cleanup; degrades to report-only without `sharp`/source image. |
 | `collect/build-market-position.mjs` | analysis | `<analysisDir> <persona_id> [out]` → benefit×funnel **market-position matrix** as a pure function of the per-ad strategy projections (code, never a model's summary). |
-| `harness/close-analysis.mjs` | analysis | `<run_id> [stateDir]` → the analysis tail in **one command**: persist per-ad lineage store envelopes (`persist-analysis-run`) + advance the run ledger to `analyzed`. Reads the analysts' per-kind staging; the store is never hand-written. |
+| `collect/creative-change-agent-eval.mjs` | analysis | Programmatic gate for `temporal-change-analyst` outputs: schema validation, candidate-id references, number fidelity, no-context inferred gating, and positive overclaim rejection without failing on disclaimers. |
+| `collect/subagent-projection-guard.mjs` | orchestration | Pure guard for materialized subagent handoffs: rejects raw media/browser traces/credentials/other-persona leaks except for the agents explicitly allowed to receive raw media. |
+| `harness/build-creative-snapshot.mjs` | analysis | `<persona_id> <run_id> [out_run_id]` → `creative-change/creative-snapshot.{run_id}.json` from `ad-creative.json` + durable store envelopes. |
+| `harness/compare-creative-snapshots.mjs` | analysis | `<from_snapshot.json> <to_snapshot.json> [out.json]` → computed `creative-diff.json`. |
+| `harness/detect-change-candidates.mjs` | analysis | `<creative-diff.json> [out.json]` → deterministic `change-candidates.json`. |
+| `harness/render-change-report.mjs` | analysis | `<creative-change-report.json> [out.html]` → validates payload and renders escaped HTML. |
+| `harness/validate-subagent-projection.mjs` | orchestration | `<agent_name> <handoff.json> [--persona <id>]` → CLI wrapper around the projection guard for dispatch-time checks. |
+| `harness/close-analysis.mjs` | analysis | `<run_id> [stateDir]` → the analysis tail in **one command**: persist per-ad lineage store envelopes (`persist-analysis-run`) + freeze that run's `creative-snapshot` while the store is run-current + advance the run ledger to `analyzed`. Reads the analysts' per-kind staging; the store is never hand-written. |
 | `harness/normalize-artifact.mjs` | gen | `<kind> <file>` → **role-aware** shape normalizer for drift-prone agents: judgment artifacts (`critic-verdict`) are schema-whitelisted; creative artifacts (`creative-brief`) strip only known meta. Content is never rewritten — only the envelope is conformed. |
 | `harness/finalize-candidates.ts` | gen | `--copy <copy-layout.json> --chatgpt <…> --gemini <…> --out <…>` → joins the real agent outputs into `creative-candidates.json` + `candidate-selection-log.json` (deterministic; no LLM). |
 

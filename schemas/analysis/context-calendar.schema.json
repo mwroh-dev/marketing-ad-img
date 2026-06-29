@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "$id": "https://marketing-img/schemas/context-calendar.schema.json",
+  "title": "ContextCalendar",
+  "description": "external context calendar for creative-change analysis; correlation only, no causality",
+  "type": "object",
+  "required": [
+    "persona_id",
+    "date_range",
+    "events",
+    "coverage_flags"
+  ],
+  "properties": {
+    "persona_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "date_range": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "from",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "to": {
+          "minLength": 1,
+          "type": "string"
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "event_type",
+          "date_range",
+          "summary",
+          "sources",
+          "confidence"
+        ],
+        "properties": {
+          "event_type": {
+            "anyOf": [
+              {
+                "const": "season",
+                "type": "string"
+              },
+              {
+                "const": "holiday",
+                "type": "string"
+              },
+              {
+                "const": "market_issue",
+                "type": "string"
+              },
+              {
+                "const": "brand_event",
+                "type": "string"
+              },
+              {
+                "const": "competitor_event",
+                "type": "string"
+              },
+              {
+                "const": "other",
+                "type": "string"
+              }
+            ]
+          },
+          "date_range": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "from",
+              "to"
+            ],
+            "properties": {
+              "from": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "to": {
+                "minLength": 1,
+                "type": "string"
+              }
+            }
+          },
+          "summary": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "const": "high",
+                "type": "string"
+              },
+              {
+                "const": "medium",
+                "type": "string"
+              },
+              {
+                "const": "low",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "coverage_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "generated_at": {
+      "type": "string"
+    }
+  }
+}
