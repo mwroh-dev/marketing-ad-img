@@ -56,6 +56,20 @@ test("JOIN GUARD: a strategy/ad-type envelope missing key.image_ref → loadMatr
   assert.throws(() => loadMatrixInputs("p", { stateDir: STATE }), /store corrupted/);
 });
 
+test("CORRUPT GUARD: an unparseable envelope file → throws naming the file (not a generic JSON error)", () => {
+  reset();
+  const fp = join(STATE, "store", "p", "ad-0", "perception.json");
+  mkdirSync(resolve(fp, ".."), { recursive: true });
+  writeFileSync(fp, "{ not valid json");
+  assert.throws(() => loadEnvelopes("p", { stateDir: STATE }), /store corrupted: failed to parse envelope.*perception\.json/);
+});
+
+test("FAIL FAST: store has envelopes but zero strategy → loadMatrixInputs throws (no silent 0-ad matrix)", () => {
+  reset();
+  write("ad-0", "ad-type", "runs/r/ad-0.jpg", { ad_type: "informational" });  // store non-empty, but no strategy
+  assert.throws(() => loadMatrixInputs("p", { stateDir: STATE }), /no 'strategy' envelopes/);
+});
+
 test("loadEnvelopes accepts candidate-keyed generation envelopes (no image_ref) — the image_ref guard belongs at the matrix join, not here", () => {
   reset();
   const fp = join(STATE, "store", "p", "cand-1", "creative-candidate.json");

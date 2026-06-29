@@ -27,7 +27,13 @@ export function loadEnvelopes(persona, opts = {}) {
   if (!existsSync(storeDir)) throw new Error(`store empty: no store for persona '${persona}' at ${storeDir} — analysis was not persisted (run close-analysis before generation)`);
   const files = walk(storeDir);
   if (files.length === 0) throw new Error(`store empty: store/${persona} has no envelopes — analysis was not persisted (run close-analysis before generation)`);
-  return files.map((f) => JSON.parse(readFileSync(f, "utf8")));
+  return files.map((f) => {
+    let parsed;
+    try { parsed = JSON.parse(readFileSync(f, "utf8")); }
+    catch (e) { throw new Error(`store corrupted: failed to parse envelope at ${f} — ${e.message}`); }
+    if (!parsed || typeof parsed !== "object") throw new Error(`store corrupted: envelope at ${f} is not a JSON object`);
+    return parsed;
+  });
 }
 
 // Payloads of one kind across all slots (image_ref injected from the envelope key = the authoritative identity).
@@ -50,5 +56,9 @@ export function loadMatrixInputs(persona, opts = {}) {
     if (!image_ref) throw new Error(`store corrupted: a '${kind}' envelope for persona '${persona}' has no key.image_ref — cannot build the market-position matrix (it is the join key)`);
     return { image_ref, ...e.payload };
   });
-  return { strategies: pick("strategy"), adTypes: pick("ad-type") };
+  const strategies = pick("strategy");
+  // strategy is the matrix's unit of evidence; a store with other kinds but zero strategies would yield a silent
+  // 0-ad matrix (meaningless to generate against). Fail fast — analysis is incomplete for the matrix.
+  if (strategies.length === 0) throw new Error(`store incomplete: no 'strategy' envelopes for persona '${persona}' — the market-position matrix needs strategy projections (analysis may be unfinished)`);
+  return { strategies, adTypes: pick("ad-type") };
 }
