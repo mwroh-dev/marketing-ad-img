@@ -29,8 +29,7 @@ single step below.
   mid-analysis to see the un-analyzed tail.
 
 ## What the orchestrator does
-1. **Serve (deterministic, no agent, read-only).** Run
-   `node ${CLAUDE_PLUGIN_ROOT}/shared/collect/validate-recipe.mjs <persona_id>` **with `run_in_background: true`**.
+1. **Serve (deterministic, no agent, read-only).** Run `mcp__plugin_marketing-img_m__recipe_serve_viewer` **with `run_in_background: true`**.
    It scans every run for that persona, groups by collection date, renders the authored-once template
    (`validate-recipe.template.html`) and prints `SELECT_URL http://127.0.0.1:<port>/`. No LLM regenerates the HTML.
 2. **Relay the URL to the user** and explain plainly: a local read-only convenience screen (localhost-only,

@@ -210,7 +210,7 @@ required_slots:
   - product_id
   - persona_id
   - snapshot_selection      # latest-pair | date-range | explicit run ids
-  - analysis_store          # validate-store PASS for persona_id
+  - analysis_store          # analysis_validate_store PASS for persona_id
 ```
 
 Execution blocked when:
@@ -218,7 +218,7 @@ Execution blocked when:
 ```txt
 - persona_id missing
 - 0 collection snapshots for the persona
-- validate-store FAIL
+- analysis_validate_store FAIL
 - edge analysis requested but fewer than 2 dated snapshots
 ```
 

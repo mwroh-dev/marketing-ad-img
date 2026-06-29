@@ -19,7 +19,7 @@ request-evaluation reports `ready` with `detected_mode = competitive-report`, th
   report degrades honestly to longevity + variation only.
 
 ## What the orchestrator does
-1. **Aggregate (deterministic, no agent).** Run `${CLAUDE_PLUGIN_ROOT}/shared/harness/run-competitive-trend.ts <persona_id> <run_id> [today_iso]`.
+1. **Aggregate (deterministic, no agent).** Call `mcp__plugin_marketing-img_m__report_aggregate_competitive_trend`.
    It globs every dated snapshot of that persona, orders by `captured_at`, and writes
    `.generate-ads-img/runs/{run_id}/competitive-trend.json` (schema `competitive-trend.schema.json`,
    validated in-script). The script OMITS any unsupported field and surfaces every gap as a `coverage_flag`
@@ -28,7 +28,7 @@ request-evaluation reports `ready` with `detected_mode = competitive-report`, th
    persona's `ad-pattern.json` if it exists, for appeals) to `competitive-analyst`. It adds ONLY `synthesis`
    (+ optional `confidence_note`) to the trend file, narrating the numbers — it recomputes nothing and invents
    no per-ad link the data lacks.
-3. **Render (deterministic, no agent).** Run `${CLAUDE_PLUGIN_ROOT}/shared/harness/render-report.mjs <competitive-trend.json> [out.html]`.
+3. **Render (deterministic, no agent).** Call `mcp__plugin_marketing-img_m__report_render_competitive`.
    It fills the authored-once template (`competitive-report.template.html`) → `competitive-report.html`. No LLM
    regenerates HTML per run (token-cheap by design). Absent data renders an explicit "not yet observable / more snapshots needed"
    note; every coverage_flag is shown (provenance/gap trail).

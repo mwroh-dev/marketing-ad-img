@@ -2,6 +2,8 @@
 
 Validation & harness scripts (run with `npx tsx`). **NOT a mode CLI** — the orchestrator runs inside Claude Code. `_lib.ts` holds shared `loadJson`/`writeJson`/`validateAgainst`/`report` (ajv draft 2020-12, memoized).
 
+`shared/tools/` is the canonical ToolSpec catalog and Claude Code MCP adapter for the deterministic callable boundaries in this folder. The catalog names the tool surface, records the current script/module implementation, and exposes P0 tools through the plugin-bundled MCP server. Its bootstrap prepares runtime npm dependencies under `${CLAUDE_PLUGIN_DATA}` instead of relying on shipped `node_modules`.
+
 Schemas are **single-sourced from TypeBox**: `schemas/<stage>/<name>.ts` → `schemas/build.ts` emits the `.schema.json` (the validator's; regenerated, parity-equivalent) + the lean `.view.md` (what agents `@`-import; ~40-50% fewer tokens) + per-consumer projections. Validators load the regenerated `.schema.json`; agents read the view.
 
 All validators/drivers **require their input path arg(s)** — no fixture fallback. Each prints a `Usage:` line and exits 2 when invoked without the required arg.

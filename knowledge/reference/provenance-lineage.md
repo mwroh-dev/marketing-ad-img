@@ -75,4 +75,4 @@ which commit, what it makes stale). This is the structured, global, first-class 
 4. **Generation-side lineage + the dual (theirs+ours) comparison view** ✅ — the envelope supports
    `opportunity`/`brief`/`candidate` kinds + `generationPatternTag`; `validate-recipe` renders our generated items
    (with their lineage) in a "우리 생성물" section alongside the competitor recipes. (Live generation persistence —
-   `finalize-candidates` writing candidates to the store — is wired the same way as analysis, exercised on real runs.)
+   `generation_finalize_candidates` writing candidates to the store — is wired the same way as analysis, exercised on real runs.)

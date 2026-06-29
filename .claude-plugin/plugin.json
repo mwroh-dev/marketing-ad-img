@@ -4,5 +4,7 @@
   "version": "0.1.0-alpha",
   "author": { "name": "mwroh-dev" },
   "license": "MIT",
+  "mcpServers": "./.mcp.json",
+  "hooks": "./hooks/hooks.json",
   "keywords": ["ad-creative", "image-prompt", "marketing", "ad-transparency", "orchestrator", "wip", "experimental", "preview"]
 }

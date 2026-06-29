@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "m": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/shared/tools/mcp-bootstrap.mjs"],
+      "cwd": "${CLAUDE_PLUGIN_ROOT}"
+    }
+  }
+}

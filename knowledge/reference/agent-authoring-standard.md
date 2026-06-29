@@ -18,7 +18,7 @@ length is never the defect; a structural violation is.**
 2. **One job per agent.** Split only on evidence (isolation / clarity / branching / tool-overlap), never to hit a line target.
 3. **The file holds BEHAVIOR.** Capabilities → `tools`. Separate responsibilities → another agent/handoff. **Shared rules → the canonical owner** (`non-negotiable-rules.md`, `completion-verification-policy.md`, `axis-model.md`), loaded — *not restated* (`policy-single-owner`). Runtime plumbing → code, never the prompt.
 4. **Each constraint stated once** (`constraint-hierarchy-over-accumulation`) — the section scaffold must not echo the same boundary in Role + Forbidden + method + Priorities + Verification.
-5. **Deterministic steps → code, not prose** (`code-over-prompt`); the agent describes only the judgment it actually makes.
+5. **Deterministic steps → code/tools, not prose** (`code-over-prompt`); the agent describes only the judgment it actually makes. Shared deterministic execution that a Claude Code agent may call must be surfaced through `tools:` (for this plugin, `mcp__plugin_marketing-img_m__*`), not only as a prose tool name or raw script path.
 
 ## The six purpose categories
 The first thing the model "sees" is the agent's PURPOSE — it dictates the shape. Our agents:
