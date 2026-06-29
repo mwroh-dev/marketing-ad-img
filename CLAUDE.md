@@ -8,7 +8,7 @@ The **context loader and orchestrator operations manual** that Claude Code reads
 A system for generating **ad-image creative prompts** (prompt-only) for sellers / advertisers — **domain-neutral**: the target brand/product/persona is configured per consumer at setup, NOT fixed in the system (a specific seller is one possible instance, not the definition). Media-neutral output. Ad sources are public ad-transparency libraries: **Meta Ad Library + Google Ads Transparency** (public, no login), plus analysis of the user's own / provided product images (e.g. detail-page images). user request → evaluation → interview → mode execution → image-generation **prompt candidates (4 by default)**. It does not actually generate images or call providers — **prompt-only**. Canonical boundary: `knowledge/reference/product-boundary.md` (Target & Ad Sources).
 
 ## Entry routine (every invocation) — state-first, lazy
-**Do NOT pre-read `AGENTS.md`, all of `knowledge/`, or the design docs.** Loading the whole repo up front wastes context and tokens and is not how the harness works. The orchestrator *routes*; each mode/agent loads only its own contract when it becomes active (progressive disclosure).
+**Do NOT pre-read all of `knowledge/` (incl. the subagent-projection table) or the design docs.** Loading the whole repo up front wastes context and tokens and is not how the harness works. The orchestrator *routes*; each mode/agent loads only its own contract when it becomes active (progressive disclosure).
 
 1. **Check consumer state** — run `node shared/harness/check-state.mjs` (deterministic; reports setup status + the route). It reads `.generate-ads-img/`:
    - brand/product/persona (`.generate-ads-img/brands/…`)? confirmed competitors? collected ad creatives / ad-pattern?
@@ -21,7 +21,7 @@ A system for generating **ad-image creative prompts** (prompt-only) for sellers 
 | Load | When |
 |---|---|
 | `knowledge/reference/non-negotiable-rules.md` + `knowledge/guidelines/completion-verification-policy.md` | once at entry — small, they bind every mode |
-| `AGENTS.md` projection table | when dispatching a subagent (look up its row), not before |
+| `knowledge/reference/subagent-projection.md` projection table | when dispatching a subagent (look up its row), not before |
 | a mode's design doc (`knowledge/reference/*`, `knowledge/guidelines/*`) | only when that mode is the active one |
 | an agent's contract (`agents/<name>.md`) | the subagent loads its own; the orchestrator does not |
 
