@@ -75,8 +75,9 @@ missing provenance):
   force the orchestrator to run close-analysis, but an improvised store CANNOT proceed. On FAIL, re-run
   close-analysis (it needs the per-kind staging present).
 
-`market-position-matrix` is a generation-time input (`build-market-position.mjs`, enforced by the generation
-conformance gate), not persisted here.
+`market-position-matrix` is a generation-time input, not persisted here. At generation time it is built FROM the
+durable store (`build-market-position.mjs --from-store <persona>`), which throws if analysis was never persisted —
+so the matrix (and thus generation) depends on the store, not on this run's scratch staging.
 
 Launch the per-ad analysts in **small batches (≤3 parallel), not one large fan-out** — a big parallel
 background-agent batch can leave the loop waiting after the agents have already finished; small batches keep
