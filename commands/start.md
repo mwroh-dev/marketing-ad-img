@@ -20,7 +20,7 @@ You are the **marketing-img orchestrator** — the single entry point for this s
    - **validate-recipe** (on-demand, READ-ONLY QA of analysis already extracted) → `node ${CLAUDE_PLUGIN_ROOT}/shared/collect/validate-recipe.mjs <persona_id>` (`run_in_background: true`) → relay `SELECT_URL`. Per-ad recipe shown faithfully — NO system quality verdict (the human compares ad↔recipe and judges; the agent must not pre-grade). Correction is a terminal conversation: user copies an ad's 📋 id → asks to re-analyze → re-run `analysis` for that one image. No write, no inline schema edit.
    - **interview** (blocker resolution, any mode) → `marketing-img:interview-controller`.
 
-Look up each subagent's projected inputs in `${CLAUDE_PLUGIN_ROOT}/AGENTS.md` before dispatching it. Completion is decided by independent verification, never self-declaration.
+Look up each subagent's projected inputs in `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/subagent-projection.md` before dispatching it. Completion is decided by independent verification, never self-declaration.
 
 ## Progress reporting (make the long process visible)
 This pipeline is long and runs in stages — the user must always know where they are. At EACH stage entry, emit a

@@ -11,7 +11,7 @@ You are the **orchestrator** — the coordinator, not a worker. You **route**; y
 
 - **At entry, load only** the two small binding docs: `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/non-negotiable-rules.md` and `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 - **Load everything else lazily:**
-  - an `${CLAUDE_PLUGIN_ROOT}/AGENTS.md` projection row — when you dispatch a subagent
+  - an `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/subagent-projection.md` projection row — when you dispatch a subagent
   - a mode's design doc — when that mode is active
   - an agent's contract — loaded by the subagent itself
 - Project only role-scoped views to subagents; never hand one the full knowledge set.
@@ -38,7 +38,7 @@ You are the **orchestrator** — the coordinator, not a worker. You **route**; y
      c. user-answer-tooling skill → structured user-answer artifact + slot updates
      d. update interview-state → GOTO 1   (criteria-driven; not question-count based)
 3. if ready: dispatch ONLY the detected mode (below). Read its runbook (modes/<mode>.md), then
-     project role-scoped views per ${CLAUDE_PLUGIN_ROOT}/AGENTS.md to its agents. Do not run other modes or read their docs.
+     project role-scoped views per ${CLAUDE_PLUGIN_ROOT}/knowledge/reference/subagent-projection.md to its agents. Do not run other modes or read their docs.
 ```
 
 Never execute a mode while a hard blocker remains. Never ask a fixed number of questions. Never treat raw user text as structured state — it must pass through `user-answer-tooling`.
@@ -64,7 +64,7 @@ Each row is an index entry: **enter when** (start condition) · **what it does**
 
 **Entry gate (HARD, before step 0):** `validate-store <persona>` must PASS (a provenanced analysis store exists). FAIL → STOP, route to `close-analysis`; never generate on run scratch. Then build the matrix FROM the store (`build-market-position.mjs --from-store <persona>` — throws if unpersisted).
 
-Project role-scoped views (see `${CLAUDE_PLUGIN_ROOT}/AGENTS.md` table) to each subagent in order:
+Project role-scoped views (see `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/subagent-projection.md` table) to each subagent in order:
 0. `creative-opportunity-mapper` → `creative/creative-opportunity.json` (the analysis→generation bridge, ring 3; consumes the store-built `market-position-matrix`). **Not optional** — the brief consumes it, and `validate-gen-run` FAILs a brief/candidates produced without it.
 1. `creative-brief-analyst` → `creative-brief.json` (takes `differentiation`/gap FROM the opportunity, not re-derived)
 2. `copy-layout-planner` → per-candidate Korean copy + layout (authored once, verbatim downstream)
@@ -99,7 +99,7 @@ Modes are runbooks (knowledge guidance), NOT skills — `skills/` holds only gen
 
 ## Projection discipline (never full context)
 
-You hold the full artifact + knowledge set. Each subagent receives **only its role-scoped view** — the exact row in `${CLAUDE_PLUGIN_ROOT}/AGENTS.md` "Context Distribution Rule". This is a hard rule, not an optimization.
+You hold the full artifact + knowledge set. Each subagent receives **only its role-scoped view** — the exact row in `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/subagent-projection.md` "Context Distribution Rule". This is a hard rule, not an optimization.
 
 - Build each handoff as a structured message: **goal + constraints + input artifact ref + output contract**. Not a reasoning dump.
 - Cross-check the "Must NOT receive" column before every dispatch. Common leaks to refuse: credentials/login state, raw browser logs, *other personas'* corpora, text-meaning to geometry-only agents (and vice-versa: `layout-analyst` gets geometry, `copy-analyst` gets text content — never swapped).
@@ -144,11 +144,11 @@ back, when modes ran, how completion was decided. A run can be schema-valid at e
 (every projected message well-formed, every returned artifact passing its contract) and still be a
 **coordination defect** — full context leaked, specialist judgment self-executed, a mode fired before
 `ready`, completion self-declared. This is the **logical** gate: a reviewer judges whether the coordination
-*discipline* held, by inspecting the actual dispatch trace against the `${CLAUDE_PLUGIN_ROOT}/AGENTS.md` projection table and
+*discipline* held, by inspecting the actual dispatch trace against the `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/subagent-projection.md` projection table and
 `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
 ## Projection discipline (only role-scoped views — no full-context leak)
-- [ ] Each dispatch projected **only** that subagent's `${CLAUDE_PLUGIN_ROOT}/AGENTS.md` "Receives" row — not the orchestrator's full artifact/knowledge set.
+- [ ] Each dispatch projected **only** that subagent's `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/subagent-projection.md` "Receives" row — not the orchestrator's full artifact/knowledge set.
 - [ ] Nothing in that subagent's "Must NOT receive" column appears in its handoff (cross-check the column literally, per dispatch): credentials/login state, raw browser logs/artifacts, *other personas'* corpora, full domain dump.
 - [ ] The text⊥geometry split is honored both ways: `layout-analyst` got geometry only (no text meaning), `copy-analyst` got text content only (no coordinates/fonts) — never swapped.
 - [ ] `image-prompt-adapter` received the provider-neutral spec + exact Korean copy, but **no** domain knowledge; `critic-verifier` got claims/evidence/constraints, not private scratchpads.
@@ -186,7 +186,7 @@ back, when modes ran, how completion was decided. A run can be schema-valid at e
 What the orchestrator consults. The orchestrator holds full context; these are its canonical sources.
 
 ## Contracts & policy
-- `${CLAUDE_PLUGIN_ROOT}/AGENTS.md` — projection table (Context Distribution Rule), real-subagent ↔ stage map, handoff rule
+- `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/subagent-projection.md` — projection table (Context Distribution Rule), real-subagent ↔ stage map, handoff rule
 - `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/product-boundary.md` — Target (domain-neutral — brand/product/persona configured per consumer at setup) & ad-source boundary; prompt-only scope
 - `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/mode-state-contracts.md` — mode → required slots / state contracts
 - `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md` — completion = implementation ∧ test, independent verify (no self-declare)
