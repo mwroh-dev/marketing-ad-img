@@ -319,7 +319,6 @@ function renderCreativeEvidence(context) {
   return `<section class="section evidence">
     <div class="section-heading">
       <h2>전후 광고 비교</h2>
-      <p>분석에 쓰인 기존 이미지 참조만 표시합니다.</p>
     </div>
     ${renderUpdatedCreatives(diff, context.snapshots, context)}
     ${renderInventoryCreatives(diff, context.snapshots, context)}
@@ -359,7 +358,6 @@ function renderAgentPrompt(report) {
   return `<section class="section prompt-section">
     <div class="section-heading">
       <h2>에이전트 분석 프롬프트</h2>
-      <p>추가 분석이 필요할 때 아래 내용을 복사해서 사용합니다.</p>
     </div>
     <div class="prompt-box">
       <button type="button" class="copy-button" onclick="navigator.clipboard && navigator.clipboard.writeText(document.getElementById('agent-prompt').value)">프롬프트 복사</button>
@@ -389,8 +387,8 @@ export function renderChangeReport(report, context = {}) {
 	    p { line-height: 1.62; }
 	    .meta { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 	    .section { padding: 26px 0; border-bottom: 1px solid var(--line); }
-	    .section-heading { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 28px; align-items: start; margin-bottom: 16px; }
-	    .section-heading p, .empty, .microcopy { margin: 0; color: var(--muted); }
+	    .section-heading { margin-bottom: 16px; }
+	    .empty, .microcopy { margin: 0; color: var(--muted); }
 	    .summary { max-width: 900px; font-size: 17px; }
 	    .chip { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--muted); font-size: 12px; line-height: 1.2; white-space: nowrap; }
 	    .chip-computed, .chip-candidate { color: #075985; border-color: #b8d7e8; background: #f2f9fc; }
@@ -428,7 +426,7 @@ export function renderChangeReport(report, context = {}) {
 	    textarea { width: 100%; min-height: 230px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: #242827; font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; resize: vertical; }
 	    @media (max-width: 760px) {
 	      main { padding: 22px 16px 40px; }
-	      .hero, .section-heading, .creative-pair, .inventory-grid { grid-template-columns: 1fr; }
+	      .hero, .creative-pair, .inventory-grid { grid-template-columns: 1fr; }
 	      .meta { justify-content: flex-start; }
 	      .claim-list li { grid-template-columns: 1fr; gap: 7px; }
 	      .candidate-chip { flex-wrap: wrap; }
@@ -451,25 +449,24 @@ export function renderChangeReport(report, context = {}) {
 	    <section class="section">
 	      <div class="section-heading">
 	        <h2>주요 변화</h2>
-	        <p>변화 후보의 방향과 강도만 요약합니다.</p>
 	      </div>
 	      ${renderCandidateBar(candidates) || `<p class="empty">관측되거나 제공된 내용 없음</p>`}
 	    </section>
 	    ${renderCreativeEvidence(context)}
 	    <section class="section">
-	      <div class="section-heading"><h2>확인된 변화</h2><p>데이터로 확인되는 변화입니다.</p></div>
+	      <div class="section-heading"><h2>확인된 변화</h2></div>
 	      ${list(report.confirmed_changes)}
 	    </section>
 	    <section class="section">
-	      <div class="section-heading"><h2>마케팅 해석</h2><p>확인된 변화에서 읽을 수 있는 방향입니다.</p></div>
+	      <div class="section-heading"><h2>마케팅 해석</h2></div>
 	      ${list(report.classified_interpretations)}
 	    </section>
 	    <section class="section">
-	      <div class="section-heading"><h2>가능한 가설</h2><p>외부 맥락이 있을 때만 조심스럽게 다룹니다.</p></div>
+	      <div class="section-heading"><h2>가능한 가설</h2></div>
 	      ${list(report.inferred_hypotheses)}
 	    </section>
 	    <section class="section">
-	      <div class="section-heading"><h2>분석 한계</h2><p>현재 자료로 말하면 안 되는 범위입니다.</p></div>
+	      <div class="section-heading"><h2>분석 한계</h2></div>
 	      ${flags(report.coverage_flags)}
 	    </section>
 	    ${renderAgentPrompt(report)}

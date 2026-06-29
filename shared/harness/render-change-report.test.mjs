@@ -209,6 +209,13 @@ test("renderChangeReport keeps human-facing sections Korean and moves agent inst
   assert.match(visibleWithoutPrompt, /주요 구조는 유지되었습니다/);
   assert.doesNotMatch(visibleWithoutPrompt, /Marketing interpretation over deterministic candidates/);
   assert.doesNotMatch(visibleWithoutPrompt, /External context hypotheses only/);
+  assert.doesNotMatch(visibleWithoutPrompt, /변화 후보의 방향과 강도만 요약합니다/);
+  assert.doesNotMatch(visibleWithoutPrompt, /분석에 쓰인 기존 이미지 참조만 표시합니다/);
+  assert.doesNotMatch(visibleWithoutPrompt, /데이터로 확인되는 변화입니다/);
+  assert.doesNotMatch(visibleWithoutPrompt, /확인된 변화에서 읽을 수 있는 방향입니다/);
+  assert.doesNotMatch(visibleWithoutPrompt, /외부 맥락이 있을 때만 조심스럽게 다룹니다/);
+  assert.doesNotMatch(visibleWithoutPrompt, /현재 자료로 말하면 안 되는 범위입니다/);
+  assert.doesNotMatch(visibleWithoutPrompt, /추가 분석이 필요할 때 아래 내용을 복사해서 사용합니다/);
   assert.doesNotMatch(visibleWithoutPrompt, /소구점=/);
   assert.doesNotMatch(visibleWithoutPrompt, /changed_axes/);
   assert.doesNotMatch(visibleWithoutPrompt, /변경 항목 =/);
