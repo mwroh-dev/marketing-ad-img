@@ -156,6 +156,8 @@ What the orchestrator consults. The orchestrator holds full context; these are i
 ## Subagents dispatched (stage · role-scoped view)
 - `${CLAUDE_PLUGIN_ROOT}/agents/request-evaluator.md` — evaluation mode/slot/blocker judgment
 - `${CLAUDE_PLUGIN_ROOT}/agents/interview-controller.md` — evaluation blocker-resolution interview loop
+- `${CLAUDE_PLUGIN_ROOT}/agents/brand-researcher.md` — setup public-source brand/product research by angle
+- `${CLAUDE_PLUGIN_ROOT}/agents/keyword-planner.md` — collection keyword expansion plan for category/keyword corpus
 - `${CLAUDE_PLUGIN_ROOT}/agents/discovery-scout.md` — collection competitor discovery (search/list only)
 - `${CLAUDE_PLUGIN_ROOT}/agents/competitor-curator.md` — collection competitor selection HARD GATE (user confirm)
 - `${CLAUDE_PLUGIN_ROOT}/agents/ad-creative-refiner.md` — own/user-provided detail-cut image TYPE classification
@@ -168,6 +170,7 @@ What the orchestrator consults. The orchestrator holds full context; these are i
 - `${CLAUDE_PLUGIN_ROOT}/agents/ad-analyst.md` — analysis keyword extract/normalize/slot-label
 - `${CLAUDE_PLUGIN_ROOT}/agents/strategy-projector.md` — analysis per-ad marketing projection (benefit×funnel + first_cognition; text-only; grounds_in ad-strategy-taxonomy.md)
 - `${CLAUDE_PLUGIN_ROOT}/agents/pattern-synthesizer.md` — analysis per-persona ad-pattern narrative
+- `${CLAUDE_PLUGIN_ROOT}/agents/competitive-analyst.md` — competitive-report synthesis over deterministic trend aggregate
 - `${CLAUDE_PLUGIN_ROOT}/agents/creative-opportunity-mapper.md` — generation analysis→generation bridge (ring 3): market-position matrix → strategic positions + brief_constraints
 - `${CLAUDE_PLUGIN_ROOT}/agents/temporal-change-analyst.md` — creative-change-analysis interpretation over deterministic diff/candidates
 - `${CLAUDE_PLUGIN_ROOT}/agents/market-context-researcher.md` — optional creative-change-analysis external context calendar

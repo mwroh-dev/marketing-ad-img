@@ -28,6 +28,10 @@ function frontmatter(text) {
   return match[1];
 }
 
+function maybeFrontmatter(text) {
+  return text.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? null;
+}
+
 test("plugin manifest exposes the bundled MCP server named m", () => {
   const plugin = JSON.parse(readFileSync(resolve(ROOT, ".claude-plugin/plugin.json"), "utf8"));
   const mcp = JSON.parse(readFileSync(resolve(ROOT, ".mcp.json"), "utf8"));
@@ -59,7 +63,17 @@ test("orchestrator frontmatter grants the actual Claude Code MCP tool names", ()
 
 test("specialist subagents do not receive marketing-img MCP tools", () => {
   for (const file of readdirSync(resolve(ROOT, "agents")).filter((name) => name.endsWith(".md") && name !== "orchestrator.md")) {
-    const fm = frontmatter(readFileSync(resolve(ROOT, "agents", file), "utf8"));
+    const fm = maybeFrontmatter(readFileSync(resolve(ROOT, "agents", file), "utf8"));
+    if (!fm) {
+      assert.equal(file, "ad-image-screener.md", `${file} is missing frontmatter`);
+      continue;
+    }
     assert.ok(!fm.includes("mcp__plugin_marketing-img_m__"), `${file} must not receive marketing-img MCP tools`);
   }
+});
+
+test("deprecated historical agent notes are not discoverable as subagents", () => {
+  const text = readFileSync(resolve(ROOT, "agents/ad-image-screener.md"), "utf8");
+  assert.equal(maybeFrontmatter(text), null);
+  assert.match(text, /no Claude Code subagent frontmatter/);
 });

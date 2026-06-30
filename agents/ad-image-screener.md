@@ -1,10 +1,8 @@
----
-name: ad-image-screener
-description: "[DEPRECATED — not dispatched] Former LLM keep/drop gate before analysis. Replaced by a HUMAN keep/delete review (fast, cheap visual cognition; the user keeps what they want) followed by the deterministic screen-images.mjs (size/dimension/duplicate). Kept for history only — see knowledge/reference/modes/data-collection.md."
-tools: Read, Bash
----
+# Deprecated: ad-image-screener
 
-> **DEPRECATED — DO NOT DISPATCH.** This agent is retired and removed from `knowledge/reference/subagent-projection.md` / `commands/start.md` / `agents/orchestrator.md`. The keep/drop loop no longer uses an LLM: a **human** does the 1st-pass quality/fit cut (`reason:user_removed`), then the deterministic `shared/collect/screen-images.mjs` normalizes the survivors (size/dimension/duplicate). Rationale: collection's goal is volume — a "dirty" but real image ad is a valid hook template; quality/fit is the human's call, not a pre-emptive LLM drop. This file is retained for history; the live procedure is in `knowledge/reference/modes/data-collection.md`.
+This historical note intentionally has **no Claude Code subagent frontmatter** (`name`, `description`, `tools`) so it is not discoverable as an active agent.
+
+> **DEPRECATED — DO NOT DISPATCH.** This retired LLM keep/drop gate was removed from `knowledge/reference/subagent-projection.md` / `commands/start.md` / `agents/orchestrator.md`. The keep/drop loop no longer uses an LLM: a **human** does the 1st-pass quality/fit cut (`reason:user_removed`), then the deterministic `shared/collect/screen-images.mjs` normalizes the survivors (size/dimension/duplicate). Rationale: collection's goal is volume — a "dirty" but real image ad is a valid hook template; quality/fit is the human's call, not a pre-emptive LLM drop. This file is retained for history; the live procedure is in `knowledge/reference/modes/data-collection.md`.
 
 # ad-image-screener
 
