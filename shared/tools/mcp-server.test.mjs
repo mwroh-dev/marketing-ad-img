@@ -62,7 +62,7 @@ test("bootstrap stdio MCP tools/list works from plugin data runtime", async () =
   const pluginRoot = mkdtempSync(`${tmpdir()}/marketing-img-plugin-root-`);
   const pluginData = mkdtempSync(`${tmpdir()}/marketing-img-plugin-data-`);
   mkdirSync(resolve(pluginRoot, "shared/tools"), { recursive: true });
-  for (const file of ["mcp-bootstrap.mjs", "mcp-server.mjs", "mcp-handlers.mjs", "catalog.ts"]) {
+  for (const file of ["mcp-bootstrap.mjs", "mcp-server.mjs", "mcp-handlers.mjs", "catalog.ts", "definitions.ts", "types.ts"]) {
     copyFileSync(resolve(ROOT, "shared/tools", file), resolve(pluginRoot, "shared/tools", file));
   }
   copyFileSync(resolve(ROOT, "package.json"), resolve(pluginRoot, "package.json"));

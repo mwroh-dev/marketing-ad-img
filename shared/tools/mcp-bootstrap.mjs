@@ -4,7 +4,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const SOURCE_FILES = ["mcp-server.mjs", "mcp-handlers.mjs", "catalog.ts"];
+const SOURCE_FILES = ["mcp-server.mjs", "mcp-handlers.mjs", "catalog.ts", "definitions.ts", "types.ts"];
 
 function debug(...args) {
   if (process.env.MARKETING_IMG_MCP_BOOTSTRAP_DEBUG) {

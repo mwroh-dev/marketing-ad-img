@@ -23,7 +23,7 @@ test("MCP bootstrap prepares plugin-data runtime without requiring plugin-root n
   const fakeBin = mkdtempSync(`${tmpdir()}/marketing-img-fake-bin-`);
   mkdirSync(resolve(pluginRoot, "shared/tools"), { recursive: true });
   mkdirSync(resolve(pluginRoot, ".claude-plugin"), { recursive: true });
-  for (const file of ["mcp-bootstrap.mjs", "mcp-server.mjs", "mcp-handlers.mjs", "catalog.ts"]) {
+  for (const file of ["mcp-bootstrap.mjs", "mcp-server.mjs", "mcp-handlers.mjs", "catalog.ts", "definitions.ts", "types.ts"]) {
     writeFileSync(resolve(pluginRoot, "shared/tools", file), readFileSync(resolve(ROOT, "shared/tools", file), "utf8"));
   }
   writeFileSync(resolve(pluginRoot, "package.json"), readFileSync(resolve(ROOT, "package.json"), "utf8"));
@@ -56,6 +56,8 @@ chmod +x node_modules/.bin/tsx
   assert.equal(existsSync(resolve(pluginData, "runtime/shared/tools/mcp-server.mjs")), true);
   assert.equal(existsSync(resolve(pluginData, "runtime/shared/tools/mcp-handlers.mjs")), true);
   assert.equal(existsSync(resolve(pluginData, "runtime/shared/tools/catalog.ts")), true);
+  assert.equal(existsSync(resolve(pluginData, "runtime/shared/tools/definitions.ts")), true);
+  assert.equal(existsSync(resolve(pluginData, "runtime/shared/tools/types.ts")), true);
   assert.equal(readFileSync(resolve(pluginData, "package.json"), "utf8"), readFileSync(resolve(pluginRoot, "package.json"), "utf8"));
   const npmArgs = readFileSync(resolve(pluginData, "npm-args.txt"), "utf8");
   assert.match(npmArgs, /--omit=dev/);
