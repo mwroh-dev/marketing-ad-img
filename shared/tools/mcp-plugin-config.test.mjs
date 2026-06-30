@@ -2,7 +2,18 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -68,6 +79,34 @@ test("dev Claude wrapper supplies plugin env for repo-root MCP diagnostics", () 
     readFileSync(resolve(ROOT, "CLAUDE.md"), "utf8"),
     /scripts\/dev-claude\.sh/,
   );
+});
+
+test("dev Claude wrapper resolves repo root when launched through a symlink", () => {
+  const temp = mkdtempSync(`${tmpdir()}/marketing-img-dev-claude-`);
+  const bin = resolve(temp, "bin");
+  mkdirSync(bin);
+  const fakeClaude = resolve(bin, "claude");
+  writeFileSync(
+    fakeClaude,
+    "#!/usr/bin/env bash\nnode -e 'console.log(JSON.stringify({ root: process.env.CLAUDE_PLUGIN_ROOT, data: process.env.CLAUDE_PLUGIN_DATA, args: process.argv.slice(1) }))' \"$@\"\n",
+  );
+  chmodSync(fakeClaude, 0o755);
+
+  const symlink = resolve(bin, "marketing-img-claude");
+  symlinkSync(resolve(ROOT, "scripts/dev-claude.sh"), symlink);
+  const env = { ...process.env, PATH: `${bin}:${process.env.PATH ?? ""}` };
+  delete env.CLAUDE_PLUGIN_ROOT;
+  delete env.CLAUDE_PLUGIN_DATA;
+  const result = spawnSync(symlink, ["mcp", "list"], {
+    encoding: "utf8",
+    env,
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const observed = JSON.parse(result.stdout);
+  assert.equal(observed.root, ROOT);
+  assert.equal(observed.data, resolve(ROOT, ".mcp-runtime"));
+  assert.deepEqual(observed.args, ["mcp", "list"]);
 });
 
 test("orchestrator frontmatter grants the actual Claude Code MCP tool names", () => {

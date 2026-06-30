@@ -63,6 +63,22 @@ test("MCP server and handlers share one runtime registry for exposed tool contra
   assert.equal(observed.count, 19);
 });
 
+test("MCP runtime registry reports a missing build context explicitly", () => {
+  const observed = runTsx(`
+    import { buildToolCommand } from "./shared/tools/mcp-runtime-registry.mjs";
+
+    let message = "";
+    try {
+      buildToolCommand("state_check_project", {});
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+    console.log(JSON.stringify({ message }));
+  `);
+
+  assert.match(observed.message, /missing required runtime context for tool: state_check_project/);
+});
+
 test("stdio MCP tools/list exposes exactly the P0 catalog tools by MCP name", async () => {
   const expected = runTsx(`
     import { TOOL_CATALOG } from "./shared/tools/catalog.ts";

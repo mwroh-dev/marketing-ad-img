@@ -227,5 +227,8 @@ export function buildToolCommand(toolName, input = {}, context) {
   if (!entry) {
     throw new Error(`unknown MCP tool: ${toolName}`);
   }
+  if (!context) {
+    throw new Error(`missing required runtime context for tool: ${toolName}`);
+  }
   return entry.buildCommand(input, context);
 }
