@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -49,6 +49,22 @@ test("plugin manifest exposes the bundled MCP server named m", () => {
     command: "node",
     args: ["${CLAUDE_PLUGIN_ROOT}/shared/tools/mcp-bootstrap.mjs", "--prepare-only"],
   });
+});
+
+test("dev Claude wrapper supplies plugin env for repo-root MCP diagnostics", () => {
+  const scriptPath = resolve(ROOT, "scripts/dev-claude.sh");
+  assert.equal(existsSync(scriptPath), true);
+  const mode = statSync(scriptPath).mode & 0o777;
+  assert.equal((mode & 0o111) !== 0, true, "dev wrapper must be executable");
+
+  const script = readFileSync(scriptPath, "utf8");
+  assert.match(script, /CLAUDE_PLUGIN_ROOT=/);
+  assert.match(script, /CLAUDE_PLUGIN_DATA=/);
+  assert.match(script, /exec claude "\$@"/);
+  assert.match(
+    readFileSync(resolve(ROOT, "CLAUDE.md"), "utf8"),
+    /scripts\/dev-claude\.sh/,
+  );
 });
 
 test("orchestrator frontmatter grants the actual Claude Code MCP tool names", () => {

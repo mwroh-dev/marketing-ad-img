@@ -36,6 +36,33 @@ test("MCP server tool list exposes exactly the P0 catalog tools by MCP name", ()
   assert.ok(!observed.actual.includes("orchestration_validate_subagent_projection"));
 });
 
+test("MCP server and handlers share one runtime registry for exposed tool contracts", () => {
+  const observed = runTsx(`
+    import assert from "node:assert/strict";
+    import { TOOL_CATALOG } from "./shared/tools/catalog.ts";
+    import { listMcpToolDefinitions } from "./shared/tools/mcp-server.mjs";
+    import { TOOL_RUNTIME } from "./shared/tools/mcp-runtime-registry.mjs";
+
+    const exposed = TOOL_CATALOG
+      .filter((tool) => tool.priority === "P0" && tool.mcp.exposed)
+      .map((tool) => tool.mcp.name)
+      .sort();
+    const runtime = Object.keys(TOOL_RUNTIME).sort();
+    assert.deepEqual(runtime, exposed);
+
+    const definitions = listMcpToolDefinitions();
+    for (const definition of definitions) {
+      const runtimeEntry = TOOL_RUNTIME[definition.name];
+      assert.ok(runtimeEntry, "missing runtime entry for " + definition.name);
+      assert.equal(typeof runtimeEntry.buildCommand, "function", definition.name);
+      assert.equal(definition.inputSchema, runtimeEntry.inputSchema, definition.name);
+    }
+    console.log(JSON.stringify({ count: runtime.length }));
+  `);
+
+  assert.equal(observed.count, 19);
+});
+
 test("stdio MCP tools/list exposes exactly the P0 catalog tools by MCP name", async () => {
   const expected = runTsx(`
     import { TOOL_CATALOG } from "./shared/tools/catalog.ts";
@@ -62,7 +89,7 @@ test("bootstrap stdio MCP tools/list works from plugin data runtime", async () =
   const pluginRoot = mkdtempSync(`${tmpdir()}/marketing-img-plugin-root-`);
   const pluginData = mkdtempSync(`${tmpdir()}/marketing-img-plugin-data-`);
   mkdirSync(resolve(pluginRoot, "shared/tools"), { recursive: true });
-  for (const file of ["mcp-bootstrap.mjs", "mcp-server.mjs", "mcp-handlers.mjs", "catalog.ts", "definitions.ts", "types.ts"]) {
+  for (const file of ["mcp-bootstrap.mjs", "mcp-server.mjs", "mcp-handlers.mjs", "mcp-runtime-registry.mjs", "catalog.ts", "definitions.ts", "types.ts"]) {
     copyFileSync(resolve(ROOT, "shared/tools", file), resolve(pluginRoot, "shared/tools", file));
   }
   copyFileSync(resolve(ROOT, "package.json"), resolve(pluginRoot, "package.json"));

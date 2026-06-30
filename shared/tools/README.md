@@ -25,8 +25,10 @@ declared in `${CLAUDE_PLUGIN_ROOT}/.mcp.json`; P1 entries remain catalog-only ca
 3. `shared/tools/mcp-bootstrap.mjs` — dependency bootstrap. It prepares `${CLAUDE_PLUGIN_DATA}` with
    runtime npm deps and a data-resident MCP adapter copy, so GitHub-installed plugins do not require
    `${CLAUDE_PLUGIN_ROOT}/node_modules`.
-4. `shared/tools/mcp-server.mjs` — Claude Code MCP adapter for P0 tools.
-5. `agents/*.md tools:` — actual Claude Code allowlists using the full MCP tool names.
+4. `shared/tools/mcp-runtime-registry.mjs` — runtime contract registry for exposed P0 tool input
+   schemas and command builders.
+5. `shared/tools/mcp-server.mjs` — Claude Code MCP adapter for P0 tools.
+6. `agents/*.md tools:` — actual Claude Code allowlists using the full MCP tool names.
 
 ## Runtime dependency placement
 
@@ -34,7 +36,8 @@ The plugin root is treated as shipped source. Do not rely on committed `node_mod
 `${CLAUDE_PLUGIN_ROOT}/.mcp.json` launches `mcp-bootstrap.mjs`, which:
 
 - installs runtime dependencies into `${CLAUDE_PLUGIN_DATA}`,
-- copies `mcp-server.mjs`, `mcp-handlers.mjs`, `catalog.ts`, `definitions.ts`, and `types.ts` into `${CLAUDE_PLUGIN_DATA}/runtime`,
+- copies `mcp-server.mjs`, `mcp-handlers.mjs`, `mcp-runtime-registry.mjs`, `catalog.ts`,
+  `definitions.ts`, and `types.ts` into `${CLAUDE_PLUGIN_DATA}/runtime`,
 - starts the data-resident MCP server so ESM package resolution finds `${CLAUDE_PLUGIN_DATA}/node_modules`,
 - keeps implementation paths pointed at `${CLAUDE_PLUGIN_ROOT}` and consumer state pointed at
   `${CLAUDE_PROJECT_DIR}`.
@@ -73,6 +76,8 @@ The following stay out of the tool catalog:
 
 `catalog.ts` exports the typed source of truth; definitions are separated into `definitions.ts`
 and shared types/helpers into `types.ts` so the aggregate file stays small as tools are added.
+The actual MCP runtime contract for exposed P0 tools lives in `mcp-runtime-registry.mjs`: the server
+reads input schemas from it, and the handler reads command builders from the same entries.
 
 | Field | Meaning |
 |---|---|
