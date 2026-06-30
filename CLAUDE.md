@@ -10,6 +10,12 @@ A system for generating **ad-image creative prompts** (prompt-only) for sellers 
 ## Entry routine (every invocation) — state-first, lazy
 **Do NOT pre-read all of `knowledge/` (incl. the subagent-projection table) or the design docs.** Loading the whole repo up front wastes context and tokens and is not how the harness works. The orchestrator *routes*; each mode/agent loads only its own contract when it becomes active (progressive disclosure).
 
+### Dev MCP launch
+When opening Claude Code directly in this repo, use `scripts/dev-claude.sh` instead of bare `claude`.
+The wrapper sets `CLAUDE_PLUGIN_ROOT=$PWD` and `CLAUDE_PLUGIN_DATA=$PWD/.mcp-runtime`, which makes
+the repo-root `.mcp.json` behave like the installed plugin context and removes the `/mcp`
+`CLAUDE_PLUGIN_ROOT` diagnostic warning.
+
 1. **Check consumer state** — call `mcp__plugin_marketing-img_m__state_check_project` (catalog tool `state_check_project`; deterministic; reports setup status + the route). It reads `.generate-ads-img/`:
    - brand/product/persona (`.generate-ads-img/brands/…`)? confirmed competitors? collected ad creatives / ad-pattern?
 2. **Route on state + request — do not run everything:**
