@@ -13,7 +13,7 @@ causality.
 - `snapshot_selection`: `latest-pair`, `date-range`, or explicit run ids.
 - At least one collection snapshot for the persona:
   `.generate-ads-img/runs/{run_id}/ad-creatives/{persona_id}/ad-creative.json`.
-- Durable analysis store for the persona: `tsx ${CLAUDE_PLUGIN_ROOT}/shared/harness/validate-store.ts <persona_id>`
+- Durable analysis store for the persona: `mcp__plugin_marketing-img_m__analysis_validate_store`
   must PASS before any edge analysis. Collection-only `ad-creative.json` is insufficient.
 
 Execution blockers:
@@ -21,7 +21,7 @@ Execution blockers:
 ```txt
 - persona_id missing
 - 0 collection snapshots
-- validate-store FAIL
+- analysis_validate_store FAIL
 - edge analysis requested but fewer than 2 dated snapshots
 ```
 
@@ -80,40 +80,40 @@ creative-change-report.html
 
 ## What the orchestrator does
 
-1. **Gate.** Run `validate-store` for the `persona_id`; find the selected collection snapshots; stop if the
+1. **Gate.** Call `mcp__plugin_marketing-img_m__analysis_validate_store` for the `persona_id`; find the selected collection snapshots; stop if the
    requested edge analysis has fewer than 2 dated snapshots.
-2. **Load frozen snapshots (deterministic, no agent).** `close-analysis` freezes
+2. **Load frozen snapshots (deterministic, no agent).** `mcp__plugin_marketing-img_m__analysis_close_run` freezes
    `.generate-ads-img/runs/{run_id}/creative-change/creative-snapshot.{run_id}.json` while that run is the
    store-latest. For a selected FROM/older run, READ this artifact; do not rebuild it from the current per-persona
    store. If the frozen FROM snapshot is missing, stop and re-close/rebuild that run in order before comparing.
    For the current/latest run only, the orchestrator may run
-   `node ${CLAUDE_PLUGIN_ROOT}/shared/harness/build-creative-snapshot.mjs <persona_id> <run_id> <out_run_id>`;
+   `mcp__plugin_marketing-img_m__creative_change_build_snapshot`;
    that CLI fails closed when too many ads have no matching store envelopes.
 3. **Diff (deterministic, no agent).** If two snapshots are available:
-   `node ${CLAUDE_PLUGIN_ROOT}/shared/harness/compare-creative-snapshots.mjs <from> <to> <out>`.
+   `mcp__plugin_marketing-img_m__creative_change_compare_snapshots`.
    This writes `creative-diff.json` with inventory, update, distribution, and coverage flags.
 4. **Candidates (deterministic, no agent).**
-   `node ${CLAUDE_PLUGIN_ROOT}/shared/harness/detect-change-candidates.mjs <creative-diff.json> <out>`.
+   `mcp__plugin_marketing-img_m__creative_change_detect_candidates`.
    This writes `change-candidates.json`. Low confidence cannot become `strong`; missing `audience_read` suppresses
    audience shift candidates.
 5. **Context (optional agent, parallel lane).** Dispatch `market-context-researcher` only with brand/category/target
    market/date range. It writes `context-calendar.json`. It must not receive `creative-diff` or `change-candidates`.
    Because it depends only on the selected date/category, it may run after Gate in parallel with Snapshot/Diff/Candidates
    and only needs to join before Interpret. If the handoff is materialized as JSON, validate it with
-   `validate-subagent-projection.mjs market-context-researcher ...` before dispatch.
+   `mcp__plugin_marketing-img_m__handoff_validate` before dispatch.
 6. **Interpret (agent).** Dispatch `temporal-change-analyst` with `creative-diff.json`, `change-candidates.json`,
    optional `context-calendar.json`, and optional `competitive-trend.json`. It writes
    `interpreted-change-events.json` and `creative-change-report.json`. If the handoff is materialized as JSON,
-   validate it with `validate-subagent-projection.mjs temporal-change-analyst ...` before dispatch.
+   validate it with `mcp__plugin_marketing-img_m__handoff_validate` before dispatch.
 7. **Render (deterministic, no agent).**
-   `node ${CLAUDE_PLUGIN_ROOT}/shared/harness/render-change-report.mjs <creative-change-report.json>`.
+   `mcp__plugin_marketing-img_m__creative_change_render_report`.
    The renderer validates the payload, escapes dynamic text, and writes `creative-change-report.html`.
 
 ## Flow table
 
 | Step | Owner | Input | Output | Validation | Failure |
 |---|---|---|---|---|---|
-| 1 Gate | orchestrator/tool | persona, snapshots, store | readiness | `validate-store` | stop |
+| 1 Gate | orchestrator/tool | persona, snapshots, store | readiness | `analysis_validate_store` | stop |
 | 2 Snapshot | tool | frozen run snapshot; latest run + store only when needed | `creative_snapshot` | schema + join coverage | stop on missing frozen FROM / low join coverage |
 | 3 Diff | tool | two snapshots | `creative_diff` | schema | stop if <2 for edge |
 | 4 Candidate | tool | diff | `change_candidates` | schema | omit unsupported |
@@ -126,7 +126,7 @@ creative-change-report.html
 | Failure | Orchestrator response |
 |---|---|
 | 0 snapshots | not runnable; route to data-collection |
-| store missing or `validate-store` FAIL | stop; run/finish analysis close before this mode |
+| store missing or `analysis_validate_store` FAIL | stop; run/finish analysis close before this mode |
 | one snapshot only | write/read the one `creative-snapshot`; do not write diff/candidate/event edge claims |
 | selected FROM snapshot missing | stop; do not rebuild an older run from the current per-persona store |
 | snapshot join coverage below threshold | stop; do not emit a schema-valid empty-recipe snapshot |

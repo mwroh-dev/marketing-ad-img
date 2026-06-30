@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.mcp-runtime/
 *.log
 .DS_Store
 

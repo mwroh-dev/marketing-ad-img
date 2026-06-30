@@ -14,15 +14,17 @@
     "test": "node --test shared flows"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "chrome-remote-interface": "^0.33.3",
-    "yaml": "^2.6.1"
+    "tsx": "^4.22.4",
+    "yaml": "^2.6.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@sinclair/typebox": "^0.34.49",
     "gpt-tokenizer": "^3.4.0",
-    "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   },
   "optionalDependencies": {

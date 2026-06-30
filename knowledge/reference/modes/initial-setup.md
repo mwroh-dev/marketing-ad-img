@@ -38,7 +38,7 @@ back thin (coverage_flags dominate), say so honestly and ask the user for a bett
 
 ### 5. Write the confirmed brand/product/persona state
 On confirmation, write `.generate-ads-img/brands/{brand_id}/` brand-profile + per-product profile + the confirmed
-persona(s) under `brands/{brand_id}/products/{product_id}/personas/` (this is what `check-state.mjs` reads as
+persona(s) under `brands/{brand_id}/products/{product_id}/personas/` (this is what `mcp__plugin_marketing-img_m__state_check_project` reads as
 `setup_complete`). `forbidden_claims` is seeded from the researched claim risks + user confirmation.
 
 ## Product assets (when needed)

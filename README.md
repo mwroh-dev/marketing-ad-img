@@ -57,7 +57,7 @@ npm install     # ajv, ajv-formats, yaml, chrome-remote-interface, tsx (+ option
 .claude-plugin/{plugin.json, marketplace.json}    plugin manifest + marketplace
 settings.json                                     "agent": "orchestrator" (default/entry agent)
 commands/start.md                                 /marketing-img:start — the single entry command
-agents/ (flat .md)                                orchestrator + 22 role-scoped subagents
+agents/ (flat .md)                                orchestrator + 24 active role-scoped subagents (+ 1 deprecated historical note)
 skills/ (2)                                       reusable skills (agent-browser-exploration, user-answer-tooling)
 knowledge/  guidelines ⊥ experience ⊥ reference   principles · learned patterns · mode runbooks + design refs
 schemas/ (39, single-sourced from TypeBox)        I/O contracts per stage — `<name>.ts` → `build.ts` → `.schema.json` (validator) + lean `.view.md` (agents read)
@@ -68,11 +68,11 @@ AGENTS.md                                         dev entry for AI coding agents
 CLAUDE.md                                         DEV reference — NOT shipped/loaded for consumers
 ```
 
-### The 22 subagents (by stage)
+### The 24 active subagents (by stage)
 - **evaluation** — `request-evaluator`, `interview-controller`
 - **setup** — `brand-researcher`
-- **collection** — `discovery-scout`, `competitor-curator`, `ad-creative-refiner` (post-collection keep/drop is a human review + deterministic `screen-images.mjs`, no LLM)
-- **analysis** — `perception-extractor`, `ad-type-classifier`, `copy-analyst`, `layout-analyst`, `visual-analyst`, `intent-analyst`, `strategy-projector`, `ad-analyst`, `pattern-synthesizer`
+- **collection** — `keyword-planner`, `discovery-scout`, `competitor-curator`, `ad-creative-refiner` (post-collection keep/drop is a human review + deterministic `screen-images.mjs`, no LLM)
+- **analysis** — `perception-extractor`, `ad-type-classifier`, `copy-analyst`, `layout-analyst`, `visual-analyst`, `intent-analyst`, `strategy-projector`, `ad-analyst`, `pattern-synthesizer`, `competitive-analyst`, `temporal-change-analyst`, `market-context-researcher`
 - **generation** — `creative-opportunity-mapper`, `creative-brief-analyst`, `copy-layout-planner`, `image-prompt-adapter`, `critic-verifier`
 
 ## Hard rules (single-owner: `knowledge/reference/non-negotiable-rules.md`)

@@ -65,18 +65,19 @@ The analysts persist their per-image output to disk in the **per-kind layout** t
 the rest match their kind). After the analysts finish, the persistence is **one deterministic command + one gate**
 — the orchestrator does NOT hand-write the store (it does so inconsistently: raw payloads, partial envelopes,
 missing provenance):
-- **close-analysis** (the easy-correct path): `node ${CLAUDE_PLUGIN_ROOT}/shared/harness/close-analysis.mjs {run_id}`
+- **analysis close** (tool `mcp__plugin_marketing-img_m__analysis_close_run`, the easy-correct path)
   → reads the per-kind staging, persists the per-ad lineage store envelopes (`persistAnalysisRun`, chain map
-  perception→ocr / ad-type→type, provenance-stamped) + the index rollup, and advances the ledger to `analyzed`.
+  perception→ocr / ad-type→type, provenance-stamped) + the index rollup, freezes the run-local creative snapshot,
+  and advances the ledger to `analyzed`.
   FAILS LOUDLY if the staging is empty (the store is never silently improvised).
-- **validate-store** (the teeth): `node ${CLAUDE_PLUGIN_ROOT}/node_modules/.bin/tsx ${CLAUDE_PLUGIN_ROOT}/shared/harness/validate-store.ts {persona_id}`
+- **store validation** (tool `mcp__plugin_marketing-img_m__analysis_validate_store`, the teeth)
   → every store envelope must conform to `artifact-envelope.schema.json` (complete + provenance-stamped). A raw or
   hand-written partial → `STORE FAIL` (exit 1); the persona must NOT enter generation until it passes. We can't
-  force the orchestrator to run close-analysis, but an improvised store CANNOT proceed. On FAIL, re-run
-  close-analysis (it needs the per-kind staging present).
+  force the orchestrator to run the close tool, but an improvised store CANNOT proceed. On FAIL, re-run
+  `mcp__plugin_marketing-img_m__analysis_close_run` (it needs the per-kind staging present).
 
 `market-position-matrix` is a generation-time input, not persisted here. At generation time it is built FROM the
-durable store (`build-market-position.mjs --from-store <persona>`), which throws if analysis was never persisted —
+durable store via `mcp__plugin_marketing-img_m__analysis_build_market_position`, which throws if analysis was never persisted —
 so the matrix (and thus generation) depends on the store, not on this run's scratch staging.
 
 Launch the per-ad analysts in **small batches (≤3 parallel), not one large fan-out** — a big parallel
