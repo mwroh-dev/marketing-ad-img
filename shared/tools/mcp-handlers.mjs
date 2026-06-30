@@ -190,7 +190,8 @@ export async function runCommand(file, args, options) {
   return new Promise((resolveResult) => {
     execFile(file, args, { cwd: options.cwd, env: options.env, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
       const exitCode = typeof error?.code === "number" ? error.code : error ? 1 : 0;
-      resolveResult({ exitCode, stdout, stderr });
+      const finalStderr = stderr || (error ? error.message : "");
+      resolveResult({ exitCode, stdout, stderr: finalStderr });
     });
   });
 }

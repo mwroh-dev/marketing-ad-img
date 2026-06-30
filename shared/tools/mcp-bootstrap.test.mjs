@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { mkdtempSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { EventEmitter } from "node:events";
+import { ensureRuntimeDependencies, forwardStreamWithBackpressure } from "./mcp-bootstrap.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "../..");
@@ -58,4 +60,50 @@ chmod +x node_modules/.bin/tsx
   const npmArgs = readFileSync(resolve(pluginData, "npm-args.txt"), "utf8");
   assert.match(npmArgs, /--omit=dev/);
   assert.doesNotMatch(npmArgs, /--omit=optional/);
+});
+
+test("MCP bootstrap reports npm execution failures clearly", () => {
+  const pluginRoot = mkdtempSync(`${tmpdir()}/marketing-img-plugin-root-`);
+  const pluginData = mkdtempSync(`${tmpdir()}/marketing-img-plugin-data-`);
+  writeFileSync(resolve(pluginRoot, "package.json"), "{}\n");
+
+  assert.throws(
+    () =>
+      ensureRuntimeDependencies(
+        {
+          pluginData,
+          tsxBin: resolve(pluginData, "node_modules/.bin/tsx"),
+          packageJson: resolve(pluginRoot, "package.json"),
+          packageLock: resolve(pluginRoot, "package-lock.json"),
+          dataPackageJson: resolve(pluginData, "package.json"),
+          dataPackageLock: resolve(pluginData, "package-lock.json"),
+        },
+        {
+          runCommand: () => ({
+            status: null,
+            error: new Error("spawn npm ENOENT"),
+          }),
+        },
+      ),
+    /npm command failed to execute .*spawn npm ENOENT/,
+  );
+});
+
+test("MCP bootstrap pauses stdin while child stdin applies backpressure", () => {
+  const source = new EventEmitter();
+  const sink = new EventEmitter();
+  const events = [];
+  source.pause = () => events.push("pause");
+  source.resume = () => events.push("resume");
+  sink.write = () => false;
+
+  forwardStreamWithBackpressure(source, sink, () => {});
+  source.emit("data", Buffer.from("payload"));
+  assert.deepEqual(events, ["resume", "pause"]);
+
+  sink.emit("drain");
+  assert.deepEqual(events, ["resume", "pause", "resume"]);
+
+  source.emit("end");
+  assert.deepEqual(events, ["resume", "pause", "resume"]);
 });

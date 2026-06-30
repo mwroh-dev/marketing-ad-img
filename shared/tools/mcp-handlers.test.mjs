@@ -126,6 +126,23 @@ test("MCP handler returns structured failure results instead of throwing raw chi
   assert.equal(observed.stderr, "STORE FAIL");
 });
 
+test("MCP command runner reports spawn failures when child stderr is empty", () => {
+  const observed = runTsx(`
+    import { runCommand } from "./shared/tools/mcp-handlers.mjs";
+    async function main() {
+      const result = await runCommand("/definitely/missing/marketing-img-tool", [], {
+        cwd: ${JSON.stringify(ROOT)},
+        env: process.env,
+      });
+      console.log(JSON.stringify(result));
+    }
+    main().catch((error) => { console.error(error); process.exit(1); });
+  `);
+
+  assert.equal(observed.exitCode, 1);
+  assert.match(observed.stderr, /ENOENT|no such file/i);
+});
+
 test("TS-backed MCP tools use runtime deps from CLAUDE_PLUGIN_DATA when available", () => {
   const observed = runTsx(`
     import { callMcpTool } from "./shared/tools/mcp-handlers.mjs";

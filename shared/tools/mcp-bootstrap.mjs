@@ -65,6 +65,9 @@ export function ensureRuntimeDependencies(paths, options = {}) {
     stdio: ["ignore", "ignore", "pipe"],
     env: process.env,
   });
+  if (result.error) {
+    throw new Error(`failed to install plugin MCP runtime dependencies: npm command failed to execute (${result.error.message})`);
+  }
   if (result.status !== 0) {
     throw new Error(`failed to install plugin MCP runtime dependencies: ${result.stderr || `exit ${result.status}`}`);
   }
@@ -75,6 +78,28 @@ export function prepareRuntime(env = process.env, options = {}) {
   copyRuntimeFiles(paths);
   ensureRuntimeDependencies(paths, options);
   return paths;
+}
+
+export function forwardStreamWithBackpressure(source, destination, onDebug = debug, options = {}) {
+  let waitingForDrain = false;
+  source.on("data", (chunk) => {
+    onDebug("forward stream chunk", chunk.length);
+    if (!destination.write(chunk) && !waitingForDrain) {
+      waitingForDrain = true;
+      source.pause();
+      destination.once("drain", () => {
+        waitingForDrain = false;
+        source.resume();
+      });
+    }
+  });
+  if (options.endOnSourceEnd) {
+    source.on("end", () => {
+      onDebug("forward stream end");
+      destination.end();
+    });
+  }
+  source.resume();
 }
 
 function startServer(paths) {
@@ -88,18 +113,8 @@ function startServer(paths) {
     },
     stdio: ["pipe", "pipe", "inherit"],
   });
-  process.stdin.on("data", (chunk) => {
-    debug("forward stdin chunk", chunk.length);
-    child.stdin.write(chunk);
-  });
-  process.stdin.on("end", () => {
-    debug("stdin end");
-    child.stdin.end();
-  });
-  process.stdin.resume();
-  child.stdout.on("data", (chunk) => {
-    process.stdout.write(chunk);
-  });
+  forwardStreamWithBackpressure(process.stdin, child.stdin, debug, { endOnSourceEnd: true });
+  forwardStreamWithBackpressure(child.stdout, process.stdout, debug);
   child.stdin.on("error", (error) => {
     if (error.code !== "EPIPE") {
       console.error(error);
