@@ -38,7 +38,10 @@ test("plugin manifest exposes the bundled MCP server named m", () => {
   const hooks = JSON.parse(readFileSync(resolve(ROOT, "hooks/hooks.json"), "utf8"));
 
   assert.equal(plugin.mcpServers, "./.mcp.json");
-  assert.equal(plugin.hooks, "./hooks/hooks.json");
+  // hooks/hooks.json is auto-loaded by convention; declaring it in the manifest
+  // causes a duplicate-load failure ("Duplicate hooks file detected"), so the
+  // manifest must NOT reference it.
+  assert.equal(plugin.hooks, undefined);
   assert.deepEqual(mcp.mcpServers.m, {
     command: "node",
     args: ["${CLAUDE_PLUGIN_ROOT}/shared/tools/mcp-bootstrap.mjs"],
