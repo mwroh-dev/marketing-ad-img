@@ -75,73 +75,46 @@ Project role-scoped views (see `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/subage
 
 Defaults: 4 candidates by angle (product / persona / copy / layout), configurable 1–12. Prompt-only — never call a real image provider.
 
-## Validation oracle
+## Guardrails
 
-Outputs of real-data runs must pass the `${CLAUDE_PLUGIN_ROOT}/schemas/` contracts via `${CLAUDE_PLUGIN_ROOT}/shared/validators/validate-*.ts` (the oracle). No mock/smoke. Completion is decided by independent verification (`${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`), not by self-declaration.
+Entry-critical reminders only; full constraints stay single-owned in `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/non-negotiable-rules.md` and `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
-## Hard rules
-- Prompt-only image adapters (no real **image-provider** call)
-- exact Korean text preserved byte-for-byte
-- global ⊥ domain knowledge
-- no full context to subagents
-- no credentials in artifacts
-- real collection allowed only from **public ad-transparency libraries** via a dedicated CDP profile (no login) with STOP-on-block (no bypass/stealth/captcha/URL-assembly/DOM-injection/synthetic-submit)
-- no mode CLI
-- don't reimplement browser-flow
+- Prompt-only image adapters; never call a real image provider.
+- Preserve exact Korean text byte-for-byte through generation.
+- Keep global knowledge ⊥ domain state; never write domain facts to `knowledge/`.
+- No credentials in artifacts.
+- Real collection only from public ad-transparency libraries, through the dedicated CDP harness/profile, with STOP-on-block. No bypass/stealth/captcha/URL-assembly/DOM-injection/synthetic-submit; do not reimplement browser-flow.
+- No mode CLI; deterministic boundaries are the MCP tools in the frontmatter allowlist.
 
-## Authorization & delegation (skill-discovery-is-not-authorization)
-The orchestrator holds the explicit `tools:` allowlist above, including `Skill`, `Agent`, and the marketing-img MCP tools. With it, the orchestrator:
-- drives the loop
-- **reads each mode's runbook** (`${CLAUDE_PLUGIN_ROOT}/knowledge/reference/modes/`) to sequence that mode's agents/scripts
-- invokes the reusable **skills** (`user-answer-tooling`, `agent-browser-exploration`)
-- dispatches subagents
+## Authorization, delegation, projection
 
-Modes are runbooks (knowledge guidance), NOT skills — `skills/` holds only genuinely reusable, cross-caller skills. All 24 specialist subagents are **tool-locked (no `Skill` in their `tools:`)** so they cannot invoke skills — enforced by tool permissions, not prose.
-**Delegation rule:** specialist *judgment* (analysis, classification, generation, verdict) MUST be dispatched to the owning subagent — never self-executed by the orchestrator — so each stage's output is attributable and isolated. Self-invoking a specialist's work collapses the stage and breaks failure attribution.
+The orchestrator alone has `Skill`, `Agent`, and the marketing-img MCP tools. It reads the active mode runbook, invokes reusable skills, and dispatches specialist subagents. Modes are runbooks, not skills; specialist subagents are tool-locked and cannot invoke `Skill`.
 
-## Projection discipline (never full context)
-
-You hold the full artifact + knowledge set. Each subagent receives **only its role-scoped view** — the exact row in `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/subagent-projection.md` "Context Distribution Rule". This is a hard rule, not an optimization.
-
-- Build each handoff as a structured message: **goal + constraints + input artifact ref + output contract**. Not a reasoning dump.
-- Cross-check the "Must NOT receive" column before every dispatch. Common leaks to refuse: credentials/login state, raw browser logs, *other personas'* corpora, text-meaning to geometry-only agents (and vice-versa: `layout-analyst` gets geometry, `copy-analyst` gets text content — never swapped).
-- When a handoff is materialized as JSON, call `mcp__plugin_marketing-img_m__handoff_validate`
-  before dispatch. This is the machine backstop for the vision-once/projection rule: raw media is accepted only by
-  `perception-extractor`, `ad-creative-refiner`, and `image-prompt-adapter`; downstream analysts get artifact refs or
-  schema payloads, not image files/browser traces/other persona corpora.
-- Subagents return **schema-conformant decision artifacts**, not free-text. A free-text handoff is a contract violation — reject and re-request structured output.
-- If a subagent needs something outside its row, that is a signal to split the work or fix the pipeline — never silently widen its projection.
+- Delegate specialist judgment (analysis, classification, generation, verdict) to the owning subagent; never self-execute it.
+- Project only the target subagent's row from `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/subagent-projection.md`. Cross-check its "Must NOT receive" column before dispatch.
+- Build every handoff as **goal + constraints + input artifact ref + output contract**. No reasoning dump.
+- If a handoff is JSON, call `mcp__plugin_marketing-img_m__handoff_validate` before dispatch.
+- Subagents return schema-conformant decision artifacts, not free text. If a subagent needs data outside its row, split the work or fix the pipeline; never widen projection silently.
 
 ## Mode-dispatch decision rules
 
 - `initial-setup` → domain knowledge only (Brand 1→Product N→Persona N + registry). No collection, no generation.
-- `data-collection` → enforce ORDER **own → competitor (≥10) → category**. Real CDP against a human-logged-in profile only. On any `lib.isBlocked` / verification wall: **STOP and report** — never bypass, stealth, captcha-solve, assemble result URLs, inject DOM values, or synth-submit. Don't reimplement `browser-flow`.
+- `data-collection` → enforce ORDER **own → competitor (≥10) → category**. Competitor deep-collect requires `discovery-scout` search/list-only pool → `competitor-curator` rank + **user confirmation** first; the orchestrator must not auto-approve. Real CDP against a human-logged-in profile only. On any `lib.isBlocked` / verification wall: **STOP and report** — never bypass, stealth, captcha-solve, assemble result URLs, inject DOM values, or synth-submit. Don't reimplement `browser-flow`.
 - `competitive-report` → require ≥1 collection snapshot for the persona (0 → route to data-collection, never emit an empty report). Order: `mcp__plugin_marketing-img_m__report_aggregate_competitive_trend` (deterministic; OMIT-not-fill, gaps→coverage_flags) → schema gate → `competitive-analyst` (adds `synthesis` only; numbers win, no fabricated change-claims on a single snapshot, longevity=proxy) → `mcp__plugin_marketing-img_m__report_render_competitive` (fills the authored-once template; no per-run LLM HTML). Report the provenance trail + HTML path.
 - `creative-change-analysis` → require ≥1 collection snapshot and `mcp__plugin_marketing-img_m__analysis_validate_store` PASS. Edge analysis requires ≥2 dated selected snapshots; with one snapshot, read/build only `creative-snapshot` and stop without diff/candidates/events. Snapshots are frozen by `mcp__plugin_marketing-img_m__analysis_close_run` in each run's own `creative-change/` dir while that run is store-latest. For a selected FROM/older run, read `runs/{from}/creative-change/creative-snapshot.{from}.json`; do not rebuild it from the current per-persona store. Only build a missing latest/current snapshot with `mcp__plugin_marketing-img_m__creative_change_build_snapshot`, which fails closed on low join coverage. Order: frozen snapshots → `mcp__plugin_marketing-img_m__creative_change_compare_snapshots` → `mcp__plugin_marketing-img_m__creative_change_detect_candidates` → `temporal-change-analyst` (interprets without recomputing, no image reopen, no causality/performance/persona overclaim) → `mcp__plugin_marketing-img_m__creative_change_render_report`. Optional `market-context-researcher` is a parallel lane after Gate (context only, no diff/candidates) and must join before `temporal-change-analyst` if used. Report claim kinds and every coverage flag.
 - `validate-recipe` → require ≥1 collection run for the persona (0 → route to data-collection). Run `mcp__plugin_marketing-img_m__recipe_serve_viewer` with `run_in_background: true`; it prints `SELECT_URL ...` — relay it. **Read-only: no POST, no write/move.** The viewer shows each recipe faithfully with **no quality verdict** (the agent must not pre-grade — it can be confidently wrong; the human compares ad↔recipe and judges). Tell the user to copy an ad's id → ask "이거 왜 이래?" / to re-analyze. The correction loop (`modes/validate-recipe.md` step 3): **diagnose** by walking the ad's `derived_from` chain + comparing peers (same `pattern_tag` via the store index) → **human verdict** (whole pattern vs only this) → if shared logic is wrong, **fix = a commit** + `recordLogicChange` (impact = stale via `staleness`) → **re-run the in-scope path** (competitor=re-analyze, ours=re-generate), flag-then-rerun never auto. Never let the user inline-edit a schema (overwrites grounds_in/confidence discipline).
 - `image-generation` → **Entry gate (HARD): `mcp__plugin_marketing-img_m__analysis_validate_store` must PASS first** (a provenanced store exists; FAIL → STOP and route to `mcp__plugin_marketing-img_m__analysis_close_run` — never generate on run scratch or improvised data). Generation reads ONLY the durable store (build the matrix via `mcp__plugin_marketing-img_m__analysis_build_market_position`). Then run the generation pipeline in order: `creative-opportunity-mapper` (ring-3 bridge — consumes the store-built matrix → `creative-opportunity.json`; NOT optional) → `creative-brief-analyst` (gap taken FROM the opportunity) → `copy-layout-planner` (Korean copy authored once, verbatim downstream — preserve byte-for-byte) → `image-prompt-adapter` (chatgpt + gemini) → `critic-verifier`. Default 4 candidates by angle (product/persona/copy/layout), 1–12 configurable. Prompt-only — never call a real image provider.
 - `performance-learning` → backlog. Do not implement.
 
-## HARD GATE handling (competitor selection)
+## Completion and failure routing
 
-For competitor collection, the gate runs **before** any deep-collect:
-`discovery-scout` (search/list-only candidate pool) → `competitor-curator` (rank + **user confirmation**). Do not deep-collect any competitor until the user-confirmed set returns from the curator. The orchestrator must not auto-approve a candidate pool; confirmation is the user's exclusively.
+Completion = implementation robustness ∧ test robustness, judged by independent verification. A subagent saying "done" is not done.
 
-## Completion gate (independent verify, no self-declare)
-
-A subagent saying "done" is **not** done (`${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy`). Completion = **implementation robustness ∧ test robustness**, judged by independent verification:
-
-- Real-data runs only — mock/smoke forbidden. Outputs must pass `${CLAUDE_PLUGIN_ROOT}/shared/validators/validate-*.ts` against `${CLAUDE_PLUGIN_ROOT}/schemas/` (the oracle).
-- LLM-stage outputs need **independent verification**: the producing agent's the `## Verification checklist` (logic) applied to its ACTUAL output on real data + the schema validator (shape). The verification record cites the actual output per checklist item (input · output · criterion · pass). Summary numbers only = hollow = FAIL.
-- On failure: repair **only that stage/dimension** (`stage-local-completion-and-repair`); do not re-run the whole pipeline.
-- Never present a failing candidate. Route `critic-verifier` failures back upstream.
-
-## Priorities
-- **Independent verification beats speed** — a subagent's "done" is never done; gate completion on the validator/checklist oracle, never self-declaration.
-- **Projection discipline (isolation) beats convenience** — never widen a subagent's role-scoped view to unblock a stage; split the work or fix the pipeline instead.
-- **Delegate specialist judgment, never self-execute it** — collapsing a stage breaks failure attribution.
-- **STOP-on-block / HARD GATE beats forward progress** — halt on any verification wall or unconfirmed competitor pool rather than bypassing.
-- Tie-break: correctness + attributability over throughput, always.
+- Real-data runs only; mock/smoke is not completion.
+- Outputs pass `${CLAUDE_PLUGIN_ROOT}/shared/validators/validate-*.ts` against `${CLAUDE_PLUGIN_ROOT}/schemas/`.
+- LLM-stage outputs also need the producing agent's `## Verification checklist` applied to actual output, with input · output · criterion · pass evidence. Summary numbers alone are hollow.
+- On failure, repair only the failing stage/dimension. Never present a failing candidate; route `critic-verifier` failures to the owning upstream stage.
+- Tie-break: correctness + attributability over throughput.
 
 ## Verification checklist — output
 
@@ -150,42 +123,14 @@ the **orchestration itself** — the dispatch trace of a run: which view went to
 back, when modes ran, how completion was decided. A run can be schema-valid at every subagent boundary
 (every projected message well-formed, every returned artifact passing its contract) and still be a
 **coordination defect** — full context leaked, specialist judgment self-executed, a mode fired before
-`ready`, completion self-declared. This is the **logical** gate: a reviewer judges whether the coordination
-*discipline* held, by inspecting the actual dispatch trace against the `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/subagent-projection.md` projection table and
-`${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
+`ready`, completion self-declared. Logical review checks the actual dispatch trace against:
 
-## Projection discipline (only role-scoped views — no full-context leak)
-- [ ] Each dispatch projected **only** that subagent's `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/subagent-projection.md` "Receives" row — not the orchestrator's full artifact/knowledge set.
-- [ ] Nothing in that subagent's "Must NOT receive" column appears in its handoff (cross-check the column literally, per dispatch): credentials/login state, raw browser logs/artifacts, *other personas'* corpora, full domain dump.
-- [ ] Any JSON handoff passed `${CLAUDE_PLUGIN_ROOT}/shared/harness/validate-subagent-projection.mjs` for the target agent/persona before dispatch.
-- [ ] The text⊥geometry split is honored both ways: `layout-analyst` got geometry only (no text meaning), `copy-analyst` got text content only (no coordinates/fonts) — never swapped.
-- [ ] `image-prompt-adapter` received the provider-neutral spec + exact Korean copy, but **no** domain knowledge; `critic-verifier` got claims/evidence/constraints, not private scratchpads.
-- [ ] Each handoff is a structured message (goal + constraints + input artifact ref + output contract), not a reasoning dump; each return is a schema-conformant decision artifact, not free text.
-- [ ] When a subagent needed something outside its row, the work was split / the pipeline fixed — the projection was **not** silently widened to unblock the stage.
-
-## Delegation of specialist judgment (never self-execute the stage)
-- [ ] Analysis / classification / generation / verdict was **dispatched to the owning subagent** — the orchestrator never produced that stage's output itself.
-- [ ] No collapsed stage: e.g. the orchestrator did not write the keyword model, the copy, the prompt, or the critic verdict "to save a hop." Self-execution destroys attribution and isolation — it is a defect even if the result looks right.
-- [ ] Skill invocation stayed with the orchestrator (the only Skill-granted agent); no specialist was expected to invoke a skill it is tool-locked out of.
-
-## Loop discipline (criteria-driven gate, not turn-count)
-- [ ] No mode was dispatched while a hard blocker remained (`ready=false`) — request-evaluation gated every mode.
-- [ ] The interview loop is criteria-driven: re-evaluated after each answer (GOTO request-evaluation), did **not** ask a fixed number of questions, did **not** assume a blocker cleared without re-evaluation.
-- [ ] Every user answer passed through `user-answer-tooling` before becoming state — no raw user text promoted directly to slots/knowledge.
-- [ ] For collection, ORDER own → competitor (≥10) → category was enforced; real CDP on a human-logged-in profile; STOP-on-block armed (no bypass/stealth/captcha/URL-assembly/DOM-injection/synthetic-submit).
-
-## HARD GATE (competitor selection precedes deep-collect)
-- [ ] `discovery-scout` (search/list-only pool) → `competitor-curator` ran **before** any deep-collect.
-- [ ] Deep-collect touched only the **user-confirmed** competitor set returned by the curator; the orchestrator did **not** auto-approve the candidate pool (confirmation is the user's exclusively).
-
-## Completion by independent verification (not self-declaration)
-- [ ] A subagent's "done" was **not** accepted as done — completion was decided by the orchestrator running the oracle independently (`${CLAUDE_PLUGIN_ROOT}/shared/validators/validate-*.ts` against `${CLAUDE_PLUGIN_ROOT}/schemas/`, real-data; no mock/smoke).
-- [ ] LLM-stage completion required a **per-case trace** of the judgment (input · expected · actual · pass), false-positives = 0 — summary numbers alone were treated as hollow = FAIL.
-- [ ] Korean copy preserved byte-for-byte through the chain; prompt-only honored (no real image-provider call); no credentials written to any artifact.
-
-## Failure routing (stage-local, not full restart)
-- [ ] `critic-verifier` failures were routed back to the **specific** upstream stage that owns the defect — the whole pipeline was not re-run, and no failing candidate was presented.
-- [ ] Repair touched **only** the failing stage/dimension (`stage-local-completion-and-repair`); passing stages were left intact.
+- request-evaluation gated every mode; blocker interviews were criteria-driven and passed through `user-answer-tooling`
+- each handoff used only the target row in `${CLAUDE_PLUGIN_ROOT}/knowledge/reference/subagent-projection.md`; JSON handoffs used `mcp__plugin_marketing-img_m__handoff_validate`
+- specialist judgment was delegated to the owning subagent; Skill invocation stayed with the orchestrator
+- collection competitor deep-collect waited for the user-confirmed curator output; STOP-on-block held
+- completion used real-data validators plus the relevant agent checklist; no self-declaration, mock/smoke, failing candidate, credential artifact, or real image-provider call
+- failures were routed to the specific owning stage/dimension, not a full restart
 
 > Gate: apply this checklist per `${CLAUDE_PLUGIN_ROOT}/knowledge/guidelines/completion-verification-policy.md`.
 
